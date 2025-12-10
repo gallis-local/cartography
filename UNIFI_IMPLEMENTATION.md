@@ -7,7 +7,7 @@ The UniFi module has been **migrated to use aiounifi** (v81+), an actively maint
 ### Architecture
 
 **Components:**
-- `cartography/models/unifi/` - Data models for UnifiSite, UnifiDevice, UnifiWlan, UnifiPort, and UnifiClient nodes
+- `cartography/models/unifi/` - Data models for all UniFi node types
 - `cartography/intel/unifi/` - Async intel modules for syncing all UniFi objects
 - `tests/data/unifi/` - Test fixtures with sample data
 - `tests/integration/cartography/intel/unifi/` - Async integration tests
@@ -15,10 +15,29 @@ The UniFi module has been **migrated to use aiounifi** (v81+), an actively maint
 
 **Graph Schema:**
 ```
+Infrastructure:
 (UnifiDevice)-[:RESOURCE]->(UnifiSite)
 (UnifiWlan)-[:RESOURCE]->(UnifiSite)
 (UnifiPort)-[:HAS_PORT]->(UnifiDevice)
 (UnifiClient)-[:RESOURCE]->(UnifiDevice)
+(UnifiSystemInfo)-[:RESOURCE]->(UnifiSite)
+
+Network Configuration:
+(UnifiPortForward)-[:RESOURCE]->(UnifiSite)
+(UnifiTrafficRule)-[:RESOURCE]->(UnifiSite)
+(UnifiTrafficRoute)-[:RESOURCE]->(UnifiSite)
+
+DPI (Deep Packet Inspection):
+(UnifiDPIGroup)-[:RESOURCE]->(UnifiSite)
+(UnifiDPIApp)-[:RESOURCE]->(UnifiSite)
+(UnifiDPIApp)-[:MEMBER_OF]->(UnifiDPIGroup)
+
+Security:
+(UnifiFirewallPolicy)-[:RESOURCE]->(UnifiSite)
+(UnifiFirewallZone)-[:RESOURCE]->(UnifiSite)
+
+Guest Access:
+(UnifiVoucher)-[:RESOURCE]->(UnifiSite)
 ```
 
 ## Library Migration Complete ✅
@@ -60,6 +79,8 @@ async def _sync_unifi(...):
 
 ### Key Features
 
+#### Infrastructure Tracking
+
 1. **Site Tracking**: Discovers and tracks UniFi sites
    - Multi-site deployments
    - Site descriptions and roles
@@ -89,15 +110,68 @@ async def _sync_unifi(...):
    - Connection quality metrics (satisfaction score)
    - Device associations
 
-6. **Relationship Mapping**:
-   - `(UnifiDevice)-[:RESOURCE]->(UnifiSite)`
-   - `(UnifiWlan)-[:RESOURCE]->(UnifiSite)`
-   - `(UnifiPort)-[:HAS_PORT]->(UnifiDevice)`
-   - `(UnifiClient)-[:RESOURCE]->(UnifiDevice)`
+#### Network Configuration
 
-7. **Automatic Cleanup**: Removes stale nodes based on update tags
+6. **Port Forwarding**: Tracks NAT port forwarding rules
+   - Forward external ports to internal IPs
+   - Protocol specifications (TCP/UDP)
+   - Source restrictions
+   - Enable/disable states
 
-8. **Proper Resource Management**: Always closes connections via context management
+7. **Traffic Rules**: Monitors QoS and traffic management
+   - Bandwidth limiting
+   - Traffic blocking/allowing
+   - Target matching (Internet, IP, Region)
+   - Action specifications
+
+8. **Traffic Routes**: Static routing configurations
+   - Custom network routes
+   - Next-hop specifications
+   - Route matching targets
+
+#### Security & DPI
+
+9. **DPI Groups**: Deep Packet Inspection groupings
+   - Application category groups
+   - Default and custom groups
+   - Group membership tracking
+
+10. **DPI Apps**: Application-level restrictions
+    - Block/allow specific applications
+    - Logging configuration
+    - Group assignments
+
+11. **Firewall Policies**: Network security policies
+    - Allow/deny rules
+    - Protocol-specific policies
+    - Connection state tracking
+    - Policy ordering and priorities
+
+12. **Firewall Zones**: Network segmentation and zone-based security
+    - Zone definitions (LAN, WAN, Guest, etc.)
+    - Network assignments to zones
+    - Default zone configuration
+    - Zone-based firewall rules
+
+13. **System Information**: Controller metadata and inventory
+    - Controller identification and versioning
+    - Hostname and IP addresses
+    - Update availability tracking
+    - Cloud vs. self-hosted detection
+    - Device type identification
+
+14. **Vouchers**: Guest network access codes
+    - Hotspot voucher generation
+    - Usage tracking and quotas
+    - Bandwidth limits (QoS)
+    - Time-based expiration
+    - Multi-use voucher support
+
+#### System Features
+
+15. **Relationship Mapping**: Comprehensive graph connections
+16. **Automatic Cleanup**: Removes stale nodes based on update tags
+17. **Proper Resource Management**: Always closes connections via context management
 
 ## Usage
 
@@ -175,6 +249,8 @@ All tests use `@pytest.mark.asyncio` and `AsyncMock` for proper async testing.
 
 After sync, query the graph:
 
+### Infrastructure Queries
+
 ```cypher
 // Find all UniFi sites
 MATCH (s:UnifiSite)
@@ -243,11 +319,175 @@ MATCH (p:UnifiPort)-[:HAS_PORT]->(d:UnifiDevice)<-[:RESOURCE]-(c:UnifiClient)
 WHERE p.up = true AND c.is_wired = true
 RETURN d.name as switch, p.name as port, count(c) as client_count
 ORDER BY client_count DESC
+```
+
+### Network Configuration Queries
+
+```cypher
+// Find all port forwarding rules
+MATCH (pf:UnifiPortForward)-[:RESOURCE]->(s:UnifiSite)
+RETURN pf.name, pf.enabled, pf.destination_port, pf.forward_ip, pf.forward_port, pf.protocol
+ORDER BY pf.name
+
+// Find enabled port forwards on WAN interface
+MATCH (pf:UnifiPortForward)
+WHERE pf.enabled = true AND pf.interface = 'wan'
+RETURN pf.name, pf.destination_port, pf.forward_ip, pf.protocol
+
+// Security audit: Find port forwards with unrestricted source
+MATCH (pf:UnifiPortForward)
+WHERE pf.source = 'any' AND pf.enabled = true
+RETURN pf.name, pf.destination_port, pf.forward_ip, pf.protocol
+
+// Find all traffic rules
+MATCH (tr:UnifiTrafficRule)-[:RESOURCE]->(s:UnifiSite)
+RETURN tr.description, tr.enabled, tr.action, tr.matching_target
+ORDER BY tr.description
+
+// Find traffic rules with bandwidth limits
+MATCH (tr:UnifiTrafficRule)
+WHERE tr.bandwidth_limit_enabled = true
+RETURN tr.description, tr.download_limit_kbps, tr.upload_limit_kbps
+
+// Find blocking traffic rules
+MATCH (tr:UnifiTrafficRule)
+WHERE tr.action = 'BLOCK' AND tr.enabled = true
+RETURN tr.description, tr.matching_target
+
+// Find all traffic routes
+MATCH (route:UnifiTrafficRoute)-[:RESOURCE]->(s:UnifiSite)
+RETURN route.description, route.enabled, route.next_hop, route.matching_target
+ORDER BY route.description
+```
+
+### Security & DPI Queries
+
+```cypher
+// Find all DPI groups and their apps
+MATCH (app:UnifiDPIApp)-[:MEMBER_OF]->(group:UnifiDPIGroup)
+RETURN group.name, count(app) as app_count, collect(app.id) as apps
+ORDER BY app_count DESC
+
+// Find blocked DPI apps
+MATCH (app:UnifiDPIApp)
+WHERE app.blocked = true AND app.enabled = true
+RETURN app.id, app.log
+
+// Find DPI groups with apps
+MATCH (group:UnifiDPIGroup)<-[:MEMBER_OF]-(app:UnifiDPIApp)
+RETURN group.name, collect(app.id) as apps
+
+// Find all firewall policies
+MATCH (fp:UnifiFirewallPolicy)-[:RESOURCE]->(s:UnifiSite)
+RETURN fp.name, fp.action, fp.enabled, fp.protocol, fp.index
+ORDER BY fp.index
+
+// Find deny firewall policies with logging enabled
+MATCH (fp:UnifiFirewallPolicy)
+WHERE fp.action = 'DENY' AND fp.logging = true
+RETURN fp.name, fp.description, fp.protocol
+
+// Find predefined vs custom firewall policies
+MATCH (fp:UnifiFirewallPolicy)
+RETURN fp.predefined, count(fp) as count
 
 // Security audit: Find open guest networks
 MATCH (w:UnifiWlan)
 WHERE w.is_guest = true AND w.security = 'open'
 RETURN w.name, w.enabled, w.hide_ssid
+
+// Find all firewall zones and their networks
+MATCH (fz:UnifiFirewallZone)-[:RESOURCE]->(s:UnifiSite)
+RETURN fz.name, fz.zone_key, fz.network_ids, fz.default_zone
+ORDER BY fz.name
+
+// Find zone-based security configuration
+MATCH (fz:UnifiFirewallZone)
+WHERE fz.default_zone = false
+RETURN fz.name, fz.zone_key, fz.attr_no_edit
+```
+
+### System & Controller Queries
+
+```cypher
+// Find controller system information
+MATCH (si:UnifiSystemInfo)-[:RESOURCE]->(s:UnifiSite)
+RETURN si.hostname, si.version, si.update_available, si.is_cloud_console, si.ip_addrs
+ORDER BY si.hostname
+
+// Check for available updates
+MATCH (si:UnifiSystemInfo)
+WHERE si.update_available = true
+RETURN si.hostname, si.version, si.name
+
+// Find cloud vs self-hosted controllers
+MATCH (si:UnifiSystemInfo)
+RETURN si.is_cloud_console, count(*) as count
+
+// Get controller network configuration
+MATCH (si:UnifiSystemInfo)
+RETURN si.hostname, si.ip_addrs, si.ubnt_device_type
+```
+
+### Guest Network & Voucher Queries
+
+```cypher
+// Find all active vouchers
+MATCH (v:UnifiVoucher)-[:RESOURCE]->(s:UnifiSite)
+RETURN v.code, v.quota, v.duration, v.used, v.status, s.name as site
+ORDER BY v.create_time DESC
+
+// Find unused vouchers
+MATCH (v:UnifiVoucher)
+WHERE v.used = 0 AND v.status = 'VALID_ONE'
+RETURN v.code, v.quota, v.duration, v.qos_usage_quota
+
+// Find vouchers with bandwidth limits
+MATCH (v:UnifiVoucher)
+WHERE v.qos_rate_max_up IS NOT NULL OR v.qos_rate_max_down IS NOT NULL
+RETURN v.code, v.qos_rate_max_up, v.qos_rate_max_down, v.qos_usage_quota
+
+// Find multi-use vouchers
+MATCH (v:UnifiVoucher)
+WHERE v.quota > 1
+RETURN v.code, v.quota, v.used, v.status
+
+// Find expired or used vouchers
+MATCH (v:UnifiVoucher)
+WHERE v.status <> 'VALID_ONE' OR v.used >= v.quota
+RETURN v.code, v.used, v.quota, v.status
+
+// Guest access overview by site
+MATCH (s:UnifiSite)
+OPTIONAL MATCH (s)<-[:RESOURCE]-(v:UnifiVoucher)
+OPTIONAL MATCH (s)<-[:RESOURCE]-(w:UnifiWlan {is_guest: true})
+RETURN 
+  s.name as site,
+  count(DISTINCT v) as total_vouchers,
+  count(DISTINCT CASE WHEN v.used = 0 THEN v END) as unused_vouchers,
+  count(DISTINCT w) as guest_networks
+```
+
+### Comprehensive Security Analysis
+
+```cypher
+// Complete security overview for a site
+MATCH (s:UnifiSite {name: 'Default'})
+OPTIONAL MATCH (s)<-[:RESOURCE]-(pf:UnifiPortForward)
+OPTIONAL MATCH (s)<-[:RESOURCE]-(fw:UnifiFirewallPolicy {enabled: true})
+OPTIONAL MATCH (s)<-[:RESOURCE]-(w:UnifiWlan {is_guest: true})
+RETURN 
+  s.name as site,
+  count(DISTINCT pf) as port_forwards,
+  count(DISTINCT fw) as active_firewall_policies,
+  count(DISTINCT w) as guest_networks
+
+// Find potential security issues
+MATCH (pf:UnifiPortForward {enabled: true, source: 'any'}),
+      (w:UnifiWlan {is_guest: true, security: 'open'})
+RETURN 
+  'Unrestricted port forwards: ' + count(DISTINCT pf) as finding1,
+  'Open guest networks: ' + count(DISTINCT w) as finding2
 ```
 
 ## Security Considerations
@@ -279,11 +519,17 @@ RETURN w.name, w.enabled, w.hide_ssid
 - ✅ Port configurations on switches (implemented)
 - ✅ WLAN/network configurations (implemented)
 - ✅ Site information and hierarchies (implemented)
-- DPI (Deep Packet Inspection) stats
+- ✅ Port forwarding rules (implemented)
+- ✅ Traffic rules and QoS (implemented)
+- ✅ Traffic routes (implemented)
+- ✅ DPI groups and apps (implemented)
+- ✅ Firewall policies (implemented)
+- DPI statistics and usage data
 - Historical connection data
-- Firewall rules
 - VLANs and network segments
 - RADIUS server configurations
+- VPN configurations
+- Firewall zones
 
 ### Advanced Features
 - Track roaming events
@@ -412,7 +658,52 @@ The current implementation is **production-ready** with:
 
 ## Changelog
 
-### v2.1 - Expanded Object Support (Current)
+### v2.3 - Security Zones, Guest Access & System Tracking (Current)
+- ✅ Added Firewall Zone tracking
+  - Zone definitions (LAN, WAN, Guest, etc.)
+  - Network assignments to zones
+  - Default zone configuration
+  - Zone-based security analysis
+- ✅ Added Voucher tracking
+  - Guest network hotspot vouchers
+  - Usage tracking and quotas
+  - QoS bandwidth limits
+  - Time-based expiration
+  - Multi-use voucher support
+- ✅ Added System Information tracking
+  - Controller identification and versioning
+  - Hostname and IP addresses
+  - Update availability detection
+  - Cloud vs. self-hosted detection
+  - Device type identification
+- ✅ Comprehensive test coverage for new objects (38+ tests total)
+- ✅ Extended documentation with zone, voucher, and system queries
+
+### v2.2 - Network Configuration & Security
+- ✅ Added Port Forward tracking
+  - NAT rules and port mappings
+  - Protocol and interface specifications
+  - Source restrictions
+- ✅ Added Traffic Rule tracking
+  - QoS and bandwidth limiting
+  - Block/allow actions
+  - Target device matching
+- ✅ Added Traffic Route tracking
+  - Static route configurations
+  - Next-hop specifications
+- ✅ Added DPI (Deep Packet Inspection) support
+  - DPI Groups for organization
+  - DPI Apps for application-level restrictions
+  - Group membership relationships
+- ✅ Added Firewall Policy tracking
+  - Allow/deny rules
+  - Protocol-specific policies
+  - Connection state tracking
+  - Policy priorities
+- ✅ Comprehensive test coverage for all new objects (30+ tests total)
+- ✅ Extended documentation with security-focused queries
+
+### v2.1 - Expanded Object Support
 - ✅ Added UniFi Site tracking and site hierarchy
 - ✅ Added WLAN (wireless network) configuration tracking
 - ✅ Added switch Port tracking with PoE and connectivity details
