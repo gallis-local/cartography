@@ -7,14 +7,17 @@ The UniFi module has been **migrated to use aiounifi** (v81+), an actively maint
 ### Architecture
 
 **Components:**
-- `cartography/models/unifi/` - Data models for UnifiDevice and UnifiClient nodes
-- `cartography/intel/unifi/` - Async intel modules for syncing devices and clients
+- `cartography/models/unifi/` - Data models for UnifiSite, UnifiDevice, UnifiWlan, UnifiPort, and UnifiClient nodes
+- `cartography/intel/unifi/` - Async intel modules for syncing all UniFi objects
 - `tests/data/unifi/` - Test fixtures with sample data
 - `tests/integration/cartography/intel/unifi/` - Async integration tests
 - `tests/unit/cartography/intel/unifi/` - Async unit tests
 
 **Graph Schema:**
 ```
+(UnifiDevice)-[:RESOURCE]->(UnifiSite)
+(UnifiWlan)-[:RESOURCE]->(UnifiSite)
+(UnifiPort)-[:HAS_PORT]->(UnifiDevice)
 (UnifiClient)-[:RESOURCE]->(UnifiDevice)
 ```
 
@@ -57,22 +60,44 @@ async def _sync_unifi(...):
 
 ### Key Features
 
-1. **Device Tracking**: Discovers and tracks UniFi network devices
+1. **Site Tracking**: Discovers and tracks UniFi sites
+   - Multi-site deployments
+   - Site descriptions and roles
+   - Organization hierarchy
+
+2. **Device Tracking**: Discovers and tracks UniFi network devices
    - Access Points (UAPs)
    - Switches (USW)
    - Other adopted devices
+   - Device-to-site relationships
 
-2. **Client Tracking**: Monitors connected clients
+3. **WLAN Tracking**: Monitors wireless network configurations
+   - SSID configurations
+   - Security settings (WPA2, WPA3, Open)
+   - Guest vs. corporate networks
+   - Hidden SSIDs and MAC filtering
+
+4. **Port Tracking**: Tracks switch port configurations
+   - PoE capabilities and status
+   - Port speeds and duplex settings
+   - Connectivity status
+   - Port profiles
+
+5. **Client Tracking**: Monitors connected clients
    - Wireless and wired clients
    - Guest vs. regular clients
    - Connection quality metrics (satisfaction score)
    - Device associations
 
-3. **Relationship Mapping**: `(UnifiClient)-[:RESOURCE]->(UnifiDevice)`
+6. **Relationship Mapping**:
+   - `(UnifiDevice)-[:RESOURCE]->(UnifiSite)`
+   - `(UnifiWlan)-[:RESOURCE]->(UnifiSite)`
+   - `(UnifiPort)-[:HAS_PORT]->(UnifiDevice)`
+   - `(UnifiClient)-[:RESOURCE]->(UnifiDevice)`
 
-4. **Automatic Cleanup**: Removes stale nodes based on update tags
+7. **Automatic Cleanup**: Removes stale nodes based on update tags
 
-5. **Proper Resource Management**: Always closes connections via context management
+8. **Proper Resource Management**: Always closes connections via context management
 
 ## Usage
 
@@ -105,12 +130,30 @@ cartography \
 
 ## Test Coverage ✅
 
-### Integration Tests (10 tests)
+### Integration Tests (20+ tests)
+
+**Site Tests:**
+- ✅ Site loading verification
+- ✅ Site property validation
+- ✅ Stale site cleanup
 
 **Device Tests:**
 - ✅ Device loading verification
 - ✅ Device property validation
+- ✅ Device-to-site relationship mapping
 - ✅ Stale device cleanup
+
+**WLAN Tests:**
+- ✅ WLAN loading verification
+- ✅ WLAN property validation (security, guest mode)
+- ✅ WLAN-to-site relationship mapping
+- ✅ Stale WLAN cleanup
+
+**Port Tests:**
+- ✅ Port loading verification
+- ✅ Port property validation (PoE, connectivity)
+- ✅ Port-to-device relationship mapping
+- ✅ Stale port cleanup
 
 **Client Tests:**
 - ✅ Client loading verification
@@ -133,6 +176,35 @@ All tests use `@pytest.mark.asyncio` and `AsyncMock` for proper async testing.
 After sync, query the graph:
 
 ```cypher
+// Find all UniFi sites
+MATCH (s:UnifiSite)
+RETURN s.name, s.desc, s.role
+
+// Find all devices in a site
+MATCH (d:UnifiDevice)-[:RESOURCE]->(s:UnifiSite)
+RETURN s.name as site, d.name as device, d.type, d.model
+ORDER BY s.name, d.name
+
+// Find all WLANs in a site
+MATCH (w:UnifiWlan)-[:RESOURCE]->(s:UnifiSite)
+RETURN s.name as site, w.name as wlan, w.security, w.is_guest
+ORDER BY s.name, w.name
+
+// Find all guest networks
+MATCH (w:UnifiWlan {is_guest: true})
+RETURN w.name, w.security, w.enabled
+
+// Find switch ports with PoE enabled
+MATCH (p:UnifiPort)-[:HAS_PORT]->(d:UnifiDevice)
+WHERE p.poe_enable = true
+RETURN d.name as switch, p.name as port, p.poe_mode, p.poe_voltage, p.up
+ORDER BY d.name, p.port_idx
+
+// Find all ports on a specific device
+MATCH (p:UnifiPort)-[:HAS_PORT]->(d:UnifiDevice {name: 'Main Switch'})
+RETURN p.name, p.port_idx, p.up, p.speed, p.poe_enable
+ORDER BY p.port_idx
+
 // Find all UniFi devices
 MATCH (d:UnifiDevice)
 RETURN d.name, d.model, d.type, d.adopted
@@ -162,9 +234,20 @@ MATCH (d:UnifiDevice)
 WHERE d.type = 'uap'  // Access Points
 RETURN d.name, d.model, d.adopted
 
-// Network topology - All connections
-MATCH path = (c:UnifiClient)-[:RESOURCE]->(d:UnifiDevice)
+// Network topology - Full hierarchy
+MATCH path = (c:UnifiClient)-[:RESOURCE]->(d:UnifiDevice)-[:RESOURCE]->(s:UnifiSite)
 RETURN path
+
+// Find all active ports with clients potentially connected
+MATCH (p:UnifiPort)-[:HAS_PORT]->(d:UnifiDevice)<-[:RESOURCE]-(c:UnifiClient)
+WHERE p.up = true AND c.is_wired = true
+RETURN d.name as switch, p.name as port, count(c) as client_count
+ORDER BY client_count DESC
+
+// Security audit: Find open guest networks
+MATCH (w:UnifiWlan)
+WHERE w.is_guest = true AND w.security = 'open'
+RETURN w.name, w.enabled, w.hide_ssid
 ```
 
 ## Security Considerations
@@ -193,12 +276,14 @@ RETURN path
 ## Future Enhancements
 
 ### Additional Data
-- Port configurations on switches
-- WLAN/network configurations
-- Site information and hierarchies
+- ✅ Port configurations on switches (implemented)
+- ✅ WLAN/network configurations (implemented)
+- ✅ Site information and hierarchies (implemented)
 - DPI (Deep Packet Inspection) stats
 - Historical connection data
 - Firewall rules
+- VLANs and network segments
+- RADIUS server configurations
 
 ### Advanced Features
 - Track roaming events
@@ -327,7 +412,19 @@ The current implementation is **production-ready** with:
 
 ## Changelog
 
-### v2.0 - aiounifi Migration (Current)
+### v2.1 - Expanded Object Support (Current)
+- ✅ Added UniFi Site tracking and site hierarchy
+- ✅ Added WLAN (wireless network) configuration tracking
+- ✅ Added switch Port tracking with PoE and connectivity details
+- ✅ Implemented hierarchical data model:
+  - Sites contain Devices and WLANs
+  - Devices have Ports
+  - Clients connect to Devices
+- ✅ Added comprehensive test coverage for new objects (20+ tests)
+- ✅ Updated documentation with new queries and examples
+- ✅ Hierarchical sync order for data integrity
+
+### v2.0 - aiounifi Migration
 - ✅ Migrated from unificontrol to aiounifi
 - ✅ Implemented async/await patterns
 - ✅ Added proper connection management
