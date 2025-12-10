@@ -5,6 +5,9 @@ import neo4j
 
 import cartography.intel.unifi.clients
 import cartography.intel.unifi.devices
+import cartography.intel.unifi.ports
+import cartography.intel.unifi.sites
+import cartography.intel.unifi.wlans
 from cartography.config import Config
 from cartography.intel.unifi.util import close_controller
 from cartography.intel.unifi.util import create_unifi_controller
@@ -49,13 +52,43 @@ async def _sync_unifi(
             "UPDATE_TAG": update_tag,
         }
 
-        # Sync devices first, then clients (since clients reference devices)
-        await cartography.intel.unifi.devices.sync(
+        # Get the site ID from the controller
+        await controller.sites.update()
+        # The site_id is available from controller config after connection
+        site_id = controller.connectivity.site_id
+
+        # Sync in hierarchical order:
+        # 1. Sites (top level organization)
+        await cartography.intel.unifi.sites.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
+        # 2. Devices (belong to sites)
+        await cartography.intel.unifi.devices.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 3. WLANs (belong to sites, broadcast by devices)
+        await cartography.intel.unifi.wlans.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 4. Ports (belong to devices)
+        await cartography.intel.unifi.ports.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
+
+        # 5. Clients (connect to devices and WLANs)
         await cartography.intel.unifi.clients.sync(
             neo4j_session,
             controller,
