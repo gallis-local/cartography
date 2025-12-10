@@ -129,3 +129,221 @@ UNIFI_CLIENTS = [
         "ap_mac": "AA:BB:CC:DD:EE:FF",
     },
 ]
+
+# Test data for UniFi port forwards
+UNIFI_PORT_FORWARDS = [
+    {
+        "id": "pf_001",
+        "name": "Web Server",
+        "enabled": True,
+        "destination_port": "80",
+        "forward_port": "8080",
+        "forward_ip": "192.168.1.50",
+        "protocol": "tcp",
+        "interface": "wan",
+        "source": "any",
+        "site_id": "default",
+    },
+    {
+        "id": "pf_002",
+        "name": "SSH Server",
+        "enabled": False,
+        "destination_port": "22",
+        "forward_port": "2222",
+        "forward_ip": "192.168.1.51",
+        "protocol": "tcp",
+        "interface": "wan",
+        "source": "192.168.1.0/24",
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi traffic rules
+UNIFI_TRAFFIC_RULES = [
+    {
+        "id": "tr_001",
+        "description": "Block Social Media",
+        "enabled": True,
+        "action": "BLOCK",
+        "matching_target": "INTERNET",
+        "bandwidth_limit_enabled": False,
+        "download_limit_kbps": None,
+        "upload_limit_kbps": None,
+        "site_id": "default",
+    },
+    {
+        "id": "tr_002",
+        "description": "Limit Guest Bandwidth",
+        "enabled": True,
+        "action": "ALLOW",
+        "matching_target": "INTERNET",
+        "bandwidth_limit_enabled": True,
+        "download_limit_kbps": 10240,
+        "upload_limit_kbps": 2048,
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi traffic routes
+UNIFI_TRAFFIC_ROUTES = [
+    {
+        "id": "route_001",
+        "description": "VPN Route",
+        "enabled": True,
+        "matching_target": "IP",
+        "network_id": "network_001",
+        "next_hop": "192.168.1.1",
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi DPI groups
+UNIFI_DPI_GROUPS = [
+    {
+        "id": "dpi_group_001",
+        "name": "Restricted Apps",
+        "attr_no_delete": False,
+        "attr_hidden_id": "",
+        "site_id": "default",
+    },
+    {
+        "id": "dpi_group_002",
+        "name": "Default",
+        "attr_no_delete": True,
+        "attr_hidden_id": "Default",
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi DPI apps
+UNIFI_DPI_APPS = [
+    {
+        "id": "dpi_app_001",
+        "blocked": True,
+        "enabled": True,
+        "log": True,
+        "site_id": "default",
+        "dpi_group_ids": ["dpi_group_001"],
+    },
+    {
+        "id": "dpi_app_002",
+        "blocked": False,
+        "enabled": True,
+        "log": False,
+        "site_id": "default",
+        "dpi_group_ids": None,
+    },
+]
+
+# Test data for UniFi firewall policies
+UNIFI_FIREWALL_POLICIES = [
+    {
+        "id": "fw_policy_001",
+        "name": "Allow LAN to WAN",
+        "description": "Allow all LAN traffic to WAN",
+        "enabled": True,
+        "action": "ALLOW",
+        "protocol": "all",
+        "predefined": False,
+        "index": 1,
+        "connection_state_type": "ALL",
+        "logging": False,
+        "site_id": "default",
+    },
+    {
+        "id": "fw_policy_002",
+        "name": "Block Guest to LAN",
+        "description": "Prevent guest network from accessing LAN",
+        "enabled": True,
+        "action": "DENY",
+        "protocol": "all",
+        "predefined": False,
+        "index": 2,
+        "connection_state_type": "NEW",
+        "logging": True,
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi firewall zones
+UNIFI_FIREWALL_ZONES = [
+    {
+        "id": "fw_zone_001",
+        "name": "LAN",
+        "attr_no_edit": True,
+        "default_zone": True,
+        "zone_key": "lan",
+        "network_ids": ["network_001", "network_002"],
+        "site_id": "default",
+    },
+    {
+        "id": "fw_zone_002",
+        "name": "WAN",
+        "attr_no_edit": True,
+        "default_zone": True,
+        "zone_key": "wan",
+        "network_ids": ["network_wan"],
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi vouchers
+UNIFI_VOUCHERS = [
+    {
+        "id": "voucher_001",
+        "code": "12345-67890",
+        "note": "Conference attendees",
+        "quota": 100,
+        "duration": 480,
+        "qos_overwrite": True,
+        "qos_usage_quota": 1024,
+        "qos_rate_max_up": 5000,
+        "qos_rate_max_down": 10000,
+        "used": 15,
+        "create_time": 1638342818,
+        "start_time": 1638342900,
+        "end_time": 1638371700,
+        "for_hotspot": False,
+        "admin_name": "admin",
+        "status": "VALID_MULTI",
+        "status_expires": 1640934818,
+        "site_id": "default",
+    },
+    {
+        "id": "voucher_002",
+        "code": "98765-43210",
+        "note": "Guest WiFi",
+        "quota": 0,
+        "duration": 1440,
+        "qos_overwrite": False,
+        "qos_usage_quota": None,
+        "qos_rate_max_up": None,
+        "qos_rate_max_down": None,
+        "used": 2,
+        "create_time": 1638428818,
+        "start_time": None,
+        "end_time": None,
+        "for_hotspot": True,
+        "admin_name": "admin",
+        "status": "USED_MULTIPLE",
+        "status_expires": None,
+        "site_id": "default",
+    },
+]
+
+# Test data for UniFi system information
+UNIFI_SYSTEM_INFO = [
+    {
+        "id": "controller_001",
+        "anonymous_controller_id": "24f81231-a456-4c32-abcd-f5612345385f",
+        "hostname": "unifi-controller",
+        "name": "UniFi Controller",
+        "version": "7.4.162",
+        "previous_version": "7.3.83",
+        "update_available": True,
+        "ip_addrs": ["192.168.1.1", "10.0.0.1"],
+        "is_cloud_console": False,
+        "ubnt_device_type": "UDM-Pro",
+        "site_id": "default",
+    },
+]
