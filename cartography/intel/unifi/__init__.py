@@ -5,8 +5,17 @@ import neo4j
 
 import cartography.intel.unifi.clients
 import cartography.intel.unifi.devices
+import cartography.intel.unifi.dpi_apps
+import cartography.intel.unifi.dpi_groups
+import cartography.intel.unifi.firewall_policies
+import cartography.intel.unifi.firewall_zones
+import cartography.intel.unifi.port_forwards
 import cartography.intel.unifi.ports
 import cartography.intel.unifi.sites
+import cartography.intel.unifi.system_info
+import cartography.intel.unifi.traffic_routes
+import cartography.intel.unifi.traffic_rules
+import cartography.intel.unifi.vouchers
 import cartography.intel.unifi.wlans
 from cartography.config import Config
 from cartography.intel.unifi.util import close_controller
@@ -92,6 +101,79 @@ async def _sync_unifi(
         await cartography.intel.unifi.clients.sync(
             neo4j_session,
             controller,
+            common_job_parameters,
+        )
+
+        # 6. Network configuration objects
+        # Port forwards
+        await cartography.intel.unifi.port_forwards.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # Traffic rules
+        await cartography.intel.unifi.traffic_rules.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # Traffic routes
+        await cartography.intel.unifi.traffic_routes.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 7. DPI (Deep Packet Inspection) objects
+        # DPI groups first, then apps
+        await cartography.intel.unifi.dpi_groups.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        await cartography.intel.unifi.dpi_apps.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 8. Firewall policies
+        await cartography.intel.unifi.firewall_policies.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 9. Firewall zones
+        await cartography.intel.unifi.firewall_zones.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 10. System information (controller metadata)
+        await cartography.intel.unifi.system_info.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 11. Vouchers (guest network access codes)
+        await cartography.intel.unifi.vouchers.sync(
+            neo4j_session,
+            controller,
+            site_id,
             common_job_parameters,
         )
 
