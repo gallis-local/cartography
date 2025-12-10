@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
-from unificontrol import UnifiClient
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -13,15 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get(client: UnifiClient) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi clients from the controller.
 
-    :param client: UnifiClient instance
+    :param controller: Controller instance
     :return: List of client data
     """
     logger.info("Fetching UniFi clients")
-    return client.list_clients()
+    await controller.clients.update()
+
+    # Convert aiounifi Client objects to dictionaries
+    clients = []
+    for client in controller.clients.values():
+        # Get the AP MAC address from the client's device association
+        ap_mac = getattr(client, "ap_mac", None) or getattr(client, "sw_mac", None)
+
+        clients.append(
+            {
+                "mac": client.mac,
+                "ip": getattr(client, "ip", None),
+                "is_guest": getattr(client, "is_guest", False),
+                "oui": getattr(client, "oui", None),
+                "satisfaction": getattr(client, "satisfaction", None),
+                "channel": getattr(client, "channel", None),
+                "radio": getattr(client, "radio", None),
+                "is_wired": getattr(client, "is_wired", False),
+                "qos_policy_applied": getattr(client, "qos_policy_applied", False),
+                "ap_mac": ap_mac,
+            }
+        )
+    return clients
 
 
 @timeit
@@ -62,20 +84,20 @@ def cleanup(
 
 
 @timeit
-def sync(
+async def sync(
     neo4j_session: neo4j.Session,
-    client: UnifiClient,
+    controller: Controller,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
     Sync UniFi clients.
 
     :param neo4j_session: Neo4j session
-    :param client: UnifiClient instance
+    :param controller: Controller instance
     :param common_job_parameters: Common job parameters
     :return: List of client data
     """
-    clients = get(client)
+    clients = await get(controller)
     load_clients(neo4j_session, clients, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
     return clients

@@ -216,6 +216,8 @@ class Config:
     :param unifi_password: Password for UniFi controller authentication. Optional.
     :type unifi_site: str
     :param unifi_site: UniFi site name (default is 'default'). Optional.
+    :type unifi_port: int
+    :param unifi_port: UniFi controller port (default is 8443). Optional.
     """
 
     def __init__(
@@ -326,6 +328,7 @@ class Config:
         unifi_user=None,
         unifi_password=None,
         unifi_site="default",
+        unifi_port=8443,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
@@ -435,3 +438,4 @@ class Config:
         self.unifi_user = unifi_user
         self.unifi_password = unifi_password
         self.unifi_site = unifi_site
+        self.unifi_port = unifi_port

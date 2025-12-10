@@ -986,6 +986,15 @@ class CLI:
                 "Optional. Only used if UniFi module is enabled."
             ),
         )
+        parser.add_argument(
+            "--unifi-port",
+            type=int,
+            default=8443,
+            help=(
+                "UniFi controller port (default: 8443). "
+                "Optional. Only used if UniFi module is enabled."
+            ),
+        )
 
         return parser
 

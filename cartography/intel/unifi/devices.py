@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
-from unificontrol import UnifiClient
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -13,15 +13,29 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get(client: UnifiClient) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi devices from the controller.
 
-    :param client: UnifiClient instance
+    :param controller: Controller instance
     :return: List of device data
     """
     logger.info("Fetching UniFi devices")
-    return client.list_devices_basic()
+    await controller.devices.update()
+
+    # Convert aiounifi Device objects to dictionaries
+    devices = []
+    for device in controller.devices.values():
+        devices.append(
+            {
+                "mac": device.mac,
+                "adopted": device.adopted,
+                "type": device.type,
+                "model": device.model,
+                "name": device.name or device.mac,  # Fallback to MAC if no name
+            }
+        )
+    return devices
 
 
 @timeit
@@ -62,20 +76,20 @@ def cleanup(
 
 
 @timeit
-def sync(
+async def sync(
     neo4j_session: neo4j.Session,
-    client: UnifiClient,
+    controller: Controller,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
     Sync UniFi devices.
 
     :param neo4j_session: Neo4j session
-    :param client: UnifiClient instance
+    :param controller: Controller instance
     :param common_job_parameters: Common job parameters
     :return: List of device data
     """
-    devices = get(client)
+    devices = await get(controller)
     load_devices(neo4j_session, devices, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
     return devices

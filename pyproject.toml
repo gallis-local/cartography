@@ -83,7 +83,7 @@ dependencies = [
     "google-cloud-asset>=1.0.0",
     "types-aiobotocore-ecr",
     "typer>=0.9.0",
-    "unificontrol>=0.3.3"
+    "aiounifi>=81"
 ]
 # Comes from Git tag
 dynamic = [ "version" ]
