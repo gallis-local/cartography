@@ -1,10 +1,11 @@
+import pytest
+from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import cartography.intel.unifi.devices
 import tests.data.unifi
 from tests.integration.util import check_nodes
-from tests.integration.util import check_rels
 
 TEST_UPDATE_TAG = 123456789
 
@@ -18,25 +19,27 @@ def _ensure_local_neo4j_has_test_devices(neo4j_session):
     )
 
 
+@pytest.mark.asyncio
 @patch.object(
     cartography.intel.unifi.devices,
     "get",
+    new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_DEVICES,
 )
-def test_load_unifi_devices(mock_get, neo4j_session):
+async def test_load_unifi_devices(mock_get, neo4j_session):
     """
     Ensure that UniFi devices actually get loaded.
     """
     # Arrange
-    mock_client = MagicMock()
+    mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
     }
 
     # Act
-    cartography.intel.unifi.devices.sync(
+    await cartography.intel.unifi.devices.sync(
         neo4j_session,
-        mock_client,
+        mock_controller,
         common_job_parameters,
     )
 
@@ -51,25 +54,27 @@ def test_load_unifi_devices(mock_get, neo4j_session):
     )
 
 
+@pytest.mark.asyncio
 @patch.object(
     cartography.intel.unifi.devices,
     "get",
+    new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_DEVICES,
 )
-def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
+async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     """
     Ensure that UniFi devices have all expected properties.
     """
     # Arrange
-    mock_client = MagicMock()
+    mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
     }
 
     # Act
-    cartography.intel.unifi.devices.sync(
+    await cartography.intel.unifi.devices.sync(
         neo4j_session,
-        mock_client,
+        mock_controller,
         common_job_parameters,
     )
 
@@ -87,12 +92,14 @@ def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     assert nodes[0]["type"] == "uap"
 
 
+@pytest.mark.asyncio
 @patch.object(
     cartography.intel.unifi.devices,
     "get",
+    new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_DEVICES,
 )
-def test_unifi_devices_cleanup(mock_get, neo4j_session):
+async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     """
     Ensure that stale UniFi devices are cleaned up.
     """
@@ -121,13 +128,13 @@ def test_unifi_devices_cleanup(mock_get, neo4j_session):
     )
 
     # Act - Sync with new update tag (stale device not in new data)
-    mock_client = MagicMock()
+    mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
     }
-    cartography.intel.unifi.devices.sync(
+    await cartography.intel.unifi.devices.sync(
         neo4j_session,
-        mock_client,
+        mock_controller,
         common_job_parameters,
     )
 

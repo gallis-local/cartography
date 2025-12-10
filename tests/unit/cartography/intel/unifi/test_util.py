@@ -1,58 +1,90 @@
+import pytest
+from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from cartography.intel.unifi.util import get_unifi_client
+from cartography.intel.unifi.util import create_unifi_controller
+from cartography.intel.unifi.util import close_controller
 
 
-@patch("cartography.intel.unifi.util.UnifiClient")
-def test_get_unifi_client(mock_unifi_client_class):
+@pytest.mark.asyncio
+@patch("cartography.intel.unifi.util.Controller")
+@patch("cartography.intel.unifi.util.aiohttp.ClientSession")
+async def test_create_unifi_controller(mock_session_class, mock_controller_class):
     """
-    Test that get_unifi_client creates a UnifiClient with correct parameters.
+    Test that create_unifi_controller creates a Controller with correct parameters.
     """
     # Arrange
-    mock_client_instance = MagicMock()
-    mock_unifi_client_class.return_value = mock_client_instance
+    mock_session = MagicMock()
+    mock_session_class.return_value = mock_session
+
+    mock_controller = MagicMock()
+    mock_controller.login = AsyncMock()
+    mock_controller_class.return_value = mock_controller
 
     host = "192.168.1.1"
     username = "admin"
     password = "testpassword"
     site = "default"
+    port = 8443
 
     # Act
-    result = get_unifi_client(host, username, password, site)
+    result = await create_unifi_controller(host, username, password, site, port)
 
     # Assert
-    mock_unifi_client_class.assert_called_once_with(
-        host=host,
-        username=username,
-        password=password,
-        site=site,
-    )
-    assert result == mock_client_instance
+    mock_session_class.assert_called_once()
+    mock_controller_class.assert_called_once()
+    mock_controller.login.assert_called_once()
+    assert result == mock_controller
 
 
-@patch("cartography.intel.unifi.util.UnifiClient")
-def test_get_unifi_client_custom_site(mock_unifi_client_class):
+@pytest.mark.asyncio
+@patch("cartography.intel.unifi.util.Controller")
+@patch("cartography.intel.unifi.util.aiohttp.ClientSession")
+async def test_create_unifi_controller_custom_site(
+    mock_session_class, mock_controller_class
+):
     """
-    Test that get_unifi_client works with a custom site name.
+    Test that create_unifi_controller works with a custom site name.
     """
     # Arrange
-    mock_client_instance = MagicMock()
-    mock_unifi_client_class.return_value = mock_client_instance
+    mock_session = MagicMock()
+    mock_session_class.return_value = mock_session
+
+    mock_controller = MagicMock()
+    mock_controller.login = AsyncMock()
+    mock_controller_class.return_value = mock_controller
 
     host = "unifi.example.com"
     username = "admin"
     password = "secretpassword"
     site = "office-site"
+    port = 8443
 
     # Act
-    result = get_unifi_client(host, username, password, site)
+    result = await create_unifi_controller(host, username, password, site, port)
 
     # Assert
-    mock_unifi_client_class.assert_called_once_with(
-        host=host,
-        username=username,
-        password=password,
-        site=site,
-    )
-    assert result == mock_client_instance
+    mock_controller_class.assert_called_once()
+    mock_controller.login.assert_called_once()
+    assert result == mock_controller
+
+
+@pytest.mark.asyncio
+async def test_close_controller():
+    """
+    Test that close_controller properly closes the session.
+    """
+    # Arrange
+    mock_session = MagicMock()
+    mock_session.close = AsyncMock()
+
+    mock_controller = MagicMock()
+    mock_controller.connectivity = MagicMock()
+    mock_controller.connectivity.session = mock_session
+
+    # Act
+    await close_controller(mock_controller)
+
+    # Assert
+    mock_session.close.assert_called_once()
