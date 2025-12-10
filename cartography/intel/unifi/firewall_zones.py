@@ -20,8 +20,14 @@ async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
     await controller.firewall_zones.update()
     zones = []
     for zone in controller.firewall_zones.values():
-        if zone.raw.get("site_id") == site_id:
-            zones.append(zone.raw)
+        zones.append({
+            "id": zone.id,
+            "name": zone.name,
+            "attr_no_edit": zone.raw.get("attr_no_edit", False),
+            "default_zone": zone.raw.get("default_zone", False),
+            "zone_key": zone.raw.get("zone_key", ""),
+            "network_ids": zone.raw.get("network_ids", []),
+        })
     return zones
 
 
@@ -57,12 +63,11 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Any,
     site_id: str,
-    update_tag: int,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync firewall zones from UniFi controller to Neo4j
     """
     zones = await get(controller, site_id)
-    load_firewall_zones(neo4j_session, zones, site_id, update_tag)
+    load_firewall_zones(neo4j_session, zones, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)

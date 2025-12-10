@@ -204,44 +204,106 @@ cartography \
 
 ## Test Coverage ✅
 
-### Integration Tests (20+ tests)
+### Integration Tests (70+ tests across 12 test files)
 
-**Site Tests:**
+#### Infrastructure Tests
+
+**Site Tests** (`test_sites.py`):
 - ✅ Site loading verification
 - ✅ Site property validation
 - ✅ Stale site cleanup
 
-**Device Tests:**
+**Device Tests** (`test_devices.py`):
 - ✅ Device loading verification
 - ✅ Device property validation
 - ✅ Device-to-site relationship mapping
 - ✅ Stale device cleanup
 
-**WLAN Tests:**
+**WLAN Tests** (`test_wlans.py`):
 - ✅ WLAN loading verification
 - ✅ WLAN property validation (security, guest mode)
 - ✅ WLAN-to-site relationship mapping
 - ✅ Stale WLAN cleanup
 
-**Port Tests:**
+**Port Tests** (`test_ports.py`):
 - ✅ Port loading verification
 - ✅ Port property validation (PoE, connectivity)
 - ✅ Port-to-device relationship mapping
 - ✅ Stale port cleanup
 
-**Client Tests:**
+**Client Tests** (`test_clients.py`):
 - ✅ Client loading verification
 - ✅ Client-to-device relationship mapping
 - ✅ Client property validation (wireless vs wired)
 - ✅ Disconnected client cleanup
 - ✅ Guest vs. regular client distinction
 
+#### Network Configuration Tests
+
+**Port Forward Tests** (`test_port_forwards.py`):
+- ✅ Port forward loading verification
+- ✅ Port forward properties (ports, protocols, IPs)
+- ✅ Protocol support (TCP, UDP, TCP+UDP)
+- ✅ Port forward-to-site relationship mapping
+- ✅ Enabled/disabled filtering
+- ✅ Stale port forward cleanup
+
+**Traffic Rule Tests** (`test_traffic_rules.py`):
+- ✅ Traffic rule loading verification
+- ✅ Rule property validation (action, matching criteria)
+- ✅ Rule-to-site relationship mapping
+- ✅ Stale traffic rule cleanup
+
+**Traffic Route Tests** (integrated in traffic rules):
+- ✅ Route loading verification
+- ✅ Route property validation
+- ✅ Route-to-site relationship mapping
+- ✅ Stale route cleanup
+
+#### Security & DPI Tests
+
+**DPI Tests** (`test_dpi.py`):
+- ✅ DPI group loading verification
+- ✅ DPI app loading verification
+- ✅ DPI app-to-group relationship mapping (many-to-many)
+- ✅ DPI property validation (blocked, enabled, log)
+- ✅ Stale DPI cleanup
+
+**Firewall Policy Tests** (`test_firewall_policies.py`):
+- ✅ Firewall policy loading verification
+- ✅ Policy property validation (action, protocol, state)
+- ✅ Predefined vs custom policy distinction
+- ✅ Policy-to-site relationship mapping
+- ✅ Stale policy cleanup
+
+**Firewall Zone Tests** (`test_firewall_zones.py`):
+- ✅ Firewall zone loading verification
+- ✅ Zone property validation
+- ✅ Zone-to-site relationship mapping
+- ✅ Stale zone cleanup
+
+#### System & Access Tests
+
+**System Info Tests** (`test_system_info.py`):
+- ✅ System info loading verification
+- ✅ Controller metadata validation
+- ✅ Version information tracking
+- ✅ System info-to-site relationship mapping
+
+**Voucher Tests** (`test_vouchers.py`):
+- ✅ Voucher loading verification
+- ✅ Voucher property validation (code, quota, duration)
+- ✅ Used vs unused voucher distinction
+- ✅ Voucher-to-site relationship mapping
+- ✅ Stale voucher cleanup
+
 ### Unit Tests (3 tests)
 
-**Utility Tests:**
+**Utility Tests** (`test_util.py`):
 - ✅ Controller creation with various parameters
 - ✅ Custom site support
 - ✅ Proper connection cleanup
+- ✅ SSL context configuration
 
 All tests use `@pytest.mark.asyncio` and `AsyncMock` for proper async testing.
 
