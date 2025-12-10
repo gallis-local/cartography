@@ -311,6 +311,15 @@ class CLI:
             add_completion=True,
             context_settings={"help_option_names": ["-h", "--help"]},
         )
+        parser.add_argument(
+            "--unifi-port",
+            type=int,
+            default=8443,
+            help=(
+                "UniFi controller port (default: 8443). "
+                "Optional. Only used if UniFi module is enabled."
+            ),
+        )
 
         # Store reference to self for use in the command function
         cli_instance = self
