@@ -11,35 +11,39 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 
 @dataclass(frozen=True)
-class UnifiDeviceNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("mac")
+class UnifiWlanNodeProperties(CartographyNodeProperties):
+    id: PropertyRef = PropertyRef("_id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    mac: PropertyRef = PropertyRef("mac")
-    adopted: PropertyRef = PropertyRef("adopted")
-    type: PropertyRef = PropertyRef("type")
-    model: PropertyRef = PropertyRef("model")
     name: PropertyRef = PropertyRef("name")
+    enabled: PropertyRef = PropertyRef("enabled")
+    is_guest: PropertyRef = PropertyRef("is_guest")
+    security: PropertyRef = PropertyRef("security")
+    wpa_mode: PropertyRef = PropertyRef("wpa_mode")
+    wpa_enc: PropertyRef = PropertyRef("wpa_enc")
+    usergroup_id: PropertyRef = PropertyRef("usergroup_id")
+    hide_ssid: PropertyRef = PropertyRef("hide_ssid")
+    mac_filter_enabled: PropertyRef = PropertyRef("mac_filter_enabled")
 
 
 @dataclass(frozen=True)
-class UnifiDeviceToSiteRelProperties(CartographyRelProperties):
+class UnifiWlanToSiteRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiDevice)
-class UnifiDeviceToSiteRel(CartographyRelSchema):
+# (:UnifiSite)<-[:RESOURCE]-(:UnifiWlan)
+class UnifiWlanToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id")},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: UnifiDeviceToSiteRelProperties = UnifiDeviceToSiteRelProperties()
+    properties: UnifiWlanToSiteRelProperties = UnifiWlanToSiteRelProperties()
 
 
 @dataclass(frozen=True)
-class UnifiDeviceSchema(CartographyNodeSchema):
-    label: str = "UnifiDevice"
-    properties: UnifiDeviceNodeProperties = UnifiDeviceNodeProperties()
-    sub_resource_relationship: UnifiDeviceToSiteRel = UnifiDeviceToSiteRel()
+class UnifiWlanSchema(CartographyNodeSchema):
+    label: str = "UnifiWlan"
+    properties: UnifiWlanNodeProperties = UnifiWlanNodeProperties()
+    sub_resource_relationship: UnifiWlanToSiteRel = UnifiWlanToSiteRel()
