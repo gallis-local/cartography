@@ -31,11 +31,13 @@ class UnifiTrafficRouteToSiteRelProperties(CartographyRelProperties):
 class UnifiTrafficRouteToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("site_id")},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: UnifiTrafficRouteToSiteRelProperties = UnifiTrafficRouteToSiteRelProperties()
+    properties: UnifiTrafficRouteToSiteRelProperties = (
+        UnifiTrafficRouteToSiteRelProperties()
+    )
 
 
 @dataclass(frozen=True)

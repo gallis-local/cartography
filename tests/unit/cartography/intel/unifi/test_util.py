@@ -1,10 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from cartography.intel.unifi.util import create_unifi_controller
+import pytest
+
 from cartography.intel.unifi.util import close_controller
+from cartography.intel.unifi.util import create_unifi_controller
 
 
 @pytest.mark.asyncio

@@ -35,7 +35,9 @@ class UnifiFirewallZoneToSiteRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: UnifiFirewallZoneToSiteRelProperties = UnifiFirewallZoneToSiteRelProperties()
+    properties: UnifiFirewallZoneToSiteRelProperties = (
+        UnifiFirewallZoneToSiteRelProperties()
+    )
 
 
 @dataclass(frozen=True)

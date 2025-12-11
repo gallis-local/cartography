@@ -48,6 +48,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_port_forwards(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -63,6 +64,7 @@ def load_port_forwards(
         UnifiPortForwardSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -98,6 +100,9 @@ async def sync(
     :return: List of port forward data
     """
     port_forwards = await get(controller, site_id)
-    load_port_forwards(neo4j_session, port_forwards, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    load_port_forwards(
+        neo4j_session, port_forwards, site_id, common_job_parameters["UPDATE_TAG"]
+    )
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return port_forwards

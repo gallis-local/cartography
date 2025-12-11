@@ -1,7 +1,8 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
+
+import pytest
 
 import cartography.intel.unifi.devices
 import tests.data.unifi
@@ -15,6 +16,7 @@ def _ensure_local_neo4j_has_test_devices(neo4j_session):
     cartography.intel.unifi.devices.load_devices(
         neo4j_session,
         tests.data.unifi.UNIFI_DEVICES,
+        "default",  # site_id
         TEST_UPDATE_TAG,
     )
 
@@ -24,7 +26,7 @@ def _ensure_local_neo4j_has_test_devices(neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_DEVICES,
+    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
 )
 async def test_load_unifi_devices(mock_get, neo4j_session):
     """
@@ -59,7 +61,7 @@ async def test_load_unifi_devices(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_DEVICES,
+    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
 )
 async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     """
@@ -97,17 +99,25 @@ async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_DEVICES,
+    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
 )
 async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     """
     Ensure that stale UniFi devices are cleaned up.
     """
-    # Arrange - Load devices with old update tag
+    # Arrange - First load the site
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session,
+        tests.data.unifi.UNIFI_SITES,
+        111111111,
+    )
+
+    # Load devices with old update tag
     old_update_tag = 111111111
     cartography.intel.unifi.devices.load_devices(
         neo4j_session,
         tests.data.unifi.UNIFI_DEVICES,
+        "default",  # site_id
         old_update_tag,
     )
 
@@ -119,11 +129,13 @@ async def test_unifi_devices_cleanup(mock_get, neo4j_session):
             "type": "uap",
             "model": "STALE",
             "name": "Stale Device",
+            "site_id": "default",
         }
     ]
     cartography.intel.unifi.devices.load_devices(
         neo4j_session,
         stale_device,
+        "default",  # site_id
         old_update_tag,
     )
 

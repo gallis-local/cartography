@@ -14,7 +14,9 @@ from cartography.models.core.relationships import TargetNodeMatcher
 class UnifiSystemInfoNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    anonymous_controller_id: PropertyRef = PropertyRef("anonymous_controller_id", extra_index=True)
+    anonymous_controller_id: PropertyRef = PropertyRef(
+        "anonymous_controller_id", extra_index=True
+    )
     hostname: PropertyRef = PropertyRef("hostname")
     name: PropertyRef = PropertyRef("name")
     version: PropertyRef = PropertyRef("version")
@@ -39,7 +41,9 @@ class UnifiSystemInfoToSiteRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: UnifiSystemInfoToSiteRelProperties = UnifiSystemInfoToSiteRelProperties()
+    properties: UnifiSystemInfoToSiteRelProperties = (
+        UnifiSystemInfoToSiteRelProperties()
+    )
 
 
 @dataclass(frozen=True)

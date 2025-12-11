@@ -95,6 +95,8 @@ async def sync(
     :return: List of traffic route data
     """
     traffic_routes = await get(controller, site_id)
-    load_traffic_routes(neo4j_session, traffic_routes, common_job_parameters["UPDATE_TAG"])
+    load_traffic_routes(
+        neo4j_session, traffic_routes, common_job_parameters["UPDATE_TAG"]
+    )
     cleanup(neo4j_session, common_job_parameters)
     return traffic_routes
