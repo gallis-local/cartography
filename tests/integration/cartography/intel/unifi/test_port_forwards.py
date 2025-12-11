@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+
 import cartography.intel.unifi.port_forwards
+import cartography.intel.unifi.sites
 import tests.data.unifi
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
@@ -117,14 +119,33 @@ async def test_unifi_port_forward_cleanup(mock_get, neo4j_session):
     """
     Ensure that stale port forwards are cleaned up.
     """
-    # Arrange - Create an old port forward
-    neo4j_session.run(
-        """
-        MERGE (pf:UnifiPortForward {id: $pf_id})
-        SET pf.lastupdated = $old_update_tag
-        """,
-        pf_id="old_pf",
-        old_update_tag=TEST_UPDATE_TAG - 1,
+    # Arrange - Load the site first
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session,
+        tests.data.unifi.UNIFI_SITES,
+        TEST_UPDATE_TAG,
+    )
+
+    # Create an old port forward using the load function
+    stale_port_forward = [
+        {
+            "id": "old_pf",
+            "name": None,
+            "enabled": True,
+            "src": "any",
+            "dst_port": "8080",
+            "fwd": "192.168.1.100",
+            "fwd_port": "80",
+            "protocol": "tcp_udp",
+            "log": False,
+            "site_id": "default",
+        }
+    ]
+    cartography.intel.unifi.port_forwards.load_port_forwards(
+        neo4j_session,
+        stale_port_forward,
+        "default",
+        TEST_UPDATE_TAG - 1,
     )
 
     mock_controller = MagicMock()

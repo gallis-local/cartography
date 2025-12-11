@@ -1,7 +1,8 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
+
+import pytest
 
 import cartography.intel.unifi.dpi_apps
 import cartography.intel.unifi.dpi_groups
@@ -107,7 +108,9 @@ async def test_load_unifi_dpi_apps(mock_get, neo4j_session):
     new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_DPI_APPS,
 )
-async def test_unifi_dpi_app_to_group_relationship(mock_apps, mock_groups, neo4j_session):
+async def test_unifi_dpi_app_to_group_relationship(
+    mock_apps, mock_groups, neo4j_session
+):
     """
     Ensure that DPI apps are connected to DPI groups.
     """

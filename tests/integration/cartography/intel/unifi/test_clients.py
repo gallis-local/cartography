@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+
 import cartography.intel.unifi.clients
+import cartography.intel.unifi.sites
 import tests.data.unifi
 from tests.integration.cartography.intel.unifi.test_devices import (
     _ensure_local_neo4j_has_test_devices,
@@ -14,18 +16,28 @@ from tests.integration.util import check_rels
 TEST_UPDATE_TAG = 123456789
 
 
+def _ensure_local_neo4j_has_test_sites(neo4j_session):
+    """Load test UniFi sites into Neo4j."""
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session,
+        tests.data.unifi.UNIFI_SITES,
+        TEST_UPDATE_TAG,
+    )
+
+
 @pytest.mark.asyncio
 @patch.object(
     cartography.intel.unifi.clients,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_CLIENTS,
+    return_value=(tests.data.unifi.UNIFI_CLIENTS, "default"),
 )
 async def test_load_unifi_clients(mock_get, neo4j_session):
     """
     Ensure that UniFi clients actually get loaded.
     """
-    # Arrange - First load devices that clients will connect to
+    # Arrange - First load sites and devices that clients will connect to
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
     _ensure_local_neo4j_has_test_devices(neo4j_session)
 
     mock_controller = MagicMock()
@@ -46,9 +58,7 @@ async def test_load_unifi_clients(mock_get, neo4j_session):
         ("77:88:99:AA:BB:CC", "192.168.1.101"),
         ("DD:EE:FF:00:11:22", "192.168.1.102"),
     }
-    assert (
-        check_nodes(neo4j_session, "UnifiClient", ["id", "ip"]) == expected_nodes
-    )
+    assert check_nodes(neo4j_session, "UnifiClient", ["id", "ip"]) == expected_nodes
 
 
 @pytest.mark.asyncio
@@ -56,12 +66,13 @@ async def test_load_unifi_clients(mock_get, neo4j_session):
     cartography.intel.unifi.clients,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_CLIENTS,
+    return_value=(tests.data.unifi.UNIFI_CLIENTS, "default"),
 )
 async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
     """
     Ensure that UniFi clients are correctly linked to their devices.
     """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
     # Arrange - Load devices first
     _ensure_local_neo4j_has_test_devices(neo4j_session)
 
@@ -83,19 +94,15 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
         ("11:22:33:44:55:66", "00:11:22:33:44:55"),
         ("77:88:99:AA:BB:CC", "00:11:22:33:44:55"),
     }
-    assert (
-        check_rels(
-            neo4j_session,
-            "UnifiClient",
-            "id",
-            "UnifiDevice",
-            "id",
-            "RESOURCE",
-            rel_direction_right=False,
-        )
-        == expected_rels
-        | {("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF")}
-    )
+    assert check_rels(
+        neo4j_session,
+        "UnifiClient",
+        "id",
+        "UnifiDevice",
+        "id",
+        "CONNECTED_TO",
+        rel_direction_right=False,
+    ) == expected_rels | {("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF")}
 
 
 @pytest.mark.asyncio
@@ -103,12 +110,13 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
     cartography.intel.unifi.clients,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_CLIENTS,
+    return_value=(tests.data.unifi.UNIFI_CLIENTS, "default"),
 )
 async def test_unifi_clients_properties(mock_get, neo4j_session):
     """
     Ensure that UniFi clients have all expected properties.
     """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
     # Arrange
     _ensure_local_neo4j_has_test_devices(neo4j_session)
 
@@ -157,12 +165,13 @@ async def test_unifi_clients_properties(mock_get, neo4j_session):
     cartography.intel.unifi.clients,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_CLIENTS,
+    return_value=(tests.data.unifi.UNIFI_CLIENTS, "default"),
 )
 async def test_unifi_clients_cleanup(mock_get, neo4j_session):
     """
     Ensure that disconnected clients are cleaned up.
     """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
     # Arrange - Load devices and initial clients
     _ensure_local_neo4j_has_test_devices(neo4j_session)
 
@@ -179,11 +188,13 @@ async def test_unifi_clients_cleanup(mock_get, neo4j_session):
             "is_wired": False,
             "qos_policy_applied": False,
             "ap_mac": "00:11:22:33:44:55",
+            "site_id": "default",
         }
     ]
     cartography.intel.unifi.clients.load_clients(
         neo4j_session,
         disconnected_client,
+        "default",  # site_id
         old_update_tag,
     )
 
@@ -224,12 +235,13 @@ async def test_unifi_clients_cleanup(mock_get, neo4j_session):
     cartography.intel.unifi.clients,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_CLIENTS,
+    return_value=(tests.data.unifi.UNIFI_CLIENTS, "default"),
 )
 async def test_unifi_guest_vs_regular_clients(mock_get, neo4j_session):
     """
     Ensure that guest and regular clients are properly distinguished.
     """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
     # Arrange
     _ensure_local_neo4j_has_test_devices(neo4j_session)
 

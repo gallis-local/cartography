@@ -43,6 +43,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_dpi_groups(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -50,6 +51,7 @@ def load_dpi_groups(
 
     :param neo4j_session: Neo4j session
     :param data: List of DPI group data
+    :param site_id: Site ID for the DPI groups
     :param update_tag: Update tag for the sync
     """
     logger.info("Loading %d UniFi DPI groups into Neo4j.", len(data))
@@ -58,6 +60,7 @@ def load_dpi_groups(
         UnifiDPIGroupSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -93,6 +96,9 @@ async def sync(
     :return: List of DPI group data
     """
     dpi_groups = await get(controller, site_id)
-    load_dpi_groups(neo4j_session, dpi_groups, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    load_dpi_groups(
+        neo4j_session, dpi_groups, site_id, common_job_parameters["UPDATE_TAG"]
+    )
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return dpi_groups

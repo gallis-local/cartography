@@ -13,16 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     """
     Retrieve UniFi devices from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID for the devices
-    :return: List of device data
+    :return: Tuple of (List of device data, site_id)
     """
     logger.info("Fetching UniFi devices")
     await controller.devices.update()
+
+    # Get site_id from controller
+    site_id = controller.connectivity.site_id
 
     # Convert aiounifi Device objects to dictionaries
     devices = []
@@ -37,13 +39,14 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "site_id": site_id,
             }
         )
-    return devices
+    return devices, site_id
 
 
 @timeit
 def load_devices(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -51,6 +54,7 @@ def load_devices(
 
     :param neo4j_session: Neo4j session
     :param data: List of device data
+    :param site_id: Site ID for the devices
     :param update_tag: Update tag for the sync
     """
     logger.info("Loading %d UniFi devices into Neo4j.", len(data))
@@ -59,6 +63,7 @@ def load_devices(
         UnifiDeviceSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -81,7 +86,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
@@ -89,11 +93,11 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the devices
     :param common_job_parameters: Common job parameters
     :return: List of device data
     """
-    devices = await get(controller, site_id)
-    load_devices(neo4j_session, devices, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    devices, site_id = await get(controller)
+    load_devices(neo4j_session, devices, site_id, common_job_parameters["UPDATE_TAG"])
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return devices
