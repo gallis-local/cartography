@@ -30,7 +30,7 @@ class UnifiDPIAppToSiteRelProperties(CartographyRelProperties):
 class UnifiDPIAppToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("site_id")},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
@@ -51,7 +51,9 @@ class UnifiDPIAppToDPIGroupRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "MEMBER_OF"
-    properties: UnifiDPIAppToDPIGroupRelProperties = UnifiDPIAppToDPIGroupRelProperties()
+    properties: UnifiDPIAppToDPIGroupRelProperties = (
+        UnifiDPIAppToDPIGroupRelProperties()
+    )
 
 
 @dataclass(frozen=True)

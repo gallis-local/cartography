@@ -49,6 +49,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_firewall_policies(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -64,6 +65,7 @@ def load_firewall_policies(
         UnifiFirewallPolicySchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -99,6 +101,9 @@ async def sync(
     :return: List of firewall policy data
     """
     firewall_policies = await get(controller, site_id)
-    load_firewall_policies(neo4j_session, firewall_policies, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    load_firewall_policies(
+        neo4j_session, firewall_policies, site_id, common_job_parameters["UPDATE_TAG"]
+    )
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return firewall_policies

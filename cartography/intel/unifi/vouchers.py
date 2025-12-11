@@ -8,7 +8,6 @@ from cartography.graph.job import GraphJob
 from cartography.models.unifi.voucher import UnifiVoucherSchema
 from cartography.util import timeit
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -44,12 +43,16 @@ def load_vouchers(
     )
 
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove vouchers that were not updated in this run
     """
     logger.debug("Running UniFi voucher cleanup job")
-    GraphJob.from_node_schema(UnifiVoucherSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(UnifiVoucherSchema(), common_job_parameters).run(
+        neo4j_session
+    )
 
 
 @timeit

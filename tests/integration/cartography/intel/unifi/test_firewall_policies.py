@@ -1,7 +1,8 @@
-import pytest
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
+
+import pytest
 
 import cartography.intel.unifi.firewall_policies
 import tests.data.unifi

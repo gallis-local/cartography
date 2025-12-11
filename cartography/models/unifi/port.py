@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -24,6 +25,23 @@ class UnifiPortNodeProperties(CartographyNodeProperties):
     up: PropertyRef = PropertyRef("up")
     speed: PropertyRef = PropertyRef("speed")
     full_duplex: PropertyRef = PropertyRef("full_duplex")
+
+
+@dataclass(frozen=True)
+class UnifiPortToSiteRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiSite)<-[:RESOURCE]-(:UnifiPort)
+class UnifiPortToSiteRel(CartographyRelSchema):
+    target_node_label: str = "UnifiSite"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "RESOURCE"
+    properties: UnifiPortToSiteRelProperties = UnifiPortToSiteRelProperties()
 
 
 @dataclass(frozen=True)
@@ -47,4 +65,9 @@ class UnifiPortToDeviceRel(CartographyRelSchema):
 class UnifiPortSchema(CartographyNodeSchema):
     label: str = "UnifiPort"
     properties: UnifiPortNodeProperties = UnifiPortNodeProperties()
-    sub_resource_relationship: UnifiPortToDeviceRel = UnifiPortToDeviceRel()
+    sub_resource_relationship: UnifiPortToSiteRel = UnifiPortToSiteRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiPortToDeviceRel(),
+        ],
+    )

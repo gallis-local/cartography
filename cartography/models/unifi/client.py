@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -26,19 +27,36 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
 
 
 @dataclass(frozen=True)
+class UnifiClientToSiteRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiSite)<-[:RESOURCE]-(:UnifiClient)
+class UnifiClientToSiteRel(CartographyRelSchema):
+    target_node_label: str = "UnifiSite"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "RESOURCE"
+    properties: UnifiClientToSiteRelProperties = UnifiClientToSiteRelProperties()
+
+
+@dataclass(frozen=True)
 class UnifiClientToDeviceRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:RESOURCE]-(:UnifiClient)
+# (:UnifiDevice)<-[:CONNECTED_TO]-(:UnifiClient)
 class UnifiClientToDeviceRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ap_mac")},
     )
     direction: LinkDirection = LinkDirection.INWARD
-    rel_label: str = "RESOURCE"
+    rel_label: str = "CONNECTED_TO"
     properties: UnifiClientToDeviceRelProperties = UnifiClientToDeviceRelProperties()
 
 
@@ -46,4 +64,9 @@ class UnifiClientToDeviceRel(CartographyRelSchema):
 class UnifiClientSchema(CartographyNodeSchema):
     label: str = "UnifiClient"
     properties: UnifiClientNodeProperties = UnifiClientNodeProperties()
-    sub_resource_relationship: UnifiClientToDeviceRel = UnifiClientToDeviceRel()
+    sub_resource_relationship: UnifiClientToSiteRel = UnifiClientToSiteRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiClientToDeviceRel(),
+        ],
+    )

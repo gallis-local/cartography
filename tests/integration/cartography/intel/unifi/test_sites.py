@@ -19,9 +19,7 @@ async def test_load_unifi_sites(mock_get, neo4j_session):
     Test that we can load UniFi sites into Neo4j.
     """
     common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.sites.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.sites.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the site was loaded
     result = neo4j_session.run(
@@ -50,9 +48,7 @@ async def test_cleanup_unifi_sites(mock_get, neo4j_session):
     """
     # First sync
     common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.sites.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.sites.sync(neo4j_session, None, common_job_parameters)
 
     # Verify site exists
     result = neo4j_session.run(
@@ -66,9 +62,7 @@ async def test_cleanup_unifi_sites(mock_get, neo4j_session):
     # Second sync with a new update tag (simulating site removal)
     mock_get.return_value = []
     common_job_parameters = {"UPDATE_TAG": 987654321}
-    await cartography.intel.unifi.sites.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.sites.sync(neo4j_session, None, common_job_parameters)
 
     # Verify site was cleaned up
     result = neo4j_session.run(

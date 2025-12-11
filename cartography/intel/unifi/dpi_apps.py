@@ -50,6 +50,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_dpi_apps(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -65,6 +66,7 @@ def load_dpi_apps(
         UnifiDPIAppSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -100,6 +102,7 @@ async def sync(
     :return: List of DPI app data
     """
     dpi_apps = await get(controller, site_id)
-    load_dpi_apps(neo4j_session, dpi_apps, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    load_dpi_apps(neo4j_session, dpi_apps, site_id, common_job_parameters["UPDATE_TAG"])
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return dpi_apps

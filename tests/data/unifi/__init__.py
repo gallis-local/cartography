@@ -73,6 +73,7 @@ UNIFI_PORTS = [
         "speed": 1000,
         "full_duplex": True,
         "device_mac": "AA:BB:CC:DD:EE:FF",
+        "site_id": "default",
     },
     {
         "id": "AA:BB:CC:DD:EE:FF:2",
@@ -87,6 +88,7 @@ UNIFI_PORTS = [
         "speed": 0,
         "full_duplex": False,
         "device_mac": "AA:BB:CC:DD:EE:FF",
+        "site_id": "default",
     },
 ]
 
@@ -103,6 +105,7 @@ UNIFI_CLIENTS = [
         "is_wired": False,
         "qos_policy_applied": False,
         "ap_mac": "00:11:22:33:44:55",
+        "site_id": "default",
     },
     {
         "mac": "77:88:99:AA:BB:CC",
@@ -115,6 +118,7 @@ UNIFI_CLIENTS = [
         "is_wired": False,
         "qos_policy_applied": True,
         "ap_mac": "00:11:22:33:44:55",
+        "site_id": "default",
     },
     {
         "mac": "DD:EE:FF:00:11:22",
@@ -127,6 +131,7 @@ UNIFI_CLIENTS = [
         "is_wired": True,
         "qos_policy_applied": False,
         "ap_mac": "AA:BB:CC:DD:EE:FF",
+        "site_id": "default",
     },
 ]
 

@@ -35,15 +35,19 @@ class UnifiFirewallPolicyToSiteRelProperties(CartographyRelProperties):
 class UnifiFirewallPolicyToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("site_id")},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: UnifiFirewallPolicyToSiteRelProperties = UnifiFirewallPolicyToSiteRelProperties()
+    properties: UnifiFirewallPolicyToSiteRelProperties = (
+        UnifiFirewallPolicyToSiteRelProperties()
+    )
 
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicySchema(CartographyNodeSchema):
     label: str = "UnifiFirewallPolicy"
     properties: UnifiFirewallPolicyNodeProperties = UnifiFirewallPolicyNodeProperties()
-    sub_resource_relationship: UnifiFirewallPolicyToSiteRel = UnifiFirewallPolicyToSiteRel()
+    sub_resource_relationship: UnifiFirewallPolicyToSiteRel = (
+        UnifiFirewallPolicyToSiteRel()
+    )

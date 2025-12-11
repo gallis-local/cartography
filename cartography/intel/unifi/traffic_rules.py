@@ -35,9 +35,15 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "action": rule.action,
                 "matching_target": rule.matching_target,
                 # Bandwidth limit settings
-                "bandwidth_limit_enabled": rule.raw.get("bandwidth_limit", {}).get("enabled", False),
-                "download_limit_kbps": rule.raw.get("bandwidth_limit", {}).get("download_limit_kbps"),
-                "upload_limit_kbps": rule.raw.get("bandwidth_limit", {}).get("upload_limit_kbps"),
+                "bandwidth_limit_enabled": rule.raw.get("bandwidth_limit", {}).get(
+                    "enabled", False
+                ),
+                "download_limit_kbps": rule.raw.get("bandwidth_limit", {}).get(
+                    "download_limit_kbps"
+                ),
+                "upload_limit_kbps": rule.raw.get("bandwidth_limit", {}).get(
+                    "upload_limit_kbps"
+                ),
                 "site_id": site_id,
             }
         )
@@ -48,6 +54,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_traffic_rules(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -63,6 +70,7 @@ def load_traffic_rules(
         UnifiTrafficRuleSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -98,6 +106,9 @@ async def sync(
     :return: List of traffic rule data
     """
     traffic_rules = await get(controller, site_id)
-    load_traffic_rules(neo4j_session, traffic_rules, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, common_job_parameters)
+    load_traffic_rules(
+        neo4j_session, traffic_rules, site_id, common_job_parameters["UPDATE_TAG"]
+    )
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return traffic_rules

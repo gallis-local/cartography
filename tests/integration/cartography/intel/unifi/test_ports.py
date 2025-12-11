@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 import pytest
 
+import cartography.intel.unifi.devices
 import cartography.intel.unifi.ports
+import cartography.intel.unifi.sites
 import tests.data.unifi
 
 
@@ -12,16 +14,22 @@ import tests.data.unifi
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_PORTS,
+    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
 )
 async def test_load_unifi_ports(mock_get, neo4j_session):
     """
     Test that we can load UniFi ports into Neo4j.
     """
-    common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
+    # First load the site
+    neo4j_session.run(
+        """
+        MERGE (s:UnifiSite{id: 'default'})
+        SET s.name = 'Default', s.lastupdated = 123456789
+        """
     )
+
+    common_job_parameters = {"UPDATE_TAG": 123456789}
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the ports were loaded
     result = neo4j_session.run(
@@ -50,16 +58,22 @@ async def test_load_unifi_ports(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_PORTS,
+    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
 )
 async def test_port_poe_properties(mock_get, neo4j_session):
     """
     Test that PoE port properties are loaded correctly.
     """
-    common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
+    # First load the site
+    neo4j_session.run(
+        """
+        MERGE (s:UnifiSite{id: 'default'})
+        SET s.name = 'Default', s.lastupdated = 123456789
+        """
     )
+
+    common_job_parameters = {"UPDATE_TAG": 123456789}
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Check Port 1 PoE properties
     result = neo4j_session.run(
@@ -91,16 +105,22 @@ async def test_port_poe_properties(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_PORTS,
+    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
 )
 async def test_port_connectivity_properties(mock_get, neo4j_session):
     """
     Test that port connectivity properties are loaded correctly.
     """
-    common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
+    # First load the site
+    neo4j_session.run(
+        """
+        MERGE (s:UnifiSite{id: 'default'})
+        SET s.name = 'Default', s.lastupdated = 123456789
+        """
     )
+
+    common_job_parameters = {"UPDATE_TAG": 123456789}
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Check Port 1 connectivity (up and running)
     result = neo4j_session.run(
@@ -131,29 +151,32 @@ async def test_port_connectivity_properties(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_PORTS,
+    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
 )
 async def test_port_to_device_relationship(mock_get, neo4j_session):
     """
     Test that ports are correctly linked to their device.
     """
-    # First load the device
-    neo4j_session.run(
-        """
-        MERGE (d:UnifiDevice{mac: 'AA:BB:CC:DD:EE:FF'})
-        SET d.name = 'Main Switch', d.lastupdated = 123456789
-        """
+    # First load the site and devices using actual load functions
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session,
+        tests.data.unifi.UNIFI_SITES,
+        123456789,
+    )
+    cartography.intel.unifi.devices.load_devices(
+        neo4j_session,
+        tests.data.unifi.UNIFI_DEVICES,
+        "default",
+        123456789,
     )
 
     common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the relationship
     result = neo4j_session.run(
         """
-        MATCH (p:UnifiPort)-[:HAS_PORT]->(d:UnifiDevice{mac: 'AA:BB:CC:DD:EE:FF'})
+        MATCH (d:UnifiDevice{id: 'AA:BB:CC:DD:EE:FF'})-[:HAS_PORT]->(p:UnifiPort)
         RETURN count(p) AS count
         """
     )
@@ -165,17 +188,23 @@ async def test_port_to_device_relationship(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_PORTS,
+    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
 )
 async def test_cleanup_unifi_ports(mock_get, neo4j_session):
     """
     Test that stale UniFi ports are cleaned up.
     """
+    # First load the site
+    neo4j_session.run(
+        """
+        MERGE (s:UnifiSite{id: 'default'})
+        SET s.name = 'Default', s.lastupdated = 123456789
+        """
+    )
+
     # First sync
     common_job_parameters = {"UPDATE_TAG": 123456789}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify ports exist
     result = neo4j_session.run(
@@ -187,11 +216,9 @@ async def test_cleanup_unifi_ports(mock_get, neo4j_session):
     assert result.single()["count"] == 2
 
     # Second sync with a new update tag (simulating port removal)
-    mock_get.return_value = []
+    mock_get.return_value = ([], "default")
     common_job_parameters = {"UPDATE_TAG": 987654321}
-    await cartography.intel.unifi.ports.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify ports were cleaned up
     result = neo4j_session.run(

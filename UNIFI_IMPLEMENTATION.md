@@ -523,7 +523,7 @@ RETURN v.code, v.used, v.quota, v.status
 MATCH (s:UnifiSite)
 OPTIONAL MATCH (s)<-[:RESOURCE]-(v:UnifiVoucher)
 OPTIONAL MATCH (s)<-[:RESOURCE]-(w:UnifiWlan {is_guest: true})
-RETURN 
+RETURN
   s.name as site,
   count(DISTINCT v) as total_vouchers,
   count(DISTINCT CASE WHEN v.used = 0 THEN v END) as unused_vouchers,
@@ -538,7 +538,7 @@ MATCH (s:UnifiSite {name: 'Default'})
 OPTIONAL MATCH (s)<-[:RESOURCE]-(pf:UnifiPortForward)
 OPTIONAL MATCH (s)<-[:RESOURCE]-(fw:UnifiFirewallPolicy {enabled: true})
 OPTIONAL MATCH (s)<-[:RESOURCE]-(w:UnifiWlan {is_guest: true})
-RETURN 
+RETURN
   s.name as site,
   count(DISTINCT pf) as port_forwards,
   count(DISTINCT fw) as active_firewall_policies,
@@ -547,7 +547,7 @@ RETURN
 // Find potential security issues
 MATCH (pf:UnifiPortForward {enabled: true, source: 'any'}),
       (w:UnifiWlan {is_guest: true, security: 'open'})
-RETURN 
+RETURN
   'Unrestricted port forwards: ' + count(DISTINCT pf) as finding1,
   'Open guest networks: ' + count(DISTINCT w) as finding2
 ```

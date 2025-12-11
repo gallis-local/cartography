@@ -8,7 +8,6 @@ from cartography.graph.job import GraphJob
 from cartography.models.unifi.system_info import UnifiSystemInfoSchema
 from cartography.util import timeit
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -43,12 +42,16 @@ def load_system_info(
     )
 
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove system information that was not updated in this run
     """
     logger.debug("Running UniFi system info cleanup job")
-    GraphJob.from_node_schema(UnifiSystemInfoSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(UnifiSystemInfoSchema(), common_job_parameters).run(
+        neo4j_session
+    )
 
 
 @timeit

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+import cartography.intel.unifi.sites
 import cartography.intel.unifi.wlans
 import tests.data.unifi
 
@@ -87,12 +88,11 @@ async def test_wlan_to_site_relationship(mock_get, neo4j_session):
     """
     Test that WLANs are correctly linked to their site.
     """
-    # First load the site
-    neo4j_session.run(
-        """
-        MERGE (s:UnifiSite{id: 'default'})
-        SET s.name = 'Default', s.lastupdated = 123456789
-        """
+    # First load the site using the actual load function
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session,
+        tests.data.unifi.UNIFI_SITES,
+        123456789,
     )
 
     common_job_parameters = {"UPDATE_TAG": 123456789}
@@ -103,7 +103,7 @@ async def test_wlan_to_site_relationship(mock_get, neo4j_session):
     # Verify the relationship
     result = neo4j_session.run(
         """
-        MATCH (w:UnifiWlan)-[:RESOURCE]->(s:UnifiSite{id: 'default'})
+        MATCH (s:UnifiSite{id: 'default'})-[:RESOURCE]->(w:UnifiWlan)
         RETURN count(w) AS count
         """
     )
