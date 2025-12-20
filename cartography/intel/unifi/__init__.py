@@ -33,6 +33,7 @@ async def _sync_unifi(
     password: str,
     site: str,
     port: int,
+    verify_ssl: bool,
     update_tag: int,
 ) -> None:
     """
@@ -44,6 +45,7 @@ async def _sync_unifi(
     :param password: UniFi controller password
     :param site: UniFi site name
     :param port: UniFi controller port
+    :param verify_ssl: Whether to verify SSL certificates
     :param update_tag: Update tag for tracking data freshness
     """
     controller = None
@@ -55,6 +57,7 @@ async def _sync_unifi(
             password=password,
             site=site,
             port=port,
+            verify_ssl=verify_ssl,
         )
 
         common_job_parameters = {
@@ -217,6 +220,7 @@ def start_unifi_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
             password=config.unifi_password,
             site=config.unifi_site,
             port=config.unifi_port,
+            verify_ssl=config.unifi_verify_ssl,
             update_tag=config.update_tag,
         )
     )

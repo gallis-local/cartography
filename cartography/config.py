@@ -218,6 +218,8 @@ class Config:
     :param unifi_site: UniFi site name (default is 'default'). Optional.
     :type unifi_port: int
     :param unifi_port: UniFi controller port (default is 8443). Optional.
+    :type unifi_verify_ssl: bool
+    :param unifi_verify_ssl: Whether to verify SSL certificates when connecting to UniFi controller (default is False). Optional.
     """
 
     def __init__(
@@ -329,6 +331,7 @@ class Config:
         unifi_password=None,
         unifi_site="default",
         unifi_port=8443,
+        unifi_verify_ssl=False,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
@@ -439,3 +442,4 @@ class Config:
         self.unifi_password = unifi_password
         self.unifi_site = unifi_site
         self.unifi_port = unifi_port
+        self.unifi_verify_ssl = unifi_verify_ssl

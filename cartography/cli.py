@@ -995,6 +995,16 @@ class CLI:
                 "Optional. Only used if UniFi module is enabled."
             ),
         )
+        parser.add_argument(
+            "--unifi-verify-ssl",
+            action="store_true",
+            default=False,
+            help=(
+                "Verify SSL certificates when connecting to UniFi controller (default: False). "
+                "Many UniFi controllers use self-signed certificates, so verification is disabled by default. "
+                "Optional. Only used if UniFi module is enabled."
+            ),
+        )
 
         return parser
 
