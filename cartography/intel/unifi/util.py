@@ -11,7 +11,12 @@ _TIMEOUT = aiohttp.ClientTimeout(total=60)
 
 
 async def create_unifi_controller(
-    host: str, username: str, password: str, site: str = "default", port: int = 8443, verify_ssl: bool = False
+    host: str,
+    username: str,
+    password: str,
+    site: str = "default",
+    port: int = 8443,
+    verify_ssl: bool = False,
 ) -> Controller:
     """
     Create and return a UniFi controller instance.
