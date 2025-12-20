@@ -11,7 +11,12 @@ _TIMEOUT = aiohttp.ClientTimeout(total=60)
 
 
 async def create_unifi_controller(
-    host: str, username: str, password: str, site: str = "default", port: int = 8443
+    host: str,
+    username: str,
+    password: str,
+    site: str = "default",
+    port: int = 8443,
+    verify_ssl: bool = False,
 ) -> Controller:
     """
     Create and return a UniFi controller instance.
@@ -21,12 +26,15 @@ async def create_unifi_controller(
     :param password: UniFi controller password
     :param site: UniFi site name (default: 'default')
     :param port: UniFi controller port (default: 8443)
+    :param verify_ssl: Whether to verify SSL certificates (default: False, as many UniFi controllers use self-signed certs)
     :return: Controller instance
     """
-    # Create SSL context that doesn't verify certificates (common for self-signed UniFi certs)
+    # Create SSL context
     ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    if not verify_ssl:
+        # Disable SSL verification for self-signed certificates
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
 
     # Create aiohttp session
     session = aiohttp.ClientSession(timeout=_TIMEOUT)
