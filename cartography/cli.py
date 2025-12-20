@@ -950,6 +950,51 @@ class CLI:
                 "Required for EC2 ownership sync (along with --spacelift-ec2-ownership-s3-bucket)."
             ),
         )
+        parser.add_argument(
+            "--unifi-host",
+            type=str,
+            default=None,
+            help=(
+                "UniFi controller host (e.g., localhost or 192.168.1.1). "
+                "Required if you are using the UniFi intel module. Ignored otherwise."
+            ),
+        )
+        parser.add_argument(
+            "--unifi-user",
+            type=str,
+            default=None,
+            help=(
+                "Username for UniFi controller authentication. "
+                "Required if you are using the UniFi intel module. Ignored otherwise."
+            ),
+        )
+        parser.add_argument(
+            "--unifi-password-env-var",
+            type=str,
+            default=None,
+            help=(
+                "The name of an environment variable containing the UniFi controller password. "
+                "Required if you are using the UniFi intel module. Ignored otherwise."
+            ),
+        )
+        parser.add_argument(
+            "--unifi-site",
+            type=str,
+            default="default",
+            help=(
+                "UniFi site name to sync (default: 'default'). "
+                "Optional. Only used if UniFi module is enabled."
+            ),
+        )
+        parser.add_argument(
+            "--unifi-port",
+            type=int,
+            default=8443,
+            help=(
+                "UniFi controller port (default: 8443). "
+                "Optional. Only used if UniFi module is enabled."
+            ),
+        )
 
         return parser
 
@@ -1341,6 +1386,15 @@ class CLI:
             )
         else:
             config.keycloak_client_secret = None
+
+        # UniFi config
+        if config.unifi_host and config.unifi_user and config.unifi_password_env_var:
+            logger.debug(
+                f"Reading UniFi password from environment variable {config.unifi_password_env_var}",
+            )
+            config.unifi_password = os.environ.get(config.unifi_password_env_var)
+        else:
+            config.unifi_password = None
 
         # Spacelift config
         # Read endpoint from CLI arg or env var
