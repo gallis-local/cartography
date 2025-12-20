@@ -18,6 +18,7 @@ class UnifiDPIAppNodeProperties(CartographyNodeProperties):
     blocked: PropertyRef = PropertyRef("blocked")
     enabled: PropertyRef = PropertyRef("enabled")
     log: PropertyRef = PropertyRef("log")
+    dpi_group_ids: PropertyRef = PropertyRef("dpi_group_ids")
 
 
 @dataclass(frozen=True)
