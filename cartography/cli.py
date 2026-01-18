@@ -311,6 +311,74 @@ class CLI:
             add_completion=True,
             context_settings={"help_option_names": ["-h", "--help"]},
         )
+        parser.add_argument(
+            "--proxmox-host",
+            type=str,
+            default=None,
+            help=(
+                "Proxmox host to sync (e.g., proxmox.example.com). "
+                "Required if you are using the Proxmox intel module. Ignored otherwise."
+            ),
+        )
+        parser.add_argument(
+            "--proxmox-port",
+            type=int,
+            default=8006,
+            help="Proxmox API port (default: 8006).",
+        )
+        parser.add_argument(
+            "--proxmox-user",
+            type=str,
+            default="root@pam",
+            help="Proxmox user (default: root@pam).",
+        )
+        parser.add_argument(
+            "--proxmox-token-name-env-var",
+            type=str,
+            default=None,
+            help=(
+                "The name of an environment variable containing the Proxmox API token name. "
+                "Example: --proxmox-token-name-env-var PROXMOX_TOKEN_NAME. "
+                "Use with --proxmox-token-value-env-var for token-based authentication."
+            ),
+        )
+        parser.add_argument(
+            "--proxmox-token-value-env-var",
+            type=str,
+            default=None,
+            help=(
+                "The name of an environment variable containing the Proxmox API token value. "
+                "Example: --proxmox-token-value-env-var PROXMOX_TOKEN_VALUE. "
+                "Use with --proxmox-token-name-env-var for token-based authentication."
+            ),
+        )
+        parser.add_argument(
+            "--proxmox-password-env-var",
+            type=str,
+            default=None,
+            help=(
+                "The name of an environment variable containing the Proxmox password. "
+                "Alternative to token-based authentication. "
+                "Example: --proxmox-password-env-var PROXMOX_PASSWORD"
+            ),
+        )
+        parser.add_argument(
+            "--proxmox-verify-ssl",
+            action="store_true",
+            default=True,
+            help="Verify SSL certificates when connecting to Proxmox (default: True).",
+        )
+        parser.add_argument(
+            "--proxmox-enable-guest-agent",
+            action="store_true",
+            default=False,
+            help=(
+                "Enable QEMU Guest Agent data collection for VMs. "
+                "Requires guest agent installed in VMs. "
+                "Adds OS info, hostname, and network data. "
+                "May increase sync time (default: False)."
+            ),
+        )
 
         # Store reference to self for use in the command function
         cli_instance = self
@@ -2673,6 +2741,42 @@ class CLI:
                 ubuntu_security_api_url=ubuntu_security_api_url,
                 _warn_on_legacy_report_source=False,
             )
+
+            # Read Proxmox credentials
+            if config.proxmox_host:
+                # Token-based authentication (preferred)
+                if (
+                    config.proxmox_token_name_env_var
+                    and config.proxmox_token_value_env_var
+                ):
+                    logger.debug(
+                        f"Reading Proxmox API token from environment variables "
+                        f"{config.proxmox_token_name_env_var} and {config.proxmox_token_value_env_var}",
+                    )
+                    config.proxmox_token_name = os.environ.get(
+                        config.proxmox_token_name_env_var
+                    )
+                    config.proxmox_token_value = os.environ.get(
+                        config.proxmox_token_value_env_var
+                    )
+                else:
+                    config.proxmox_token_name = None
+                    config.proxmox_token_value = None
+
+                # Password-based authentication (alternative)
+                if config.proxmox_password_env_var:
+                    logger.debug(
+                        f"Reading Proxmox password from environment variable {config.proxmox_password_env_var}",
+                    )
+                    config.proxmox_password = os.environ.get(
+                        config.proxmox_password_env_var
+                    )
+                else:
+                    config.proxmox_password = None
+            else:
+                config.proxmox_token_name = None
+                config.proxmox_token_value = None
+                config.proxmox_password = None
 
             # Run the sync
             cartography.sync.run_with_config(sync, config)
