@@ -226,6 +226,22 @@ class Config:
     :param slack_teams: List of Slack team IDs to sync. Optional.
     :type slack_channels_memberships: bool
     :param slack_channels_memberships: If True, sync Slack channel membership data. Optional.
+    :type proxmox_host: str
+    :param proxmox_host: Proxmox host to sync. Optional.
+    :type proxmox_port: int
+    :param proxmox_port: Proxmox API port (default: 8006). Optional.
+    :type proxmox_user: str
+    :param proxmox_user: Proxmox user (default: root@pam). Optional.
+    :type proxmox_token_name_env_var: str
+    :param proxmox_token_name_env_var: Environment variable containing Proxmox API token name. Optional.
+    :type proxmox_token_value_env_var: str
+    :param proxmox_token_value_env_var: Environment variable containing Proxmox API token value. Optional.
+    :type proxmox_password_env_var: str
+    :param proxmox_password_env_var: Environment variable containing Proxmox password. Optional.
+    :type proxmox_verify_ssl: bool
+    :param proxmox_verify_ssl: Verify SSL certificates when connecting to Proxmox (default: True). Optional.
+    :type proxmox_enable_guest_agent: bool
+    :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
     """
 
     def __init__(
@@ -338,6 +354,14 @@ class Config:
         keycloak_client_secret=None,
         keycloak_realm=None,
         keycloak_url=None,
+        proxmox_host=None,
+        proxmox_port=8006,
+        proxmox_user="root@pam",
+        proxmox_token_name_env_var=None,
+        proxmox_token_value_env_var=None,
+        proxmox_password_env_var=None,
+        proxmox_verify_ssl=True,
+        proxmox_enable_guest_agent=False,
         slack_token=None,
         slack_teams=None,
         slack_channels_memberships=False,
@@ -452,6 +476,17 @@ class Config:
         self.keycloak_client_secret = keycloak_client_secret
         self.keycloak_realm = keycloak_realm
         self.keycloak_url = keycloak_url
+        self.proxmox_host = proxmox_host
+        self.proxmox_port = proxmox_port
+        self.proxmox_user = proxmox_user
+        self.proxmox_token_name_env_var = proxmox_token_name_env_var
+        self.proxmox_token_value_env_var = proxmox_token_value_env_var
+        self.proxmox_password_env_var = proxmox_password_env_var
+        self.proxmox_verify_ssl = proxmox_verify_ssl
+        self.proxmox_enable_guest_agent = proxmox_enable_guest_agent
+        self.proxmox_token_name = None
+        self.proxmox_token_value = None
+        self.proxmox_password = None
         self.slack_token = slack_token
         self.slack_teams = slack_teams
         self.slack_channels_memberships = slack_channels_memberships
