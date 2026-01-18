@@ -161,7 +161,7 @@ def load_snapshots(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.graph.job import load
+    from cartography.client.core.tx import load
 
     load(
         neo4j_session,
