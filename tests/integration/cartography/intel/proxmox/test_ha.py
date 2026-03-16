@@ -66,8 +66,8 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
 
     # Assert - HA groups exist
     expected_groups = {
-        ("ha-group-1", "node1,node2"),
-        ("ha-group-2", "node2"),
+        ("test-cluster/ha/group/ha-group-1", "node1,node2"),
+        ("test-cluster/ha/group/ha-group-2", "node2"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxHAGroup", ["id", "nodes"]) == expected_groups
@@ -75,9 +75,9 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
 
     # Assert - HA resources exist
     expected_resources = {
-        ("vm:100", "started"),
-        ("ct:200", "started"),
-        ("vm:101", "stopped"),
+        ("test-cluster/ha/resource/vm:100", "started"),
+        ("test-cluster/ha/resource/ct:200", "started"),
+        ("test-cluster/ha/resource/vm:101", "stopped"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxHAResource", ["id", "state"])
@@ -86,8 +86,8 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
 
     # Assert - HA group to cluster relationships
     expected_group_rels = {
-        ("ha-group-1", TEST_CLUSTER_ID),
-        ("ha-group-2", TEST_CLUSTER_ID),
+        ("test-cluster/ha/group/ha-group-1", TEST_CLUSTER_ID),
+        ("test-cluster/ha/group/ha-group-2", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -104,9 +104,9 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
 
     # Assert - HA resource to cluster relationships
     expected_resource_rels = {
-        ("vm:100", TEST_CLUSTER_ID),
-        ("ct:200", TEST_CLUSTER_ID),
-        ("vm:101", TEST_CLUSTER_ID),
+        ("test-cluster/ha/resource/vm:100", TEST_CLUSTER_ID),
+        ("test-cluster/ha/resource/ct:200", TEST_CLUSTER_ID),
+        ("test-cluster/ha/resource/vm:101", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -123,9 +123,9 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
 
     # Assert - HA resource to HA group relationships
     expected_ha_group_rels = {
-        ("vm:100", "ha-group-1"),
-        ("ct:200", "ha-group-1"),
-        ("vm:101", "ha-group-2"),
+        ("test-cluster/ha/resource/vm:100", "test-cluster/ha/group/ha-group-1"),
+        ("test-cluster/ha/resource/ct:200", "test-cluster/ha/group/ha-group-1"),
+        ("test-cluster/ha/resource/vm:101", "test-cluster/ha/group/ha-group-2"),
     }
     assert (
         check_rels(
@@ -150,15 +150,15 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
     )
     ha_vm_rels = [(r["ha_id"], r["vmid"]) for r in result]
     assert ha_vm_rels == [
-        ("ct:200", 200),
-        ("vm:100", 100),
-        ("vm:101", 101),
+        ("test-cluster/ha/resource/ct:200", 200),
+        ("test-cluster/ha/resource/vm:100", 100),
+        ("test-cluster/ha/resource/vm:101", 101),
     ]
 
     # Assert - HA group properties (Proxmox API returns 0/1, stored as integers in Neo4j)
     result = neo4j_session.run(
         """
-        MATCH (g:ProxmoxHAGroup {id: 'ha-group-2'})
+        MATCH (g:ProxmoxHAGroup {id: 'test-cluster/ha/group/ha-group-2'})
         RETURN g.restricted as restricted, g.nofailback as nofailback
         """
     )

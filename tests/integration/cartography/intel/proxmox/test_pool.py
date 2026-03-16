@@ -48,13 +48,24 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
     neo4j_session.run(
         """
         MERGE (v1:ProxmoxVM {vmid: 100})
-        SET v1.id = 'node1:100', v1.name = 'test-vm-1', v1.lastupdated = $update_tag
+        SET v1.id = 'test-cluster/vm/100',
+            v1.name = 'test-vm-1',
+            v1.cluster_id = 'test-cluster',
+            v1.lastupdated = $update_tag
         MERGE (v2:ProxmoxVM {vmid: 101})
-        SET v2.id = 'node1:101', v2.name = 'test-vm-2', v2.lastupdated = $update_tag
+        SET v2.id = 'test-cluster/vm/101',
+            v2.name = 'test-vm-2',
+            v2.cluster_id = 'test-cluster',
+            v2.lastupdated = $update_tag
         MERGE (v3:ProxmoxVM {vmid: 200})
-        SET v3.id = 'node2:200', v3.name = 'test-container-1', v3.lastupdated = $update_tag
-        MERGE (s:ProxmoxStorage {id: 'nfs-backup'})
-        SET s.name = 'nfs-backup', s.lastupdated = $update_tag
+        SET v3.id = 'test-cluster/vm/200',
+            v3.name = 'test-container-1',
+            v3.cluster_id = 'test-cluster',
+            v3.lastupdated = $update_tag
+        MERGE (s:ProxmoxStorage {id: 'test-cluster/storage/nfs-backup'})
+        SET s.name = 'nfs-backup',
+            s.cluster_id = 'test-cluster',
+            s.lastupdated = $update_tag
         """,
         update_tag=TEST_UPDATE_TAG,
     )
@@ -70,9 +81,9 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
 
     # Assert - Pools exist
     expected_pools = {
-        ("production", "Production VMs and containers"),
-        ("development", "Development environment"),
-        ("backup-storage", "Backup storage resources"),
+        ("test-cluster/pool/production", "Production VMs and containers"),
+        ("test-cluster/pool/development", "Development environment"),
+        ("test-cluster/pool/backup-storage", "Backup storage resources"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxPool", ["id", "comment"]) == expected_pools
@@ -80,9 +91,9 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
 
     # Assert - Pool to cluster relationships
     expected_rels = {
-        ("production", TEST_CLUSTER_ID),
-        ("development", TEST_CLUSTER_ID),
-        ("backup-storage", TEST_CLUSTER_ID),
+        ("test-cluster/pool/production", TEST_CLUSTER_ID),
+        ("test-cluster/pool/development", TEST_CLUSTER_ID),
+        ("test-cluster/pool/backup-storage", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -107,9 +118,9 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
     )
     pool_vm_rels = [(r["pool_id"], r["vmid"]) for r in result]
     assert pool_vm_rels == [
-        ("development", 101),
-        ("production", 100),
-        ("production", 200),
+        ("test-cluster/pool/development", 101),
+        ("test-cluster/pool/production", 100),
+        ("test-cluster/pool/production", 200),
     ]
 
     # Assert - Pool to storage relationships
@@ -120,4 +131,4 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
         """
     )
     pool_storage_rels = [(r["pool_id"], r["storage_id"]) for r in result]
-    assert pool_storage_rels == [("backup-storage", "nfs-backup")]
+    assert pool_storage_rels == [("test-cluster/pool/backup-storage", "test-cluster/storage/nfs-backup")]

@@ -62,7 +62,13 @@ def transform_certificate_data(
     for cert in certificates:
         # Create unique ID from cluster, node and filename
         filename = cert.get("filename", "unknown")
-        cert_id = f"{cluster_id}:{node_name}:{filename}"
+        # NEW UID PATTERN: Hierarchical structure showing cert belongs to node
+        # OLD: f"{cluster_id}:{node_name}:{filename}"
+        # NEW: f"{cluster_id}/node/{node_name}/cert/{filename}"
+        cert_id = f"{cluster_id}/node/{node_name}/cert/{filename}"
+
+        # Full node ID for relationship matching
+        full_node_id = f"{cluster_id}/node/{node_name}"
 
         # Parse SAN (Subject Alternative Names)
         san = []
@@ -93,7 +99,7 @@ def transform_certificate_data(
             {
                 "id": cert_id,
                 "cluster_id": cluster_id,
-                "node_name": node_name,
+                "node_name": full_node_id,  # Full node ID for relationship matching
                 "filename": filename,
                 "fingerprint": cert.get("fingerprint"),
                 "issuer": cert.get("issuer"),

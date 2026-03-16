@@ -83,9 +83,12 @@ def transform_ha_group_data(
         # Required field - use direct access
         group_name = group["group"]
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{group_name}"
+        # NEW: f"{cluster_id}/ha/group/{group_name}"
         transformed_groups.append(
             {
-                "id": f"{cluster_id}:{group_name}",
+                "id": f"{cluster_id}/ha/group/{group_name}",
                 "group": group_name,
                 "cluster_id": cluster_id,
                 "nodes": group.get("nodes"),
@@ -115,9 +118,12 @@ def transform_ha_resource_data(
         # Required field - service ID (format: vm:100, ct:200)
         sid = resource["sid"]
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{sid}"
+        # NEW: f"{cluster_id}/ha/resource/{sid}"
         transformed_resources.append(
             {
-                "id": f"{cluster_id}:{sid}",
+                "id": f"{cluster_id}/ha/resource/{sid}",
                 "sid": sid,
                 "cluster_id": cluster_id,
                 "state": resource.get("state"),

@@ -54,13 +54,13 @@ def test_replication_sync(mock_get_jobs, neo4j_session):
     assert len(jobs) == 3
 
     # Check job 1
-    assert jobs[0]["id"] == f"{cluster_id}:100-0"
+    assert jobs[0]["id"] == f"{cluster_id}/replication/100-0"
     assert jobs[0]["job_id"] == "100-0"
     assert jobs[0]["guest"] == 100
     assert jobs[0]["target"] == "pve2"
 
     # Check job 2
-    assert jobs[1]["id"] == f"{cluster_id}:101-0"
+    assert jobs[1]["id"] == f"{cluster_id}/replication/101-0"
     assert jobs[1]["guest"] == 101
 
 
@@ -148,8 +148,8 @@ def test_replication_multi_cluster_isolation(mock_get_jobs, neo4j_session):
 
     # Different cluster IDs
     job_ids = {j["id"] for j in jobs}
-    assert f"{cluster_a_id}:100-0" in job_ids
-    assert f"{cluster_b_id}:100-0" in job_ids
+    assert f"{cluster_a_id}/replication/100-0" in job_ids
+    assert f"{cluster_b_id}/replication/100-0" in job_ids
 
 
 @patch.object(cartography.intel.proxmox.replication, "get_replication_jobs")
@@ -217,7 +217,7 @@ def test_replication_cleanup_stale_data(mock_get_jobs, neo4j_session):
 
 @patch.object(cartography.intel.proxmox.replication, "get_replication_jobs")
 def test_replication_enabled_disabled(mock_get_jobs, neo4j_session):
-    """Test replication job enabled/disabled status."""
+    """Test replication job disabled status."""
     # Setup
     cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
     proxmox_client = MagicMock()
@@ -242,12 +242,12 @@ def test_replication_enabled_disabled(mock_get_jobs, neo4j_session):
         common_job_parameters,
     )
 
-    # Assert - check enabled status
+    # Assert - check disabled status
     result = neo4j_session.run(
         """
         MATCH (j:ProxmoxReplicationJob)
         WHERE j.cluster_id = $cluster_id
-        RETURN j.job_id as job_id, j.enabled as enabled
+        RETURN j.job_id as job_id, j.disable as disable
         ORDER BY j.job_id
         """,
         cluster_id=cluster_id,
@@ -256,6 +256,63 @@ def test_replication_enabled_disabled(mock_get_jobs, neo4j_session):
     jobs = list(result)
     assert len(jobs) == 2
     assert jobs[0]["job_id"] == "100-0"
-    assert jobs[0]["enabled"] is True
+    assert jobs[0]["disable"] is False  # Not disabled = enabled
     assert jobs[1]["job_id"] == "102-0"
-    assert jobs[1]["enabled"] is False
+    assert jobs[1]["disable"] is True  # Disabled
+
+
+@patch.object(cartography.intel.proxmox.replication, "get_replication_jobs")
+def test_replication_vm_relationship(mock_get_jobs, neo4j_session):
+    """Test replication jobs create REPLICATES relationships to VMs."""
+    # Setup
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+
+    # Create VMs that match replication job guests
+    neo4j_session.run(
+        """
+        MERGE (vm1:ProxmoxVM {id: $vm1_id})
+        SET vm1.vmid = 100, vm1.name = 'test-vm-1', vm1.cluster_id = $cluster_id
+        MERGE (vm2:ProxmoxVM {id: $vm2_id})
+        SET vm2.vmid = 102, vm2.name = 'test-vm-2', vm2.cluster_id = $cluster_id
+        """,
+        vm1_id=f"{cluster_id}/vm/100",
+        vm2_id=f"{cluster_id}/vm/102",
+        cluster_id=cluster_id,
+    )
+
+    proxmox_client = MagicMock()
+    mock_get_jobs.return_value = MOCK_REPLICATION_JOB_DATA
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": cluster_id,
+    }
+
+    # Act
+    sync(
+        neo4j_session,
+        proxmox_client,
+        cluster_id,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify replication->VM relationships
+    result = neo4j_session.run(
+        """
+        MATCH (job:ProxmoxReplicationJob)-[:REPLICATES]->(vm:ProxmoxVM)
+        WHERE job.cluster_id = $cluster_id
+        RETURN job.job_id as job_id, vm.vmid as vmid, vm.name as vm_name
+        ORDER BY job_id
+        """,
+        cluster_id=cluster_id,
+    )
+
+    rels = list(result)
+    assert len(rels) == 2
+    assert rels[0]["job_id"] == "100-0"
+    assert rels[0]["vmid"] == 100
+    assert rels[0]["vm_name"] == "test-vm-1"
+    assert rels[1]["job_id"] == "102-0"
+    assert rels[1]["vmid"] == 102
+    assert rels[1]["vm_name"] == "test-vm-2"

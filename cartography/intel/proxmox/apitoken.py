@@ -95,8 +95,10 @@ def transform_token_data(
         tokenid = token["tokenid"]
         userid = token["userid"]
 
-        # Create unique ID: cluster:userid!tokenid
-        token_id = f"{cluster_id}:{userid}!{tokenid}"
+        # NEW UID PATTERN: Hierarchical structure showing token belongs to user
+        # OLD: f"{cluster_id}:{userid}!{tokenid}"
+        # NEW: f"{cluster_id}/user/{userid}/token/{tokenid}"
+        token_id = f"{cluster_id}/user/{userid}/token/{tokenid}"
 
         transformed_tokens.append(
             {
