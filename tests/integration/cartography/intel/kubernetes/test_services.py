@@ -69,7 +69,12 @@ def test_load_services(neo4j_session, _create_test_cluster):
     )
 
     # Assert: Expect that the services were loaded
-    expected_nodes = {("my-service",)}
+    expected_nodes = {
+        ("my-service",),
+        ("api-service",),
+        ("app-service",),
+        ("simple-service",),
+    }
     assert check_nodes(neo4j_session, "KubernetesService", ["name"]) == expected_nodes
 
 
@@ -86,6 +91,9 @@ def test_load_services_relationships(neo4j_session, _create_test_cluster):
     # Assert: Expect services to be in the correct namespace
     expected_rels = {
         (KUBERNETES_CLUSTER_1_NAMESPACES_DATA[-1]["name"], "my-service"),
+        (KUBERNETES_CLUSTER_1_NAMESPACES_DATA[-1]["name"], "api-service"),
+        (KUBERNETES_CLUSTER_1_NAMESPACES_DATA[-1]["name"], "app-service"),
+        (KUBERNETES_CLUSTER_1_NAMESPACES_DATA[-1]["name"], "simple-service"),
     }
     assert (
         check_rels(
@@ -102,6 +110,9 @@ def test_load_services_relationships(neo4j_session, _create_test_cluster):
     # Assert: Expect services to be in the correct cluster
     expected_rels = {
         (KUBERNETES_CLUSTER_NAMES[0], "my-service"),
+        (KUBERNETES_CLUSTER_NAMES[0], "api-service"),
+        (KUBERNETES_CLUSTER_NAMES[0], "app-service"),
+        (KUBERNETES_CLUSTER_NAMES[0], "simple-service"),
     }
     assert (
         check_rels(
@@ -142,12 +153,12 @@ def test_load_services_with_aws_loadbalancer_relationship(
 ):
     """
     Test that KubernetesService of type LoadBalancer creates USES_LOAD_BALANCER
-    relationship to AWS LoadBalancerV2 when the DNS names match.
+    relationship to AWS AWSLoadBalancerV2 when the DNS names match.
 
-    Uses the actual AWS LoadBalancerV2 test data and sync function to ensure
+    Uses the actual AWS AWSLoadBalancerV2 test data and sync function to ensure
     this test stays in sync if the AWS LB schema changes.
     """
-    # Arrange: Create prerequisite AWS resources and load the LoadBalancerV2
+    # Arrange: Create prerequisite AWS resources and load the AWSLoadBalancerV2
     neo4j_session.run(
         """
         MERGE (aws:AWSAccount{id: $aws_account_id})
@@ -158,7 +169,7 @@ def test_load_services_with_aws_loadbalancer_relationship(
         update_tag=TEST_UPDATE_TAG,
     )
 
-    # Load AWS LoadBalancerV2 using the actual sync function and test data
+    # Load AWS AWSLoadBalancerV2 using the actual sync function and test data
     cartography.intel.aws.ec2.load_balancer_v2s.load_load_balancer_v2s(
         neo4j_session,
         LOAD_BALANCER_DATA,
@@ -190,7 +201,7 @@ def test_load_services_with_aws_loadbalancer_relationship(
             neo4j_session,
             "KubernetesService",
             "name",
-            "LoadBalancerV2",
+            "AWSLoadBalancerV2",
             "dnsname",
             "USES_LOAD_BALANCER",
             rel_direction_right=True,
@@ -204,15 +215,15 @@ def test_load_services_no_loadbalancer_relationship_when_no_match(
 ):
     """
     Test that KubernetesService of type LoadBalancer does NOT create USES_LOAD_BALANCER
-    relationship when there is no matching AWS LoadBalancerV2.
+    relationship when there is no matching AWS AWSLoadBalancerV2.
     """
-    # Clean up any LoadBalancerV2 nodes from previous tests
-    neo4j_session.run("MATCH (lb:LoadBalancerV2) DETACH DELETE lb")
+    # Clean up any AWSLoadBalancerV2 nodes from previous tests
+    neo4j_session.run("MATCH (lb:AWSLoadBalancerV2) DETACH DELETE lb")
 
-    # Arrange: Create an AWS LoadBalancerV2 node with NON-matching DNS name
+    # Arrange: Create an AWS AWSLoadBalancerV2 node with NON-matching DNS name
     neo4j_session.run(
         """
-        MERGE (lb:LoadBalancerV2{id: 'different-lb.elb.us-east-1.amazonaws.com',
+        MERGE (lb:AWSLoadBalancerV2{id: 'different-lb.elb.us-east-1.amazonaws.com',
                                   dnsname: 'different-lb.elb.us-east-1.amazonaws.com'})
         ON CREATE SET lb.firstseen = timestamp()
         SET lb.lastupdated = $update_tag
@@ -239,7 +250,7 @@ def test_load_services_no_loadbalancer_relationship_when_no_match(
             neo4j_session,
             "KubernetesService",
             "name",
-            "LoadBalancerV2",
+            "AWSLoadBalancerV2",
             "dnsname",
             "USES_LOAD_BALANCER",
             rel_direction_right=True,
@@ -253,16 +264,16 @@ def test_load_services_multiple_dns_names_creates_multiple_relationships(
 ):
     """
     Test one-to-many: a single KubernetesService with multiple DNS names
-    creates USES_LOAD_BALANCER relationships to multiple LoadBalancerV2 nodes.
+    creates USES_LOAD_BALANCER relationships to multiple AWSLoadBalancerV2 nodes.
 
     Real-world scenario: AWS frontend NLB feature where a service gets both
     NLB and ALB DNS entries in status.loadBalancer.ingress[].
     """
     # Clean up from previous tests
     neo4j_session.run("MATCH (s:KubernetesService) DETACH DELETE s")
-    neo4j_session.run("MATCH (lb:LoadBalancerV2) DETACH DELETE lb")
+    neo4j_session.run("MATCH (lb:AWSLoadBalancerV2) DETACH DELETE lb")
 
-    # Arrange: Create two LoadBalancerV2 nodes with different DNS names
+    # Arrange: Create two AWSLoadBalancerV2 nodes with different DNS names
     neo4j_session.run(
         """
         MERGE (aws:AWSAccount{id: $aws_account_id})
@@ -285,7 +296,7 @@ def test_load_services_multiple_dns_names_creates_multiple_relationships(
     # Create second LB manually (simulating a second NLB/ALB)
     neo4j_session.run(
         """
-        MERGE (lb:LoadBalancerV2{id: $dns_name, dnsname: $dns_name})
+        MERGE (lb:AWSLoadBalancerV2{id: $dns_name, dnsname: $dns_name})
         ON CREATE SET lb.firstseen = timestamp()
         SET lb.lastupdated = $update_tag, lb.name = 'second-lb'
         """,
@@ -312,7 +323,7 @@ def test_load_services_multiple_dns_names_creates_multiple_relationships(
             neo4j_session,
             "KubernetesService",
             "name",
-            "LoadBalancerV2",
+            "AWSLoadBalancerV2",
             "dnsname",
             "USES_LOAD_BALANCER",
             rel_direction_right=True,
@@ -326,15 +337,15 @@ def test_clusterip_service_does_not_create_loadbalancer_relationship(
 ):
     """
     Test that ClusterIP services do NOT create USES_LOAD_BALANCER relationships,
-    even when LoadBalancerV2 nodes exist in the graph.
+    even when AWSLoadBalancerV2 nodes exist in the graph.
 
     Only services of type LoadBalancer should create this relationship.
     """
     # Clean up from previous tests
     neo4j_session.run("MATCH (s:KubernetesService) DETACH DELETE s")
-    neo4j_session.run("MATCH (lb:LoadBalancerV2) DETACH DELETE lb")
+    neo4j_session.run("MATCH (lb:AWSLoadBalancerV2) DETACH DELETE lb")
 
-    # Arrange: Create a LoadBalancerV2 node
+    # Arrange: Create a AWSLoadBalancerV2 node
     neo4j_session.run(
         """
         MERGE (aws:AWSAccount{id: $aws_account_id})
@@ -364,7 +375,10 @@ def test_clusterip_service_does_not_create_loadbalancer_relationship(
 
     # Assert: Service was loaded
     assert check_nodes(neo4j_session, "KubernetesService", ["name"]) == {
-        ("my-service",)
+        ("my-service",),
+        ("api-service",),
+        ("app-service",),
+        ("simple-service",),
     }
 
     # Assert: No USES_LOAD_BALANCER relationship (ClusterIP services don't have load_balancer_dns_names)
@@ -373,7 +387,7 @@ def test_clusterip_service_does_not_create_loadbalancer_relationship(
             neo4j_session,
             "KubernetesService",
             "name",
-            "LoadBalancerV2",
+            "AWSLoadBalancerV2",
             "dnsname",
             "USES_LOAD_BALANCER",
             rel_direction_right=True,

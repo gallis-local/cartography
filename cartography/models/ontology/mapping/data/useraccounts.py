@@ -219,6 +219,27 @@ github_mapping = OntologyMapping(
         ),
     ],
 )
+gitlab_mapping = OntologyMapping(
+    module_name="gitlab",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="GitLabUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="username"),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+                OntologyFieldMapping(
+                    ontology_field="active",
+                    node_field="state",
+                    extra={"values": ["active"]},
+                    special_handling="equal_boolean",
+                ),
+            ],
+        ),
+    ],
+)
 keycloak_mapping = OntologyMapping(
     module_name="keycloak",
     nodes=[
@@ -322,6 +343,29 @@ tailscale_mapping = OntologyMapping(
         ),
     ],
 )
+oci_mapping = OntologyMapping(
+    module_name="oci",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OCIUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+                OntologyFieldMapping(
+                    ontology_field="has_mfa", node_field="is_mfa_activated"
+                ),
+                OntologyFieldMapping(
+                    ontology_field="active",
+                    node_field="lifecycle_state",
+                    extra={"values": ["ACTIVE"]},
+                    special_handling="equal_boolean",
+                ),
+            ],
+        ),
+    ],
+)
 okta_mapping = OntologyMapping(
     module_name="okta",
     nodes=[
@@ -351,7 +395,7 @@ aws_mapping = OntologyMapping(
             fields=[
                 OntologyFieldMapping(ontology_field="username", node_field="name"),
                 OntologyFieldMapping(
-                    ontology_field="lastactivity", node_field="passwordlastused"
+                    ontology_field="lastactivity", node_field="last_authenticated"
                 ),
             ],
         ),
@@ -389,11 +433,77 @@ slack_mapping = OntologyMapping(
         ),
     ],
 )
+spacelift_mapping = OntologyMapping(
+    module_name="spacelift",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="SpaceliftUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="username"),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+                # firstname: not available in SpaceliftUser
+                # lastname: not available in SpaceliftUser
+                # has_mfa: not available in SpaceliftUser
+                # active/inactive: not available in SpaceliftUser
+                # lastactivity: not available in SpaceliftUser
+            ],
+        ),
+    ],
+)
+pagerduty_mapping = OntologyMapping(
+    module_name="pagerduty",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="PagerDutyUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+            ],
+        ),
+    ],
+)
 
 # UserAccount fields:
 # has_mfa
 # inactive
 # lastactivity
+
+subimage_mapping = OntologyMapping(
+    module_name="subimage",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="SubImageTeamMember",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="firstname", node_field="first_name"
+                ),
+                OntologyFieldMapping(ontology_field="lastname", node_field="last_name"),
+            ],
+        ),
+    ],
+)
+
+kubernetes_mapping = OntologyMapping(
+    module_name="kubernetes",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="KubernetesUser",
+            eligible_for_source=False,
+            fields=[
+                OntologyFieldMapping(ontology_field="username", node_field="name"),
+                # email: Not available
+            ],
+        ),
+    ],
+)
 
 USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "entra": entra_mapping,
@@ -404,7 +514,9 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "cloudflare": cloudflare_mapping,
     "duo": duo_mapping,
     "github": github_mapping,
+    "gitlab": gitlab_mapping,
     "keycloak": keycloak_mapping,
+    "oci": oci_mapping,
     "openai": openai_mapping,
     "scaleway": scaleway_mapping,
     "snipeit": snipeit_mapping,
@@ -413,4 +525,8 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "googleworkspace": googleworkspace_mapping,
     "slack": slack_mapping,
+    "spacelift": spacelift_mapping,
+    "pagerduty": pagerduty_mapping,
+    "subimage": subimage_mapping,
+    "kubernetes": kubernetes_mapping,
 }

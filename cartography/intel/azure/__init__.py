@@ -5,6 +5,8 @@ from typing import List
 import neo4j
 
 from cartography.config import Config
+from cartography.util import run_analysis_job
+from cartography.util import run_scoped_analysis_job
 from cartography.util import timeit
 
 from . import aks
@@ -18,7 +20,11 @@ from . import data_factory_linked_service
 from . import data_factory_pipeline
 from . import data_lake
 from . import event_grid
+from . import event_hub
+from . import event_hub_namespace
+from . import firewall
 from . import functions
+from . import key_vaults
 from . import load_balancers
 from . import logic_apps
 from . import monitor
@@ -30,6 +36,7 @@ from . import security_center
 from . import sql
 from . import storage
 from . import subscription
+from . import synapse
 from . import tenant
 from .util.credentials import Authenticator
 from .util.credentials import Credentials
@@ -44,13 +51,6 @@ def _sync_one_subscription(
     update_tag: int,
     common_job_parameters: Dict,
 ) -> None:
-    container_instances.sync(
-        neo4j_session,
-        credentials,
-        subscription_id,
-        update_tag,
-        common_job_parameters,
-    )
     compute.sync(
         neo4j_session,
         credentials.credential,
@@ -121,9 +121,31 @@ def _sync_one_subscription(
         update_tag,
         common_job_parameters,
     )
+    key_vaults.sync(
+        neo4j_session,
+        credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
     aks.sync(
         neo4j_session,
         credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
+    namespaces = event_hub_namespace.sync_event_hub_namespaces(
+        neo4j_session,
+        credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
+    event_hub.sync_event_hubs(
+        neo4j_session,
+        credentials,
+        namespaces,
         subscription_id,
         update_tag,
         common_job_parameters,
@@ -177,7 +199,28 @@ def _sync_one_subscription(
         update_tag,
         common_job_parameters,
     )
+    container_instances.sync(
+        neo4j_session,
+        credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
+    firewall.sync(
+        neo4j_session,
+        credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
     load_balancers.sync(
+        neo4j_session,
+        credentials,
+        subscription_id,
+        update_tag,
+        common_job_parameters,
+    )
+    synapse.sync(
         neo4j_session,
         credentials,
         subscription_id,
@@ -213,7 +256,13 @@ def _sync_tenant(
     common_job_parameters: Dict,
 ) -> None:
     logger.info("Syncing Azure Tenant: %s", credentials.tenant_id)
-    tenant.sync(neo4j_session, credentials.tenant_id, None, update_tag, common_job_parameters)  # type: ignore
+    tenant.sync(
+        neo4j_session,
+        credentials.tenant_id or "",
+        None,
+        update_tag,
+        common_job_parameters,
+    )
 
 
 def _sync_multiple_subscriptions(
@@ -234,19 +283,22 @@ def _sync_multiple_subscriptions(
         common_job_parameters,
     )
 
-    for sub in subscriptions:
-        logger.info("Syncing Azure Subscription with ID '%s'", sub["subscriptionId"])
-        common_job_parameters["AZURE_SUBSCRIPTION_ID"] = sub["subscriptionId"]
+    try:
+        for sub in subscriptions:
+            logger.info(
+                "Syncing Azure Subscription with ID '%s'", sub["subscriptionId"]
+            )
+            common_job_parameters["AZURE_SUBSCRIPTION_ID"] = sub["subscriptionId"]
 
-        _sync_one_subscription(
-            neo4j_session,
-            credentials,
-            sub["subscriptionId"],
-            update_tag,
-            common_job_parameters,
-        )
-
-    del common_job_parameters["AZURE_SUBSCRIPTION_ID"]
+            _sync_one_subscription(
+                neo4j_session,
+                credentials,
+                sub["subscriptionId"],
+                update_tag,
+                common_job_parameters,
+            )
+    finally:
+        common_job_parameters.pop("AZURE_SUBSCRIPTION_ID", None)
 
 
 @timeit
@@ -313,3 +365,25 @@ def start_azure_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
             config.update_tag,
             common_job_parameters,
         )
+
+        run_analysis_job(
+            "azure_compute_asset_exposure.json",
+            neo4j_session,
+            common_job_parameters,
+        )
+
+        try:
+            for sub in subscriptions:
+                common_job_parameters["AZURE_SUBSCRIPTION_ID"] = sub["subscriptionId"]
+                run_scoped_analysis_job(
+                    "azure_lb_exposure.json",
+                    neo4j_session,
+                    common_job_parameters,
+                )
+                run_scoped_analysis_job(
+                    "azure_firewall_lb_protection.json",
+                    neo4j_session,
+                    common_job_parameters,
+                )
+        finally:
+            common_job_parameters.pop("AZURE_SUBSCRIPTION_ID", None)

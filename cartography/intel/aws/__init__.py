@@ -30,6 +30,29 @@ stat_handler = get_stats_client(__name__)
 logger = logging.getLogger(__name__)
 
 
+# DEPRECATED: this is for backward compatibility, will be removed in v1.0.0
+def _normalize_requested_syncs(aws_requested_syncs: Iterable[str]) -> list[str]:
+    """
+    Auto-include dependent sync phases for backward compatibility.
+    E.g., requesting 'ec2:load_balancer_v2' alone will auto-include 'ec2:load_balancer_v2:expose'.
+    """
+    # Preserve order + dedupe
+    requested_syncs = list(dict.fromkeys(aws_requested_syncs))
+    requested_syncs_set = set(requested_syncs)
+
+    if (
+        "ec2:load_balancer_v2" in requested_syncs_set
+        and "ec2:load_balancer_v2:expose" not in requested_syncs_set
+    ):
+        requested_syncs.append("ec2:load_balancer_v2:expose")
+        logger.info(
+            "Auto-including 'ec2:load_balancer_v2:expose' because "
+            "'ec2:load_balancer_v2' was requested.",
+        )
+
+    return requested_syncs
+
+
 def _build_aws_sync_kwargs(
     neo4j_session: neo4j.Session,
     boto3_session: boto3.session.Session,
@@ -71,27 +94,63 @@ def _sync_one_account(
         common_job_parameters,
     )
 
-    for func_name in aws_requested_syncs:
-        if func_name in RESOURCE_FUNCTIONS:
-            # Skip permission relationships and tags for now because they rely on data already being in the graph
-            if func_name == "ecr:image_layers":
-                # has a different signature than the other functions (aioboto3_session replaces boto3_session)
-                RESOURCE_FUNCTIONS[func_name](
-                    neo4j_session,
-                    aioboto3_session,
-                    regions,
-                    current_aws_account_id,
-                    update_tag,
-                    common_job_parameters,
+    aws_requested_syncs = _normalize_requested_syncs(aws_requested_syncs)
+
+    # Validate that all requested syncs exist
+    requested_syncs_set = set(aws_requested_syncs)
+    invalid_syncs = requested_syncs_set - set(RESOURCE_FUNCTIONS.keys())
+    if invalid_syncs:
+        raise ValueError(
+            f"AWS sync function(s) {invalid_syncs} were specified but do not exist. Did you misspell them?",
+        )
+
+    # Warn if modules are requested without their dependencies
+    # Dependencies: {module: [required_dependencies]}
+    module_dependencies = {
+        "ssm": ["ec2:instance"],
+        "ec2:images": ["ec2:instance"],
+        "ec2:load_balancer": ["ec2:subnet", "ec2:instance"],
+        "ec2:load_balancer_v2": ["ec2:subnet", "ec2:instance"],
+        "ec2:load_balancer_v2:expose": [
+            "ec2:load_balancer_v2",
+            "ec2:network_interface",
+        ],
+        "ec2:route_table": ["ec2:vpc_endpoint"],
+        # `ecs` creates IS_INSTANCE relationships from ECSContainerInstance to EC2Instance
+        "ecs": ["ec2:instance"],
+        "dynamodb": ["kms"],
+    }
+    for module, dependencies in module_dependencies.items():
+        if module in requested_syncs_set:
+            missing_deps = [
+                dep for dep in dependencies if dep not in requested_syncs_set
+            ]
+            if missing_deps:
+                logger.warning(
+                    f"Module '{module}' is requested without its dependencies {missing_deps}. "
+                    f"Some relationships may not be created if the dependency data doesn't exist in Neo4j.",
                 )
-            elif func_name in ["permission_relationships", "resourcegroupstaggingapi"]:
-                continue
-            else:
-                RESOURCE_FUNCTIONS[func_name](**sync_args)
-        else:
-            raise ValueError(
-                f'AWS sync function "{func_name}" was specified but does not exist. Did you misspell it?',
+
+    # Iterate over RESOURCE_FUNCTIONS to preserve defined sync order (dependencies)
+    # Skip modules not in the user's requested list
+    for func_name in RESOURCE_FUNCTIONS:
+        if func_name not in requested_syncs_set:
+            continue
+        # Skip permission relationships and tags for now because they rely on data already being in the graph
+        if func_name == "ecr:image_layers":
+            # has a different signature than the other functions (aioboto3_session replaces boto3_session)
+            RESOURCE_FUNCTIONS[func_name](
+                neo4j_session,
+                aioboto3_session,
+                regions,
+                current_aws_account_id,
+                update_tag,
+                common_job_parameters,
             )
+        elif func_name in ["permission_relationships", "resourcegroupstaggingapi"]:
+            continue
+        else:
+            RESOURCE_FUNCTIONS[func_name](**sync_args)
 
     # MAP IAM permissions
     if "permission_relationships" in aws_requested_syncs:
@@ -112,6 +171,22 @@ def _sync_one_account(
         neo4j_session,
         common_job_parameters,
     )
+
+    if {"ecs", "ec2:load_balancer_v2", "ec2:load_balancer_v2:expose"}.issubset(
+        requested_syncs_set
+    ):
+        run_scoped_analysis_job(
+            "aws_lb_container_exposure.json",
+            neo4j_session,
+            common_job_parameters,
+        )
+
+    if {"ec2:network_acls", "ec2:load_balancer_v2"}.issubset(requested_syncs_set):
+        run_scoped_analysis_job(
+            "aws_lb_nacl_direct.json",
+            neo4j_session,
+            common_job_parameters,
+        )
 
     merge_module_sync_metadata(
         neo4j_session,
@@ -278,6 +353,14 @@ def _perform_aws_analysis(
     """
     requested_syncs_as_set = set(requested_syncs)
 
+    run_analysis_and_ensure_deps(
+        "aws_ip_node_label_migration.json",
+        {"ec2:security_group"},
+        requested_syncs_as_set,
+        common_job_parameters,
+        neo4j_session,
+    )
+
     ec2_asset_exposure_requirements = {
         "ec2:instance",
         "ec2:security_group",
@@ -316,6 +399,14 @@ def _perform_aws_analysis(
         neo4j_session,
     )
 
+    run_analysis_and_ensure_deps(
+        "aws_ecs_asset_exposure.json",
+        {"ecs", "ec2:load_balancer_v2", "ec2:load_balancer_v2:expose"},
+        requested_syncs_as_set,
+        common_job_parameters,
+        neo4j_session,
+    )
+
 
 @timeit
 def start_aws_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
@@ -325,6 +416,7 @@ def start_aws_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
         "aws_guardduty_severity_threshold": config.aws_guardduty_severity_threshold,
         "aws_cloudtrail_management_events_lookback_hours": config.aws_cloudtrail_management_events_lookback_hours,
         "experimental_aws_inspector_batch": config.experimental_aws_inspector_batch,
+        "aws_tagging_api_cleanup_batch": config.aws_tagging_api_cleanup_batch,
     }
     try:
         boto3_session = boto3.Session()
@@ -366,6 +458,7 @@ def start_aws_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
         requested_syncs = parse_and_validate_aws_requested_syncs(
             config.aws_requested_syncs,
         )
+    requested_syncs = _normalize_requested_syncs(requested_syncs)
 
     if config.aws_regions:
         regions = parse_and_validate_aws_regions(config.aws_regions)

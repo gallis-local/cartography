@@ -731,6 +731,7 @@ def _sync_role_assignments(
     neo4j_session: neo4j.Session,
     user_permissionsets_raw: list[dict[str, Any]],
     group_permissionsets_raw: list[dict[str, Any]],
+    identity_store_id: str,
     current_aws_account_id: str,
     update_tag: int,
 ) -> None:
@@ -746,9 +747,13 @@ def _sync_role_assignments(
     the ALLOWED_BY edges.
     """
     user_roles = get_principal_roles(neo4j_session, user_permissionsets_raw)
+    for role in user_roles:
+        role["IdentityStoreId"] = identity_store_id
     load_user_roles(neo4j_session, user_roles, current_aws_account_id, update_tag)
 
     group_roles = get_principal_roles(neo4j_session, group_permissionsets_raw)
+    for role in group_roles:
+        role["IdentityStoreId"] = identity_store_id
     load_group_roles(neo4j_session, group_roles, current_aws_account_id, update_tag)
 
 
@@ -797,6 +802,7 @@ def _sync_instance(
             neo4j_session,
             user_assignments,
             group_assignments,
+            identity_store_id,
             current_aws_account_id,
             update_tag,
         )
@@ -826,15 +832,32 @@ def sync_identity_center_instances(
     for region in regions:
         logger.info(f"Syncing Identity Center instances for region {region}")
         instances = get_identity_center_instances(boto3_session, region)
+
+        # Filter out instances not owned by the current account. The sso-admin
+        # ListInstances API returns org-level instances to every member account,
+        # which would otherwise create incorrect RESOURCE edges to all accounts.
+        owned_instances = []
+        for inst in instances:
+            owner = inst.get("OwnerAccountId")
+            if owner and owner != current_aws_account_id:
+                logger.debug(
+                    "Skipping Identity Center instance %s owned by account %s (current: %s)",
+                    inst.get("InstanceArn"),
+                    owner,
+                    current_aws_account_id,
+                )
+                continue
+            owned_instances.append(inst)
+
         load_identity_center_instances(
             neo4j_session,
-            instances,
+            owned_instances,
             region,
             current_aws_account_id,
             update_tag,
         )
 
-        for instance in instances:
+        for instance in owned_instances:
             _sync_instance(
                 neo4j_session,
                 boto3_session,

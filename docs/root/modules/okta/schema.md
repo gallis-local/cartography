@@ -129,6 +129,8 @@ Representation of an [Okta User](https://developer.okta.com/docs/reference/api/u
 
 Representation of an [Okta Group](https://developer.okta.com/docs/reference/api/groups/#group-object).
 
+> **Ontology Mapping**: This node has the extra label `UserGroup` to enable cross-platform queries for user groups across different systems (e.g., AWSGroup, EntraGroup, GoogleWorkspaceGroup).
+
 | Field | Description |
 |-------|--------------|
 | id | application id  |
@@ -282,7 +284,7 @@ Representation of an [Okta Administration Role](https://developer.okta.com/docs/
     (OktaOrganization)-[RESOURCE]->(OktaAdministrationRole)
     ```
 
-### Reply Uri
+### ReplyUri
 
 Representation of [Okta Application ReplyUri](https://developer.okta.com/docs/reference/api/apps/).
 

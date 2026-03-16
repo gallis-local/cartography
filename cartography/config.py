@@ -15,6 +15,11 @@ class Config:
     :type neo4j_max_connection_lifetime: int
     :param neo4j_max_connection_lifetime: Time in seconds for Neo4j driver to consider a TCP connection alive.
         See https://neo4j.com/docs/driver-manual/1.7/client-applications/. Optional.
+    :type neo4j_liveness_check_timeout: int
+    :param neo4j_liveness_check_timeout: Time in seconds that a connection can be idle before the driver performs a
+        liveness check (RESET ping) before reusing it. Helps prevent SessionExpired or ConnectionResetError on
+        Aura/clustered Neo4j instances that close idle connections server-side. Maps to the neo4j driver's
+        ``liveness_check_timeout`` parameter. Optional.
     :type neo4j_database: string
     :param neo4j_database: The name of the database in Neo4j to connect to. If not specified, uses your Neo4j database
     settings to infer which database is set to default.
@@ -61,6 +66,9 @@ class Config:
     :type experimental_aws_inspector_batch: int
     :param experimental_aws_inspector_batch: EXPERIMENTAL: Batch size for AWS Inspector findings sync. Controls how
         many findings are fetched, processed and cleaned up at a time. Default is 1000. Optional.
+    :type aws_tagging_api_cleanup_batch: int
+    :param aws_tagging_api_cleanup_batch: Batch size for Resource Groups Tagging API cleanup. Controls how many
+        AWSTag nodes and TAGGED relationships are deleted per batch. Default is 1000. Optional.
     :type analysis_job_directory: str
     :param analysis_job_directory: Path to a directory tree containing analysis jobs to run. Optional.
     :type oci_sync_all_profiles: bool
@@ -81,6 +89,8 @@ class Config:
     :param permission_relationships_file: File path for the resource permission relationships file. Optional.
     :type azure_permission_relationships_file: str
     :param azure_permission_relationships_file: File path for the Azure permission relationships file. Optional.
+    :type gcp_requested_syncs: str
+    :param gcp_requested_syncs: Comma-separated list of GCP resources to sync. Optional.
     :type gcp_permission_relationships_file: str
     :param gcp_permission_relationships_file: File path for the GCP resource permission relationships file. Optional.
     :type jamf_base_uri: string
@@ -147,6 +157,8 @@ class Config:
     :param gitlab_token: GitLab personal access token for API authentication. Optional.
     :type gitlab_organization_id: int
     :param gitlab_organization_id: GitLab organization (top-level group) ID to sync. Optional.
+    :type gitlab_commits_since_days: int
+    :param gitlab_commits_since_days: Number of days of commit history to fetch. Defaults to 90.
     :param semgrep_app_token: The Semgrep api token. Optional.
     :type semgrep_app_token: str
     :param semgrep_dependency_ecosystems: Comma-separated list of Semgrep dependency ecosystems to fetch. Optional.
@@ -177,6 +189,12 @@ class Config:
     :param airbyte_client_secret: Airbyte client secret for API authentication. Optional.
     :type airbyte_api_url: str
     :param airbyte_api_url: Airbyte API base URL, e.g. https://api.airbyte.com/v1. Optional.
+    :type docker_scout_results_dir: str
+    :param docker_scout_results_dir: Local directory containing Docker Scout recommendation text reports. Optional.
+    :type docker_scout_s3_bucket: str
+    :param docker_scout_s3_bucket: S3 bucket name containing Docker Scout recommendation text reports. Optional.
+    :type docker_scout_s3_prefix: str
+    :param docker_scout_s3_prefix: S3 prefix path for Docker Scout recommendation text reports. Optional.
     :type trivy_s3_bucket: str
     :param trivy_s3_bucket: The S3 bucket name containing Trivy scan results. Optional.
     :type trivy_s3_prefix: str
@@ -208,6 +226,8 @@ class Config:
     :param spacelift_api_key_id: Spacelift API key ID for token exchange authentication. Optional (alternative to token).
     :type spacelift_api_key_secret: string
     :param spacelift_api_key_secret: Spacelift API key secret for token exchange authentication. Optional (alternative to token).
+    :type spacelift_ec2_ownership_aws_profile: string
+    :param spacelift_ec2_ownership_aws_profile: AWS profile for fetching EC2 ownership data from S3. Optional.
     :type spacelift_ec2_ownership_s3_bucket: string
     :param spacelift_ec2_ownership_s3_bucket: S3 bucket name containing EC2 ownership data from Athena. Optional.
     :type spacelift_ec2_ownership_s3_prefix: string
@@ -242,6 +262,18 @@ class Config:
     :param proxmox_verify_ssl: Verify SSL certificates when connecting to Proxmox (default: True). Optional.
     :type proxmox_enable_guest_agent: bool
     :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
+    :type syft_results_dir: str
+    :param syft_results_dir: Local directory containing Syft JSON results. Optional.
+    :type syft_s3_bucket: str
+    :param syft_s3_bucket: S3 bucket containing Syft scan results. Optional.
+    :type syft_s3_prefix: str
+    :param syft_s3_prefix: S3 prefix path containing Syft scan results. Optional.
+    :type aibom_results_dir: str
+    :param aibom_results_dir: Local directory containing AIBOM JSON results. Optional.
+    :type aibom_s3_bucket: str
+    :param aibom_s3_bucket: S3 bucket containing AIBOM scan results. Optional.
+    :type aibom_s3_prefix: str
+    :param aibom_s3_prefix: S3 prefix path containing AIBOM scan results. Optional.
     """
 
     def __init__(
@@ -250,6 +282,7 @@ class Config:
         neo4j_user=None,
         neo4j_password=None,
         neo4j_max_connection_lifetime=None,
+        neo4j_liveness_check_timeout=None,
         neo4j_database=None,
         selected_modules=None,
         update_tag=None,
@@ -258,6 +291,7 @@ class Config:
         aws_best_effort_mode=False,
         aws_cloudtrail_management_events_lookback_hours=None,
         experimental_aws_inspector_batch=1000,
+        aws_tagging_api_cleanup_batch=1000,
         azure_sync_all_subscriptions=False,
         azure_sp_auth=None,
         azure_tenant_id=None,
@@ -273,12 +307,14 @@ class Config:
         oci_sync_all_profiles=None,
         okta_org_id=None,
         okta_api_key=None,
+        okta_base_domain="okta.com",
         okta_saml_role_regex=None,
         github_config=None,
         github_commit_lookback_days=30,
         digitalocean_token=None,
         permission_relationships_file=None,
         azure_permission_relationships_file=None,
+        gcp_requested_syncs=None,
         gcp_permission_relationships_file=None,
         jamf_base_uri=None,
         jamf_user=None,
@@ -318,6 +354,7 @@ class Config:
         gitlab_url="https://gitlab.com",
         gitlab_token=None,
         gitlab_organization_id=None,
+        gitlab_commits_since_days=90,
         semgrep_app_token=None,
         semgrep_dependency_ecosystems=None,
         snipeit_base_uri=None,
@@ -330,9 +367,16 @@ class Config:
         openai_apikey=None,
         openai_org_id=None,
         anthropic_apikey=None,
+        subimage_client_id=None,
+        subimage_client_secret=None,
+        subimage_tenant_url=None,
+        subimage_authkit_url="https://auth.subimage.io",
         airbyte_client_id=None,
         airbyte_client_secret=None,
         airbyte_api_url=None,
+        docker_scout_results_dir=None,
+        docker_scout_s3_bucket=None,
+        docker_scout_s3_prefix=None,
         trivy_s3_bucket=None,
         trivy_s3_prefix=None,
         ontology_users_source=None,
@@ -348,6 +392,7 @@ class Config:
         spacelift_api_token=None,
         spacelift_api_key_id=None,
         spacelift_api_key_secret=None,
+        spacelift_ec2_ownership_aws_profile=None,
         spacelift_ec2_ownership_s3_bucket=None,
         spacelift_ec2_ownership_s3_prefix=None,
         keycloak_client_id=None,
@@ -362,14 +407,26 @@ class Config:
         proxmox_password_env_var=None,
         proxmox_verify_ssl=True,
         proxmox_enable_guest_agent=False,
+        proxmox_token_name=None,
+        proxmox_token_value=None,
+        proxmox_password=None,
         slack_token=None,
         slack_teams=None,
         slack_channels_memberships=False,
+        syft_results_dir=None,
+        syft_s3_bucket=None,
+        syft_s3_prefix=None,
+        aibom_results_dir=None,
+        aibom_s3_bucket=None,
+        aibom_s3_prefix=None,
+        ubuntu_security_enabled=False,
+        ubuntu_security_api_url=None,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
         self.neo4j_password = neo4j_password
         self.neo4j_max_connection_lifetime = neo4j_max_connection_lifetime
+        self.neo4j_liveness_check_timeout = neo4j_liveness_check_timeout
         self.neo4j_database = neo4j_database
         self.selected_modules = selected_modules
         self.update_tag = update_tag
@@ -380,6 +437,7 @@ class Config:
             aws_cloudtrail_management_events_lookback_hours
         )
         self.experimental_aws_inspector_batch = experimental_aws_inspector_batch
+        self.aws_tagging_api_cleanup_batch = aws_tagging_api_cleanup_batch
         self.azure_sync_all_subscriptions = azure_sync_all_subscriptions
         self.azure_sp_auth = azure_sp_auth
         self.azure_tenant_id = azure_tenant_id
@@ -395,12 +453,14 @@ class Config:
         self.oci_sync_all_profiles = oci_sync_all_profiles
         self.okta_org_id = okta_org_id
         self.okta_api_key = okta_api_key
+        self.okta_base_domain = okta_base_domain
         self.okta_saml_role_regex = okta_saml_role_regex
         self.github_config = github_config
         self.github_commit_lookback_days = github_commit_lookback_days
         self.digitalocean_token = digitalocean_token
         self.permission_relationships_file = permission_relationships_file
         self.azure_permission_relationships_file = azure_permission_relationships_file
+        self.gcp_requested_syncs = gcp_requested_syncs
         self.gcp_permission_relationships_file = gcp_permission_relationships_file
         self.jamf_base_uri = jamf_base_uri
         self.jamf_user = jamf_user
@@ -440,6 +500,7 @@ class Config:
         self.gitlab_url = gitlab_url
         self.gitlab_token = gitlab_token
         self.gitlab_organization_id = gitlab_organization_id
+        self.gitlab_commits_since_days = gitlab_commits_since_days
         self.semgrep_app_token = semgrep_app_token
         self.semgrep_dependency_ecosystems = semgrep_dependency_ecosystems
         self.snipeit_base_uri = snipeit_base_uri
@@ -452,9 +513,16 @@ class Config:
         self.openai_apikey = openai_apikey
         self.openai_org_id = openai_org_id
         self.anthropic_apikey = anthropic_apikey
+        self.subimage_client_id = subimage_client_id
+        self.subimage_client_secret = subimage_client_secret
+        self.subimage_tenant_url = subimage_tenant_url
+        self.subimage_authkit_url = subimage_authkit_url
         self.airbyte_client_id = airbyte_client_id
         self.airbyte_client_secret = airbyte_client_secret
         self.airbyte_api_url = airbyte_api_url
+        self.docker_scout_results_dir = docker_scout_results_dir
+        self.docker_scout_s3_bucket = docker_scout_s3_bucket
+        self.docker_scout_s3_prefix = docker_scout_s3_prefix
         self.trivy_s3_bucket = trivy_s3_bucket
         self.trivy_s3_prefix = trivy_s3_prefix
         self.ontology_users_source = ontology_users_source
@@ -470,6 +538,7 @@ class Config:
         self.spacelift_api_token = spacelift_api_token
         self.spacelift_api_key_id = spacelift_api_key_id
         self.spacelift_api_key_secret = spacelift_api_key_secret
+        self.spacelift_ec2_ownership_aws_profile = spacelift_ec2_ownership_aws_profile
         self.spacelift_ec2_ownership_s3_bucket = spacelift_ec2_ownership_s3_bucket
         self.spacelift_ec2_ownership_s3_prefix = spacelift_ec2_ownership_s3_prefix
         self.keycloak_client_id = keycloak_client_id
@@ -484,9 +553,17 @@ class Config:
         self.proxmox_password_env_var = proxmox_password_env_var
         self.proxmox_verify_ssl = proxmox_verify_ssl
         self.proxmox_enable_guest_agent = proxmox_enable_guest_agent
-        self.proxmox_token_name = None
-        self.proxmox_token_value = None
-        self.proxmox_password = None
+        self.proxmox_token_name = proxmox_token_name
+        self.proxmox_token_value = proxmox_token_value
+        self.proxmox_password = proxmox_password
         self.slack_token = slack_token
         self.slack_teams = slack_teams
         self.slack_channels_memberships = slack_channels_memberships
+        self.syft_results_dir = syft_results_dir
+        self.syft_s3_bucket = syft_s3_bucket
+        self.syft_s3_prefix = syft_s3_prefix
+        self.aibom_results_dir = aibom_results_dir
+        self.aibom_s3_bucket = aibom_s3_bucket
+        self.aibom_s3_prefix = aibom_s3_prefix
+        self.ubuntu_security_enabled = ubuntu_security_enabled
+        self.ubuntu_security_api_url = ubuntu_security_api_url

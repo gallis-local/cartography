@@ -94,6 +94,39 @@ def test_aws_handle_regions(mocker):
 
     assert raises_authorization_error(1, 2) == []
 
+    # UnknownOperationException should return the default when a region does not support the operation
+    @aws_handle_regions
+    def raises_unknown_operation_error(a, b):
+        e = botocore.exceptions.ClientError(
+            {
+                "Error": {
+                    "Code": "UnknownOperationException",
+                    "Message": "The requested operation is not supported in the called region.",
+                },
+            },
+            "FakeOperation",
+        )
+        raise e
+
+    assert raises_unknown_operation_error(1, 2) == []
+
+    # UnknownOperationException should still fail fast for non-regional operation failures
+    @aws_handle_regions
+    def raises_non_regional_unknown_operation_error(a, b):
+        e = botocore.exceptions.ClientError(
+            {
+                "Error": {
+                    "Code": "UnknownOperationException",
+                    "Message": "Operation name is not recognized.",
+                },
+            },
+            "FakeOperation",
+        )
+        raise e
+
+    with pytest.raises(botocore.exceptions.ClientError):
+        raises_non_regional_unknown_operation_error(1, 2)
+
     # InvalidToken should raise RuntimeError
     @aws_handle_regions
     def raises_invalid_token(a, b):
@@ -135,6 +168,15 @@ def test_aws_handle_regions(mocker):
 
     with pytest.raises(ZeroDivisionError):
         raises_unsupported_error(1, 2)
+
+    # regional connectivity timeouts should be skipped
+    @aws_handle_regions
+    def raises_connect_timeout_error(a, b):
+        raise botocore.exceptions.ConnectTimeoutError(
+            endpoint_url="https://codebuild.ca-west-1.amazonaws.com",
+        )
+
+    assert raises_connect_timeout_error(1, 2) == []
 
 
 def test_is_service_control_policy_explicit_deny():

@@ -10,6 +10,28 @@ U(User) -- HAS_ACCOUNT --> UA{{UserAccount}}
 U -- OWNS --> CC(Device)
 U -- OWNS --> AK{{APIKey}}
 U -- AUTHORIZED --> OA{{ThirdPartyApp}}
+UG{{UserGroup}}
+SA{{ServiceAccount}}
+CERT{{Certificate}}
+LB{{LoadBalancer}} -- EXPOSE --> CI{{ComputeInstance}}
+LB{{LoadBalancer}} -- EXPOSE --> CT{{Container}}
+CL{{ComputeCluster}}
+DB{{Database}}
+OS{{ObjectStorage}}
+TN{{Tenant}}
+FN{{Function}}
+REPO{{CodeRepository}}
+SC{{Secret}}
+PIP(PublicIP) -- POINTS_TO --> LB
+PIP -- POINTS_TO --> CI
+PKG(Package) -- DEPLOYED --> IM{{Image}}
+PKG -- DEPENDS_ON --> PKG
+F[TrivyImageFinding] -- AFFECTS --> PKG
+CR{{ContainerRegistry}} -- REPO_IMAGE --> IT{{ImageTag}}
+IT -- IMAGE --> IM
+IML{{ImageManifestList}} -- CONTAINS_IMAGE --> IM
+IA{{ImageAttestation}} -- ATTESTS --> IM
+IM -- HAS_LAYER --> IL{{ImageLayer}}
 ```
 
 :::{note}
@@ -58,11 +80,11 @@ A user often has one or many user accounts.
 
 ```{important}
 If field `active` is null, it should not be considered as `true` or `false`, only as unknown.
-```{note}
+```
 
 | Field | Description |
 |-------|-------------|
-| id | The unique identifier for the user. |
+| **id** | The unique identifier for the user. |
 | firstseen | Timestamp of when a sync job first created this node. |
 | lastupdated | Timestamp of the last time the node was updated. |
 | email | User's primary email. |
@@ -109,6 +131,30 @@ Unlike the abstract `User` node, `UserAccount` is a semantic label applied to co
 | _ont_source | Source of the data. |
 
 
+### UserGroup
+
+```{note}
+UserGroup is a semantic label.
+```
+
+A user group represents a logical grouping of users or resources within a cloud provider or SaaS platform.
+Groups are a key part of the identity graph and enable attack path analysis through group membership relationships.
+Unlike the abstract `User` node, `UserGroup` is a semantic label applied to concrete group nodes from different modules, enabling unified queries across platforms.
+
+Common group concepts across platforms include:
+- **Cloud IAM**: AWS IAM Groups, AWS SSO Groups, OCI Groups, Scaleway Groups
+- **Identity Providers**: Entra Groups, Okta Groups, Keycloak Groups, Google Workspace Groups, GSuite Groups
+- **Collaboration**: GitHub Teams, GitLab Groups, Slack Groups, PagerDuty Teams
+- **Network/Device**: Duo Groups, Tailscale Groups
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | Display name of the group (REQUIRED). |
+| _ont_description | Description of the group. |
+| _ont_email | Email address associated with the group (for mail-enabled groups). |
+| _ont_source | Source of the data. |
+
+
 ### Device
 
 ```{note}
@@ -119,7 +165,7 @@ A client computer is a host that accesses a service made available by a server o
 
 | Field | Description |
 |-------|-------------|
-| id | The unique identifier for the user. |
+| **id** | The unique identifier for the user. |
 | firstseen | Timestamp of when a sync job first created this node. |
 | lastupdated | Timestamp of the last time the node was updated. |
 | hostname | Hostname of the device. |
@@ -167,6 +213,23 @@ API keys are used across different cloud providers and SaaS platforms for authen
     ```
 
 
+### Secret
+
+```{note}
+Secret is a semantic label.
+```
+
+A secret represents sensitive data stored in a secrets management service across different cloud providers and platforms.
+Secrets can include database credentials, API keys, certificates, and other sensitive configuration data.
+They are managed by dedicated services like AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, GitHub Actions Secrets, and Kubernetes Secrets.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name or identifier of the secret (REQUIRED). |
+| _ont_created_at | Timestamp when the secret was created. |
+| _ont_updated_at | Timestamp when the secret was last updated. |
+| _ont_rotation_enabled | Whether automatic rotation is enabled for the secret. |
+
 
 ### ComputeInstance
 
@@ -210,6 +273,25 @@ It generalizes concepts like ECS Containers, Kubernetes Containers, and Azure Co
 | _ont_region | The region or zone where the container is running. |
 | _ont_namespace | Namespace for logical isolation (e.g., Kubernetes namespace). |
 | _ont_health_status | The health status of the container. |
+
+
+### ComputeCluster
+
+```{note}
+ComputeCluster is a semantic label.
+```
+
+A compute cluster represents a managed container orchestration or data processing environment across cloud providers.
+It generalizes concepts like AWS EKS clusters, AWS ECS clusters, AWS EMR clusters, Azure Kubernetes Service clusters, GCP GKE clusters, and native Kubernetes clusters.
+
+| Field | Description |
+|-------|-------------|
+| _ont_id | The unique identifier for the cluster. |
+| _ont_name | The name of the cluster. |
+| _ont_region | The region or location where the cluster is deployed. |
+| _ont_version | The version of the cluster engine (e.g., Kubernetes version, EMR release label). |
+| _ont_endpoint | The API endpoint or FQDN for the cluster. |
+| _ont_status | The current status of the cluster (e.g., ACTIVE, RUNNING, Succeeded). |
 
 
 ### ThirdPartyApp
@@ -259,6 +341,24 @@ It generalizes concepts like AWS RDS instances/clusters, DynamoDB tables, Azure 
 | _ont_db_location | The physical location/region of the database. |
 
 
+### ObjectStorage
+
+```{note}
+ObjectStorage is a semantic label.
+```
+
+An object storage represents a managed blob/object storage system across different cloud providers.
+It generalizes concepts like AWS S3 buckets, GCP Cloud Storage buckets, and Azure Blob Containers.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name/identifier of the storage bucket/container (REQUIRED). |
+| _ont_location | The region/location of the storage. |
+| _ont_encrypted | Whether the storage is encrypted. |
+| _ont_versioning | Whether versioning is enabled. |
+| _ont_public | Whether the storage has public access (not available for all providers). |
+
+
 ### Tenant
 
 ```{note}
@@ -280,3 +380,328 @@ Common tenant concepts across platforms include:
 | _ont_name | Display name or friendly name of the tenant/organization (REQUIRED for most modules). |
 | _ont_status | Current status/state of the tenant (e.g., active, suspended, archived). |
 | _ont_domain | Primary domain name associated with the tenant (for workspace/domain-based services). |
+
+
+### ServiceAccount
+
+```{note}
+ServiceAccount is a semantic label.
+```
+
+A service account represents a non-human identity used for automation and inter-service communication.
+Unlike user accounts, service accounts are designed for programmatic access and workload identity.
+
+Common service account concepts across platforms include:
+- **Cloud Providers**: GCP Service Accounts, AWS Service Principals
+- **Container Orchestration**: Kubernetes Service Accounts
+- **SaaS Platforms**: OpenAI Service Accounts, Scaleway Applications
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | Display name of the service account (REQUIRED). |
+| _ont_email | Email address associated with the service account. |
+| _ont_active | Whether the service account is active. |
+| _ont_source | Source of the data. |
+
+
+### Certificate
+
+```{note}
+Certificate is a semantic label.
+```
+
+A certificate represents a managed TLS/SSL certificate used for securing communications.
+It generalizes concepts like AWS ACM Certificates, AWS IAM Server Certificates, and Azure Key Vault Certificates.
+
+| Field | Description |
+|-------|-------------|
+| _ont_domain | Domain name or certificate name (REQUIRED). |
+| _ont_expiry | Expiration date/time of the certificate. |
+| _ont_issuer | Certificate issuer. |
+| _ont_source | Source of the data. |
+
+
+### Function
+
+```{note}
+Function is a semantic label.
+```
+
+A function represents a serverless compute unit that runs code or containers in response to events without managing servers.
+It generalizes concepts like AWS Lambda functions, GCP Cloud Functions, GCP Cloud Run services/jobs, and Azure Function Apps.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name of the function (REQUIRED). |
+| _ont_runtime | The runtime environment (e.g., python3.9, nodejs18.x, dotnet6). Only applicable for code-based functions. |
+| _ont_memory | Memory allocated to the function (in MB). |
+| _ont_timeout | Timeout for function execution (in seconds). |
+| _ont_deployment_type | The deployment type: `code` for source code functions (Lambda, Cloud Functions, Azure Functions), `container` for container-based functions (Cloud Run). |
+
+
+### CodeRepository
+
+```{note}
+CodeRepository is a semantic label.
+```
+
+A code repository represents a source code repository containing software projects and their version history.
+Code repositories are critical assets for supply chain security as they contain intellectual property and often secrets.
+It generalizes concepts like GitHub Repositories and GitLab Projects.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name of the repository (REQUIRED). |
+| _ont_fullname | The full path including namespace (e.g., "org/repo", "group/subgroup/project"). |
+| _ont_description | Description of the repository. |
+| _ont_url | Web URL to access the repository. |
+| _ont_default_branch | The default branch name (e.g., "main", "master"). |
+| _ont_public | Whether the repository is publicly accessible. |
+| _ont_archived | Whether the repository is archived (read-only). |
+
+
+### LoadBalancer
+
+```{note}
+LoadBalancer is a semantic label.
+```
+
+A load balancer distributes incoming network traffic across multiple targets to ensure high availability and reliability.
+It generalizes concepts like AWS Application/Network Load Balancers (ALB/NLB), AWS Classic ELBs, GCP Forwarding Rules, and Azure Load Balancers.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name of the load balancer (REQUIRED). |
+| _ont_lb_type | The type of load balancer (e.g., "application", "network", "classic", "Standard", "Basic"). |
+| _ont_scheme | The load balancing scheme (e.g., "internet-facing", "internal", "EXTERNAL", "INTERNAL"). |
+| _ont_dns_name | The DNS name or endpoint for the load balancer. |
+| _ont_region | The region or location where the load balancer is deployed. |
+
+
+#### Relationships
+
+- `LoadBalancer` can expose one or many `ComputeInstance` (semantic label):
+    ```
+    (:LoadBalancer)-[:EXPOSE]->(:ComputeInstance)
+    ```
+- `LoadBalancer` can expose one or many `Container` (semantic label):
+    ```
+    (:LoadBalancer)-[:EXPOSE]->(:Container)
+    ```
+
+
+### PublicIP
+
+```{note}
+PublicIP is an abstract ontology node.
+```
+
+A public IP address represents a unique numerical identifier assigned to a device that is routable on the internet.
+Public IP addresses can be either IPv4 or IPv6.
+
+```{important}
+If field `ip_version` is null, it should not be considered as `4` or `6`, only as unknown.
+```
+
+| Field | Description |
+|-------|-------------|
+| **id** | The unique identifier for the IP address (the IP address value itself). |
+| firstseen | Timestamp of when a sync job first created this node. |
+| lastupdated | Timestamp of the last time the node was updated. |
+| ip_address | The IP address value (e.g., "203.0.113.1" or "2001:db8::1"). |
+| ip_version | Integer indicating the IP version: `4` for IPv4, `6` for IPv6, or `null` if unknown. |
+
+#### Relationships
+
+- `PublicIP` is linked to one or many nodes that represent the IP in a module:
+    ```
+    (:PublicIP)-[:RESERVED_BY]->(:*)
+    ```
+- `PublicIP` can point to one or many `LoadBalancer` (semantic label) that use this IP:
+    ```
+    (:PublicIP)-[:POINTS_TO]->(:LoadBalancer)
+    ```
+- `PublicIP` can point to one or many `ComputeInstance` (semantic label) that have this IP:
+    ```
+    (:PublicIP)-[:POINTS_TO]->(:ComputeInstance)
+    ```
+
+
+### Package
+
+```{note}
+Package is an abstract ontology node.
+```
+
+A package represents a software package (library, dependency, or system package) discovered across different scanning tools.
+Package nodes are deduplicated by their `id`, which uses the format `{type}|{namespace/}{name}|{version}` for cross-tool matching.
+
+| Field | Description |
+|-------|-------------|
+| **id** | Normalized ID for cross-tool matching (format: `{type}\|{namespace/}{name}\|{version}`). |
+| firstseen | Timestamp of when a sync job first created this node. |
+| lastupdated | Timestamp of the last time the node was updated. |
+| name | Name of the package. |
+| version | Version of the package. |
+| type | Package ecosystem type (e.g., npm, pypi, deb). |
+| purl | Package URL (e.g., `pkg:npm/express@4.18.2`). |
+
+#### Relationships
+
+- `Package` is linked to one or many source nodes that detected it:
+    ```
+    (:Package)-[:DETECTED_AS]->(:TrivyPackage)
+    (:Package)-[:DETECTED_AS]->(:SyftPackage)
+    ```
+- `Package` can be deployed in one or many container images (propagated from TrivyPackage):
+    ```
+    (:Package)-[:DEPLOYED]->(:Image)
+    ```
+- `Package` can be affected by one or many vulnerability findings (propagated from TrivyPackage):
+    ```
+    (:TrivyImageFinding)-[:AFFECTS]->(:Package)
+    ```
+- `Package` can have one or many recommended fix versions (propagated from TrivyPackage):
+    ```
+    (:Package)-[:SHOULD_UPDATE_TO]->(:TrivyFix)
+    ```
+- `Package` can depend on other packages (propagated from SyftPackage):
+    ```
+    (:Package)-[:DEPENDS_ON]->(:Package)
+    ```
+
+### ContainerRegistry
+
+```{note}
+ContainerRegistry is a semantic label.
+```
+
+A container registry represents a storage and distribution system for container images.
+It generalizes concepts like AWS ECR repositories, GCP Artifact Registry repositories, and GitLab Container Registries.
+
+| Field | Description |
+|-------|-------------|
+| _ont_name | The name of the container registry/repository (REQUIRED). |
+| _ont_uri | The registry URI/endpoint for pulling images. |
+| _ont_location | The region/location where the registry is hosted. |
+| _ont_created_at | Timestamp when the registry was created. |
+| _ont_size_bytes | Storage size in bytes. |
+
+
+### ImageTag
+
+```{note}
+ImageTag is a semantic label.
+```
+
+An image tag represents a human-readable reference to a container image within a registry.
+It generalizes concepts like AWS ECRRepositoryImage, GCP Artifact Registry image tags, and GitLab Container Registry tags.
+
+| Field | Description |
+|-------|-------------|
+| _ont_tag | The tag name (e.g., "latest", "v1.0.0"). |
+| _ont_uri | The full URI to the tagged image. |
+
+#### Relationships
+
+- `ImageTag` points to one or many `Image`:
+    ```
+    (:ImageTag)-[:IMAGE]->(:Image)
+    ```
+
+
+### Image
+
+```{note}
+Image is a conditional semantic label applied to container image nodes when `type="image"`.
+```
+
+An image represents a runnable container image (single-architecture or platform-specific).
+It generalizes concepts like AWS ECRImage (type=image), GCP Container Images, and GitLab Container Images.
+
+| Field | Description |
+|-------|-------------|
+| _ont_digest | The content-addressable digest (SHA256) of the image. |
+| _ont_architecture | CPU architecture (e.g., "amd64", "arm64"). |
+| _ont_os | Operating system (e.g., "linux", "windows"). |
+| _ont_variant | Architecture variant (e.g., "v8" for ARM). |
+
+#### Relationships
+
+- `Image` can be linked to the public base image identified by Docker Scout:
+    ```
+    (:Image)-[:BUILT_ON]->(:DockerScoutPublicImage)
+    ```
+
+
+### ImageAttestation
+
+```{note}
+ImageAttestation is a conditional semantic label applied to container image nodes when `type="attestation"`.
+```
+
+An image attestation represents cryptographic metadata that validates or provides provenance information about a container image.
+It generalizes concepts like AWS ECRImage attestations and OCI attestation manifests.
+
+| Field | Description |
+|-------|-------------|
+| _ont_digest | The content-addressable digest (SHA256) of the attestation. |
+| _ont_attestation_type | The type of attestation (e.g., "attestation-manifest"). |
+| _ont_attests_digest | The digest of the image this attestation validates. |
+
+#### Relationships
+
+- `ImageAttestation` attests an `Image`:
+    ```
+    (:ImageAttestation)-[:ATTESTS]->(:Image)
+    ```
+
+
+### ImageManifestList
+
+```{note}
+ImageManifestList is a conditional semantic label applied to container image nodes when `type="manifest_list"`.
+```
+
+An image manifest list (also known as an image index) represents a multi-architecture container image that contains references to platform-specific images.
+It generalizes concepts like AWS ECRImage manifest lists and OCI image indexes.
+
+| Field | Description |
+|-------|-------------|
+| _ont_digest | The content-addressable digest (SHA256) of the manifest list. |
+| _ont_child_image_digests | List of platform-specific image digests contained in this manifest list. |
+
+#### Relationships
+
+- `ImageManifestList` contains platform-specific `Image` nodes:
+    ```
+    (:ImageManifestList)-[:CONTAINS_IMAGE]->(:Image)
+    ```
+
+
+### ImageLayer
+
+```{note}
+ImageLayer is a semantic label.
+```
+
+An image layer represents an individual filesystem layer within a container image.
+Layers are de-duplicated by their content-addressable digest, so multiple images may reference the same layer node.
+It generalizes concepts like AWS ECRImageLayer and OCI image layers.
+
+| Field | Description |
+|-------|-------------|
+| _ont_diff_id | The uncompressed (DiffID) SHA-256 digest of the layer. |
+| _ont_is_empty | Boolean flag identifying Docker's canonical empty layer. |
+| _ont_history | The shell command that created this layer (for Dockerfile matching). |
+
+#### Relationships
+
+- `Image` has layers:
+    ```
+    (:Image)-[:HAS_LAYER]->(:ImageLayer)
+    ```
+- Layers point to the next layer in sequence:
+    ```
+    (:ImageLayer)-[:NEXT]->(:ImageLayer)
+    ```

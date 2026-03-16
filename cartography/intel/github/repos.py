@@ -1,5 +1,6 @@
 import configparser
 import logging
+import time
 from collections import defaultdict
 from collections import namedtuple
 from string import Template
@@ -10,6 +11,7 @@ from typing import List
 from typing import Optional
 
 import neo4j
+import requests
 from packaging.requirements import InvalidRequirement
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -18,7 +20,11 @@ from cartography.client.core.tx import execute_write_with_retry
 from cartography.client.core.tx import load as load_data
 from cartography.graph.job import GraphJob
 from cartography.intel.github.util import fetch_all
+from cartography.intel.github.util import fetch_page
+from cartography.intel.github.util import handle_rate_limit_sleep
 from cartography.intel.github.util import PaginatedGraphqlData
+from cartography.intel.trivy.util import make_normalized_package_id
+from cartography.intel.trivy.util import parse_purl
 from cartography.models.github.branch_protection_rules import (
     GitHubBranchProtectionRuleSchema,
 )
@@ -87,12 +93,6 @@ GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
                         login
                         __typename
                     }
-                    directCollaborators: collaborators(first: 100, affiliation: DIRECT) {
-                        totalCount
-                    }
-                    outsideCollaborators: collaborators(first: 100, affiliation: OUTSIDE) {
-                        totalCount
-                    }
                     requirements:object(expression: "HEAD:requirements.txt") {
                         ... on Blob {
                             text
@@ -103,17 +103,32 @@ GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
                             text
                         }
                     }
-                    dependencyGraphManifests(first: 20) {
-                        nodes {
-                            blobPath
-                            dependencies(first: 100) {
-                                nodes {
-                                    packageName
-                                    requirements
-                                    packageManager
-                                }
-                            }
-                        }
+                }
+            }
+        }
+    }
+    """
+# Note: In the above query, `HEAD` references the default branch.
+# See https://stackoverflow.com/questions/48935381/github-graphql-api-default-branch-in-repository
+
+GITHUB_ORG_REPOS_PRIVILEGED_PAGINATED_GRAPHQL = """
+    query($login: String!, $cursor: String, $count: Int!) {
+    organization(login: $login)
+        {
+            url
+            login
+            repositories(first: $count, after: $cursor){
+                pageInfo{
+                    endCursor
+                    hasNextPage
+                }
+                nodes{
+                    url
+                    directCollaborators: collaborators(first: 100, affiliation: DIRECT) {
+                        totalCount
+                    }
+                    outsideCollaborators: collaborators(first: 100, affiliation: OUTSIDE) {
+                        totalCount
                     }
                     branchProtectionRules(first: 50) {
                         nodes {
@@ -139,8 +154,6 @@ GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
         }
     }
     """
-# Note: In the above query, `HEAD` references the default branch.
-# See https://stackoverflow.com/questions/48935381/github-graphql-api-default-branch-in-repository
 
 GITHUB_REPO_COLLABS_PAGINATED_GRAPHQL = """
     query($login: String!, $repo: String!, $affiliation: CollaboratorAffiliation!, $cursor: String) {
@@ -175,6 +188,290 @@ GITHUB_REPO_COLLABS_PAGINATED_GRAPHQL = """
         }
     }
     """
+
+GITHUB_REPO_DEP_MANIFESTS_PAGINATED_GRAPHQL = """
+    query($login: String!, $repo: String!, $cursor: String, $depCursor: String) {
+        organization(login: $login) {
+            url
+            login
+            repository(name: $repo) {
+                dependencyGraphManifests(first: 1, after: $cursor) {
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                    nodes {
+                        blobPath
+                        dependencies(first: 50, after: $depCursor) {
+                            pageInfo {
+                                endCursor
+                                hasNextPage
+                            }
+                            nodes {
+                                packageName
+                                packageUrl
+                                requirements
+                                packageManager
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rateLimit {
+            limit
+            cost
+            remaining
+            resetAt
+        }
+    }
+    """
+
+
+def _fetch_manifest_page(
+    token: str,
+    api_url: str,
+    organization: str,
+    repo: str,
+    manifest_cursor: str | None,
+    dep_cursor: str | None = None,
+    retries: int = 3,
+) -> dict[str, Any] | None:
+    """
+    Fetch a single page from the dependency manifests endpoint with retry logic.
+    Retries on both HTTP errors and GraphQL-level timeouts (where GitHub returns
+    HTTP 200 but with errors and null data in the response body).
+    Returns the raw response dict, or None if all retries failed.
+    """
+    for attempt in range(retries):
+        try:
+            handle_rate_limit_sleep(token)
+            resp = fetch_page(
+                token,
+                api_url,
+                organization,
+                GITHUB_REPO_DEP_MANIFESTS_PAGINATED_GRAPHQL,
+                manifest_cursor,
+                repo=repo,
+                depCursor=dep_cursor,
+            )
+        except (
+            requests.exceptions.Timeout,
+            requests.exceptions.HTTPError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ChunkedEncodingError,
+        ):
+            if attempt + 1 >= retries:
+                return None
+            time.sleep(2 ** (attempt + 1))
+            continue
+
+        # Check for GraphQL-level timeout: HTTP 200 but dependencyGraphManifests is null
+        repository = (resp.get("data") or {}).get("organization", {}).get("repository")
+        dep_manifests = (
+            repository.get("dependencyGraphManifests") if repository else None
+        )
+        if dep_manifests is None and resp.get("errors"):
+            if attempt + 1 >= retries:
+                logger.warning(
+                    "GraphQL timeout fetching dependency manifests for repo %s after %d retries.",
+                    repo,
+                    retries,
+                )
+                return resp
+            logger.debug(
+                "GraphQL timeout for repo %s, retry %d/%d.",
+                repo,
+                attempt + 1,
+                retries,
+            )
+            time.sleep(2 ** (attempt + 1))
+            continue
+
+        return resp
+    return None
+
+
+def _get_repo_dep_manifests(
+    token: str,
+    api_url: str,
+    organization: str,
+    repo: str,
+) -> list[dict[str, Any]]:
+    """
+    Retrieve dependency graph manifests for a single repository.
+    Fetches one manifest at a time, and paginates dependencies within each manifest.
+    If a single manifest or dependency page times out, we keep what was already fetched
+    and move on to the next manifest.
+    :param token: The Github API token as string.
+    :param api_url: The Github v4 API endpoint as string.
+    :param organization: The name of the target Github organization as string.
+    :param repo: The name of the target Github repository as string.
+    :return: A list of manifest node dicts with all their dependencies collected.
+    """
+    manifest_cursor: str | None = None
+    has_next_manifest = True
+    manifests: list[dict[str, Any]] = []
+
+    while has_next_manifest:
+        # Save cursor before this manifest so we can re-query the same position
+        # when paginating its dependencies.
+        prev_manifest_cursor = manifest_cursor
+
+        resp = _fetch_manifest_page(
+            token,
+            api_url,
+            organization,
+            repo,
+            manifest_cursor,
+        )
+
+        if resp is None or "data" not in resp:
+            logger.warning(
+                "No data fetching manifest for repo %s; keeping %d manifests already fetched.",
+                repo,
+                len(manifests),
+            )
+            return manifests
+
+        repository = resp["data"]["organization"].get("repository")
+        dep_manifests = (
+            repository.get("dependencyGraphManifests") if repository else None
+        )
+
+        if dep_manifests is None:
+            logger.warning(
+                "GitHub API returned null dependencyGraphManifests for repo %s; "
+                "keeping %d manifests already fetched.",
+                repo,
+                len(manifests),
+            )
+            return manifests
+
+        manifest_page_info = dep_manifests.get("pageInfo", {})
+        manifest_cursor = manifest_page_info.get("endCursor")
+        has_next_manifest = manifest_page_info.get("hasNextPage", False)
+
+        manifest_nodes = dep_manifests.get("nodes") or []
+        if not manifest_nodes:
+            continue
+
+        manifest = manifest_nodes[0]
+        blob_path = manifest.get("blobPath", "?")
+
+        # Paginate dependencies within this manifest
+        deps_data = manifest.get("dependencies") or {}
+        all_dep_nodes = list(deps_data.get("nodes") or [])
+        deps_page_info = deps_data.get("pageInfo", {})
+
+        while deps_page_info.get("hasNextPage", False):
+            dep_cursor = deps_page_info.get("endCursor")
+            # Re-query the same manifest position using prev_manifest_cursor
+            dep_resp = _fetch_manifest_page(
+                token,
+                api_url,
+                organization,
+                repo,
+                prev_manifest_cursor,
+                dep_cursor,
+            )
+
+            if dep_resp is None or "data" not in dep_resp:
+                logger.warning(
+                    "Failed to fetch dependency page for %s in repo %s; "
+                    "keeping %d deps already fetched for this manifest.",
+                    blob_path,
+                    repo,
+                    len(all_dep_nodes),
+                )
+                break
+
+            dep_repository = dep_resp["data"]["organization"].get("repository")
+            dep_dep_manifests = (
+                dep_repository.get("dependencyGraphManifests")
+                if dep_repository
+                else None
+            )
+            if dep_dep_manifests is None:
+                logger.warning(
+                    "GitHub API timeout on dependency page for %s in repo %s; "
+                    "keeping %d deps already fetched for this manifest.",
+                    blob_path,
+                    repo,
+                    len(all_dep_nodes),
+                )
+                break
+
+            dep_nodes_list = dep_dep_manifests.get("nodes") or []
+            if not dep_nodes_list:
+                break
+
+            inner_deps = dep_nodes_list[0].get("dependencies") or {}
+            all_dep_nodes.extend(inner_deps.get("nodes") or [])
+            deps_page_info = inner_deps.get("pageInfo", {})
+
+        # Rebuild manifest with all collected dependencies
+        manifest["dependencies"] = {"nodes": all_dep_nodes}
+        manifests.append(manifest)
+        logger.debug(
+            "Fetched manifest %s for repo %s (%d deps).",
+            blob_path,
+            repo,
+            len(all_dep_nodes),
+        )
+
+    return manifests
+
+
+def _get_dep_manifests_for_repos(
+    repo_raw_data: list[dict[str, Any] | None],
+    org: str,
+    api_url: str,
+    token: str,
+) -> dict[str, dict[str, Any]]:
+    """
+    For every repo in the given list, retrieve its dependency graph manifests individually.
+    Fetches one manifest at a time so that a timeout on a single heavy manifest (e.g.
+    go.mod) doesn't prevent fetching other manifests for the same repo.
+    :param repo_raw_data: A list of dicts representing repos.
+    :param org: The name of the target Github organization as string.
+    :param api_url: The Github v4 API endpoint as string.
+    :param token: The Github API token as string.
+    :return: A dict mapping repo URL to its dependencyGraphManifests structure.
+    """
+    logger.info(
+        "Fetching dependency graph manifests for %d repos in org %s.",
+        len(repo_raw_data),
+        org,
+    )
+    result: dict[str, dict[str, Any]] = {}
+
+    for repo in repo_raw_data:
+        if repo is None:
+            continue
+        repo_name = repo.get("name")
+        repo_url = repo.get("url")
+        if not repo_name or not repo_url:
+            continue
+
+        try:
+            manifests = _get_repo_dep_manifests(token, api_url, org, repo_name)
+            if manifests:
+                result[repo_url] = {"nodes": manifests}
+                logger.debug(
+                    "Fetched %d dependency manifests for repo %s.",
+                    len(manifests),
+                    repo_name,
+                )
+        except requests.exceptions.RequestException:
+            logger.warning(
+                "Failed to fetch dependency manifests for repo %s; skipping.",
+                repo_name,
+                exc_info=True,
+            )
+
+    logger.info("Fetched dependency manifests for %d repos.", len(result))
+    return result
 
 
 def _get_repo_collaborators_inner_func(
@@ -335,6 +632,107 @@ def get(token: str, api_url: str, organization: str) -> List[Optional[Dict]]:
     # See https://github.com/cartography-cncf/cartography/issues/1334
     # and https://github.com/cartography-cncf/cartography/issues/1404
     return cast(List[Optional[Dict]], repos.nodes)
+
+
+def _repos_need_privileged_details(repos_json: List[Optional[Dict]]) -> bool:
+    """
+    Return True when repo objects are missing collaborator counts and/or branch protection fields.
+    """
+    non_null_repos = [repo for repo in repos_json if repo is not None]
+    if not non_null_repos:
+        return False
+
+    collaborator_counts_missing = any(
+        repo.get("directCollaborators") is None
+        or repo.get("outsideCollaborators") is None
+        for repo in non_null_repos
+    )
+    branch_rules_missing_everywhere = all(
+        repo.get("branchProtectionRules") is None for repo in non_null_repos
+    )
+    return collaborator_counts_missing or branch_rules_missing_everywhere
+
+
+def get_repo_privileged_details_by_url(
+    token: str,
+    api_url: str,
+    organization: str,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Retrieve collaborator counts + branch protection fields for repositories in an organization.
+    """
+    repos, _ = fetch_all(
+        token,
+        api_url,
+        organization,
+        GITHUB_ORG_REPOS_PRIVILEGED_PAGINATED_GRAPHQL,
+        "repositories",
+        count=50,
+    )
+    privileged_repo_data = {}
+    privileged_nodes = cast(List[Optional[Dict]], repos.nodes)
+    for repo in privileged_nodes:
+        # GitHub can return null repository entries.
+        if repo is None:
+            continue
+        repo_url = repo.get("url")
+        if not repo_url:
+            continue
+        privileged_repo_data[repo_url] = {
+            "directCollaborators": repo.get("directCollaborators"),
+            "outsideCollaborators": repo.get("outsideCollaborators"),
+            "branchProtectionRules": repo.get("branchProtectionRules"),
+        }
+    return privileged_repo_data
+
+
+def _merge_repos_with_privileged_details(
+    repo_raw_data: List[Optional[Dict]],
+    privileged_repo_data_by_url: Dict[str, Dict[str, Any]],
+) -> tuple[List[Optional[Dict]], int, int]:
+    """
+    Merge privileged repo fields by URL into the base repo list.
+    Returns merged repos + merged count + count still missing privileged details.
+    """
+    merged_repo_count = 0
+    repos_missing_privileged_details = 0
+    merged_repos: List[Optional[Dict]] = []
+
+    for repo in repo_raw_data:
+        # Preserve null entries as-is.
+        if repo is None:
+            merged_repos.append(None)
+            continue
+
+        merged_repo = dict(repo)
+        repo_url = merged_repo.get("url")
+        privileged_data: Dict[str, Any] = {}
+        if isinstance(repo_url, str):
+            privileged_data = privileged_repo_data_by_url.get(repo_url, {})
+        merged_fields = 0
+
+        for field_name in (
+            "directCollaborators",
+            "outsideCollaborators",
+            "branchProtectionRules",
+        ):
+            if merged_repo.get(field_name) is None and field_name in privileged_data:
+                merged_repo[field_name] = privileged_data.get(field_name)
+                merged_fields += 1
+
+        if merged_fields > 0:
+            merged_repo_count += 1
+
+        if (
+            merged_repo.get("directCollaborators") is None
+            or merged_repo.get("outsideCollaborators") is None
+            or merged_repo.get("branchProtectionRules") is None
+        ):
+            repos_missing_privileged_details += 1
+
+        merged_repos.append(merged_repo)
+
+    return merged_repos, merged_repo_count, repos_missing_privileged_details
 
 
 def transform(
@@ -738,11 +1136,18 @@ def _transform_dependency_graph(
             # Create manifest ID for the HAS_DEP relationship
             manifest_id = f"{repo_url}#{manifest_path}"
 
+            # Extract ontology fields from GitHub's native PURL
+            dep_purl = dep.get("packageUrl") or None
+            parsed = parse_purl(dep_purl)
+            dep_version = parsed["version"] if parsed else None
+            dep_type = parsed["type"] if parsed else None
+            dep_normalized_id = make_normalized_package_id(purl=dep_purl)
+
             out_dependencies_list.append(
                 {
                     "id": dependency_id,
                     "name": canonical_name,
-                    "original_name": package_name,  # Keep original for reference
+                    "original_name": package_name,
                     "requirements": normalized_requirements,
                     "ecosystem": ecosystem,
                     "package_manager": package_manager,
@@ -752,6 +1157,10 @@ def _transform_dependency_graph(
                     "manifest_file": (
                         manifest_path.split("/")[-1] if manifest_path else ""
                     ),
+                    "version": dep_version,
+                    "type": dep_type,
+                    "purl": dep_purl,
+                    "normalized_id": dep_normalized_id,
                 }
             )
             dependencies_added += 1
@@ -1390,6 +1799,28 @@ def sync(
     """
     logger.info("Syncing GitHub repos")
     repos_json = get(github_api_key, github_url, organization)
+    base_repo_count = sum(1 for repo in repos_json if repo is not None)
+
+    privileged_repo_data_by_url: dict[str, dict[str, Any]] = {}
+    if _repos_need_privileged_details(repos_json):
+        privileged_repo_data_by_url = get_repo_privileged_details_by_url(
+            github_api_key,
+            github_url,
+            organization,
+        )
+
+    repos_json, merged_repo_count, missing_privileged_repo_count = (
+        _merge_repos_with_privileged_details(repos_json, privileged_repo_data_by_url)
+    )
+    logger.info(
+        "GitHub repo sync summary for org %s: base_repos=%d privileged_details_fetched=%d merged_repos=%d repos_missing_privileged_details=%d",
+        organization,
+        base_repo_count,
+        len(privileged_repo_data_by_url),
+        merged_repo_count,
+        missing_privileged_repo_count,
+    )
+
     direct_collabs: dict[str, list[UserAffiliationAndRepoPermission]] = {}
     outside_collabs: dict[str, list[UserAffiliationAndRepoPermission]] = {}
     try:
@@ -1413,6 +1844,18 @@ def sync(
             "Unable to list repo collaborators due to permission errors; continuing on.",
             exc_info=True,
         )
+
+    # Fetch dependency graph manifests per-repo to avoid 502s from heavy inline queries
+    dep_manifests_by_url = _get_dep_manifests_for_repos(
+        repos_json,
+        organization,
+        github_url,
+        github_api_key,
+    )
+    for repo in repos_json:
+        if repo is not None and repo.get("url") in dep_manifests_by_url:
+            repo["dependencyGraphManifests"] = dep_manifests_by_url[repo["url"]]
+
     repo_data = transform(repos_json, direct_collabs, outside_collabs)
     load(neo4j_session, common_job_parameters, repo_data)
 

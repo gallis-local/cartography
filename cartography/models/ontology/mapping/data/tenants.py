@@ -190,6 +190,8 @@ googleworkspace_mapping = OntologyMapping(
 
 # GSuite (legacy): No field to map in GSuiteTenant (minimal properties)
 
+# Jamf: No field to map in JamfTenant (minimal properties)
+
 # Kandji: No field to map in KandjiTenant (minimal properties)
 
 
@@ -327,6 +329,8 @@ slack_mapping = OntologyMapping(
 # Tailscale
 # TailscaleTailnet: No field to map in TailscaleTailnet (minimal properties)
 
+
+# SubImage: No field to map in SubImageTenant (minimal properties beyond id)
 
 TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "airbyte": airbyte_mapping,

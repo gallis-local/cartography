@@ -21,6 +21,7 @@ class KubernetesContainerNodeProperties(CartographyNodeProperties):
     cluster_name: PropertyRef = PropertyRef(
         "CLUSTER_NAME", set_in_kwargs=True, extra_index=True
     )
+    region: PropertyRef = PropertyRef("REGION", set_in_kwargs=True)
     image_pull_policy: PropertyRef = PropertyRef("image_pull_policy")
     status_image_id: PropertyRef = PropertyRef("status_image_id")
     status_image_sha: PropertyRef = PropertyRef("status_image_sha", extra_index=True)
@@ -117,6 +118,29 @@ class KubernetesContainerToECRImageRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class KubernetesContainerToGitLabContainerImageRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class KubernetesContainerToGitLabContainerImageRel(CartographyRelSchema):
+    """
+    Relationship from KubernetesContainer to GitLabContainerImage.
+    Matches containers to GitLab registry images by digest (status_image_sha).
+    """
+
+    target_node_label: str = "GitLabContainerImage"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"digest": PropertyRef("status_image_sha")}
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_IMAGE"
+    properties: KubernetesContainerToGitLabContainerImageRelProperties = (
+        KubernetesContainerToGitLabContainerImageRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class KubernetesContainerSchema(CartographyNodeSchema):
     label: str = "KubernetesContainer"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Container"])
@@ -129,5 +153,6 @@ class KubernetesContainerSchema(CartographyNodeSchema):
             KubernetesContainerToKubernetesNamespaceRel(),
             KubernetesContainerToKubernetesPodRel(),
             KubernetesContainerToECRImageRel(),
+            KubernetesContainerToGitLabContainerImageRel(),
         ]
     )

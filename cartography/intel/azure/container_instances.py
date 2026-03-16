@@ -8,7 +8,11 @@ from azure.mgmt.containerinstance import ContainerInstanceManagementClient
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.azure.util.tag import transform_tags
 from cartography.models.azure.container_instance import AzureContainerInstanceSchema
+from cartography.models.azure.tags.container_instance_tag import (
+    AzureContainerInstanceTagsSchema,
+)
 from cartography.util import timeit
 
 from .util.credentials import Credentials
@@ -36,16 +40,37 @@ def get_container_instances(
 def transform_container_instances(container_groups: list[dict]) -> list[dict]:
     transformed_instances: list[dict[str, Any]] = []
     for group in container_groups:
+        subnet_ids: list[str] = []
+        # Azure SDK as_dict() returns flat structure (not nested under "properties")
+        for subnet_ref in group.get(
+            "subnet_ids", group.get("properties", {}).get("subnet_ids", [])
+        ):
+            subnet_id = subnet_ref.get("id")
+            if subnet_id:
+                subnet_ids.append(subnet_id)
+
         transformed_instance = {
             "id": group.get("id"),
             "name": group.get("name"),
             "location": group.get("location"),
             "type": group.get("type"),
-            "provisioning_state": group.get("properties", {}).get("provisioning_state"),
-            "ip_address": ((group.get("properties") or {}).get("ip_address") or {}).get(
-                "ip"
+            "provisioning_state": group.get(
+                "provisioning_state",
+                group.get("properties", {}).get("provisioning_state"),
             ),
-            "os_type": group.get("properties", {}).get("os_type"),
+            "ip_address": (
+                group.get("ip_address")
+                or group.get("properties", {}).get("ip_address")
+                or {}
+            ).get("ip"),
+            "ip_address_type": (
+                group.get("ip_address")
+                or group.get("properties", {}).get("ip_address")
+                or {}
+            ).get("type"),
+            "os_type": group.get("os_type", group.get("properties", {}).get("os_type")),
+            "tags": group.get("tags"),
+            "SUBNET_IDS": subnet_ids,
         }
         transformed_instances.append(transformed_instance)
     return transformed_instances
@@ -68,11 +93,40 @@ def load_container_instances(
 
 
 @timeit
+def load_container_instance_tags(
+    neo4j_session: neo4j.Session,
+    subscription_id: str,
+    groups: list[dict],
+    update_tag: int,
+) -> None:
+    """
+    Loads tags for Container Instances.
+    """
+    tags = transform_tags(groups, subscription_id)
+    load(
+        neo4j_session,
+        AzureContainerInstanceTagsSchema(),
+        tags,
+        lastupdated=update_tag,
+        AZURE_SUBSCRIPTION_ID=subscription_id,
+    )
+
+
+@timeit
 def cleanup_container_instances(
     neo4j_session: neo4j.Session, common_job_parameters: dict
 ) -> None:
     GraphJob.from_node_schema(
         AzureContainerInstanceSchema(), common_job_parameters
+    ).run(neo4j_session)
+
+
+@timeit
+def cleanup_container_instance_tags(
+    neo4j_session: neo4j.Session, common_job_parameters: dict
+) -> None:
+    GraphJob.from_node_schema(
+        AzureContainerInstanceTagsSchema(), common_job_parameters
     ).run(neo4j_session)
 
 
@@ -92,4 +146,8 @@ def sync(
     load_container_instances(
         neo4j_session, transformed_groups, subscription_id, update_tag
     )
+    load_container_instance_tags(
+        neo4j_session, subscription_id, transformed_groups, update_tag
+    )
     cleanup_container_instances(neo4j_session, common_job_parameters)
+    cleanup_container_instance_tags(neo4j_session, common_job_parameters)
