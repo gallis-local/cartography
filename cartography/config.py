@@ -208,6 +208,18 @@ class Config:
     :param keycloak_realm: Keycloak realm for authentication (all realms will be synced). Optional.
     :type keycloak_url: str
     :param keycloak_url: Keycloak base URL, e.g. https://keycloak.example.com. Optional.
+    :type unifi_host: str
+    :param unifi_host: UniFi controller host, e.g. localhost or 192.168.1.1. Optional.
+    :type unifi_user: str
+    :param unifi_user: Username for UniFi controller authentication. Optional.
+    :type unifi_password: str
+    :param unifi_password: Password for UniFi controller authentication. Optional.
+    :type unifi_site: str
+    :param unifi_site: UniFi site name (default is 'default'). Optional.
+    :type unifi_port: int
+    :param unifi_port: UniFi controller port (default is 8443). Optional.
+    :type unifi_verify_ssl: bool
+    :param unifi_verify_ssl: Whether to verify SSL certificates when connecting to UniFi controller (default is False). Optional.
     """
 
     def __init__(
@@ -314,6 +326,12 @@ class Config:
         keycloak_client_secret=None,
         keycloak_realm=None,
         keycloak_url=None,
+        unifi_host=None,
+        unifi_user=None,
+        unifi_password=None,
+        unifi_site="default",
+        unifi_port=8443,
+        unifi_verify_ssl=False,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
@@ -419,3 +437,9 @@ class Config:
         self.keycloak_client_secret = keycloak_client_secret
         self.keycloak_realm = keycloak_realm
         self.keycloak_url = keycloak_url
+        self.unifi_host = unifi_host
+        self.unifi_user = unifi_user
+        self.unifi_password = unifi_password
+        self.unifi_site = unifi_site
+        self.unifi_port = unifi_port
+        self.unifi_verify_ssl = unifi_verify_ssl

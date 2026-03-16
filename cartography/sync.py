@@ -47,6 +47,7 @@ import cartography.intel.snipeit
 import cartography.intel.spacelift
 import cartography.intel.tailscale
 import cartography.intel.trivy
+import cartography.intel.unifi
 from cartography.config import Config
 from cartography.stats import set_stats_client
 from cartography.util import STATUS_FAILURE
@@ -89,6 +90,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "trivy": cartography.intel.trivy.start_trivy_ingestion,
         "sentinelone": cartography.intel.sentinelone.start_sentinelone_ingestion,
         "spacelift": cartography.intel.spacelift.start_spacelift_ingestion,
+        "unifi": cartography.intel.unifi.start_unifi_ingestion,
         "ontology": cartography.intel.ontology.run,
         # Analysis should be the last stage
         "analysis": cartography.intel.analysis.run,
