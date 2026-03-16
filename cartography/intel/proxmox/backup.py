@@ -80,9 +80,12 @@ def transform_backup_job_data(
         prune_keep_monthly = _convert(prune_cfg.get("keep-monthly"))
         prune_keep_yearly = _convert(prune_cfg.get("keep-yearly"))
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{job_id}"
+        # NEW: f"{cluster_id}/backup/{job_id}"
         transformed_jobs.append(
             {
-                "id": f"{cluster_id}:{job_id}",
+                "id": f"{cluster_id}/backup/{job_id}",
                 "job_id": job_id,
                 "cluster_id": cluster_id,
                 "schedule": job.get("schedule"),

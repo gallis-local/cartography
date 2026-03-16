@@ -78,11 +78,18 @@ def transform_firewall_options_data(
     if not options:
         return None
 
-    # Create unique ID based on cluster and scope
-    if scope_id:
-        options_id = f"{cluster_id}:{scope}:{scope_id}:firewall_options"
+    # NEW UID PATTERN: Hierarchical structure based on scope
+    # OLD: f"{cluster_id}:{scope}:{scope_id}:firewall_options" or f"{cluster_id}:{scope}:firewall_options"
+    # NEW: path-like structure based on scope type
+    if scope == "cluster":
+        options_id = f"{cluster_id}/firewall/options"
+    elif scope == "node":
+        options_id = f"{cluster_id}/node/{scope_id}/firewall/options"
+    elif scope == "vm":
+        options_id = f"{cluster_id}/vm/{scope_id}/firewall/options"
     else:
-        options_id = f"{cluster_id}:{scope}:firewall_options"
+        # Fallback for unknown scopes
+        options_id = f"{cluster_id}/firewall/{scope}/{scope_id}/options" if scope_id else f"{cluster_id}/firewall/{scope}/options"
 
     return {
         "id": options_id,

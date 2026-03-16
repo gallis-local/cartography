@@ -79,9 +79,9 @@ def test_sync_vms_and_containers(
 
     # Assert - Check VM nodes
     expected_vm_nodes = {
-        ("node1/qemu/100", "test-vm-1", "qemu", "running"),
-        ("node1/qemu/101", "test-vm-2", "qemu", "stopped"),
-        ("node2/lxc/200", "test-container-1", "lxc", "running"),
+        ("test-cluster/vm/100", "test-vm-1", "qemu", "running"),
+        ("test-cluster/vm/101", "test-vm-2", "qemu", "stopped"),
+        ("test-cluster/vm/200", "test-container-1", "lxc", "running"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxVM", ["id", "name", "type", "status"])
@@ -90,9 +90,9 @@ def test_sync_vms_and_containers(
 
     # Assert - Check VM->Cluster relationships
     expected_rels = {
-        ("node1/qemu/100", TEST_CLUSTER_ID),
-        ("node1/qemu/101", TEST_CLUSTER_ID),
-        ("node2/lxc/200", TEST_CLUSTER_ID),
+        ("test-cluster/vm/100", TEST_CLUSTER_ID),
+        ("test-cluster/vm/101", TEST_CLUSTER_ID),
+        ("test-cluster/vm/200", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -168,11 +168,11 @@ def test_sync_vm_disks(
 
     # Assert - Check disk nodes
     expected_disk_nodes = {
-        ("node1/qemu/100:scsi0", "scsi0", "local-lvm", 107374182400),  # 100G in bytes
-        ("node1/qemu/101:scsi0", "scsi0", "local-lvm", 53687091200),  # 50G in bytes
-        ("node1/qemu/101:efidisk0", "efidisk0", "local-lvm", 4194304),  # 4M in bytes
-        ("node1/qemu/101:tpmstate0", "tpmstate0", "local-lvm", 4194304),  # 4M in bytes
-        ("node2/lxc/200:rootfs", "rootfs", "local-lvm", 10737418240),  # 10G in bytes
+        ("test-cluster/vm/100/disk/scsi0", "scsi0", "test-cluster/storage/local-lvm", 107374182400),  # 100G in bytes
+        ("test-cluster/vm/101/disk/scsi0", "scsi0", "test-cluster/storage/local-lvm", 53687091200),  # 50G in bytes
+        ("test-cluster/vm/101/disk/efidisk0", "efidisk0", "test-cluster/storage/local-lvm", 4194304),  # 4M in bytes
+        ("test-cluster/vm/101/disk/tpmstate0", "tpmstate0", "test-cluster/storage/local-lvm", 4194304),  # 4M in bytes
+        ("test-cluster/vm/200/disk/rootfs", "rootfs", "test-cluster/storage/local-lvm", 10737418240),  # 10G in bytes
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxDisk", ["id", "disk_id", "storage", "size"])
@@ -181,11 +181,11 @@ def test_sync_vm_disks(
 
     # Assert - Check disk->VM relationships
     expected_rels = {
-        ("node1/qemu/100:scsi0", "node1/qemu/100"),
-        ("node1/qemu/101:scsi0", "node1/qemu/101"),
-        ("node1/qemu/101:efidisk0", "node1/qemu/101"),
-        ("node1/qemu/101:tpmstate0", "node1/qemu/101"),
-        ("node2/lxc/200:rootfs", "node2/lxc/200"),
+        ("test-cluster/vm/100/disk/scsi0", "test-cluster/vm/100"),
+        ("test-cluster/vm/101/disk/scsi0", "test-cluster/vm/101"),
+        ("test-cluster/vm/101/disk/efidisk0", "test-cluster/vm/101"),
+        ("test-cluster/vm/101/disk/tpmstate0", "test-cluster/vm/101"),
+        ("test-cluster/vm/200/disk/rootfs", "test-cluster/vm/200"),
     }
     assert (
         check_rels(
@@ -253,10 +253,10 @@ def test_sync_vm_network_interfaces(
 
     # Assert - Check network interface nodes
     expected_interface_nodes = {
-        ("node1/qemu/100:net0", "net0", "BC:24:11:11:11:11"),
-        ("node1/qemu/100:net1", "net1", "BC:24:11:11:11:12"),
-        ("node1/qemu/101:net0", "net0", "BC:24:11:22:22:22"),
-        ("node2/lxc/200:net0", "net0", "BC:24:11:33:33:33"),
+        ("test-cluster/vm/100/net/net0", "net0", "BC:24:11:11:11:11"),
+        ("test-cluster/vm/100/net/net1", "net1", "BC:24:11:11:11:12"),
+        ("test-cluster/vm/101/net/net0", "net0", "BC:24:11:22:22:22"),
+        ("test-cluster/vm/200/net/net0", "net0", "BC:24:11:33:33:33"),
     }
     assert (
         check_nodes(
@@ -267,10 +267,10 @@ def test_sync_vm_network_interfaces(
 
     # Assert - Check interface->VM relationships
     expected_rels = {
-        ("node1/qemu/100:net0", "node1/qemu/100"),
-        ("node1/qemu/100:net1", "node1/qemu/100"),
-        ("node1/qemu/101:net0", "node1/qemu/101"),
-        ("node2/lxc/200:net0", "node2/lxc/200"),
+        ("test-cluster/vm/100/net/net0", "test-cluster/vm/100"),
+        ("test-cluster/vm/100/net/net1", "test-cluster/vm/100"),
+        ("test-cluster/vm/101/net/net0", "test-cluster/vm/101"),
+        ("test-cluster/vm/200/net/net0", "test-cluster/vm/200"),
     }
     assert (
         check_rels(
@@ -339,7 +339,7 @@ def test_vm_network_interface_ip_properties(
     # Assert - Check IPv4 properties on VM interface
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNetworkInterface {id: 'node1/qemu/100:net0'})
+        MATCH (n:ProxmoxNetworkInterface {id: 'test-cluster/vm/100/net/net0'})
         RETURN n.ip, n.gw, n.bridge
         """
     )
@@ -352,7 +352,7 @@ def test_vm_network_interface_ip_properties(
     # Assert - Check IPv6 properties on container interface
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNetworkInterface {id: 'node2/lxc/200:net0'})
+        MATCH (n:ProxmoxNetworkInterface {id: 'test-cluster/vm/200/net/net0'})
         RETURN n.ip, n.gw, n.ip6, n.gw6
         """
     )
@@ -417,7 +417,7 @@ def test_vm_cpu_properties(
     # Assert - Check CPU configuration
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/100'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/100'})
         RETURN n.cores, n.sockets, n.vcpus
         """
     )
@@ -430,7 +430,7 @@ def test_vm_cpu_properties(
     # Assert - Check second VM with different CPU config
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/101'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/101'})
         RETURN n.cores, n.sockets, n.vcpus
         """
     )
@@ -532,7 +532,7 @@ def test_sync_with_guest_agent_enabled(
     # Assert - Check guest agent data on VM 100
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/100'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/100'})
         RETURN n.guest_hostname, n.guest_os_name, n.guest_os_version,
                n.guest_kernel_release, n.guest_kernel_version, n.guest_machine
         """
@@ -551,7 +551,7 @@ def test_sync_with_guest_agent_enabled(
     # Assert - Check that VM without guest agent has no data
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/101'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/101'})
         RETURN n.guest_hostname, n.guest_os_name
         """
     )
@@ -564,7 +564,7 @@ def test_sync_with_guest_agent_enabled(
     # Assert - Check network interfaces have actual IPs from guest agent
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNetworkInterface {id: 'node1/qemu/100:net0'})
+        MATCH (n:ProxmoxNetworkInterface {id: 'test-cluster/vm/100/net/net0'})
         RETURN n.actual_ipv4, n.actual_ipv6, n.guest_interface_name
         """
     )
@@ -577,7 +577,7 @@ def test_sync_with_guest_agent_enabled(
     # Assert - Check second network interface has actual IPs
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNetworkInterface {id: 'node1/qemu/100:net1'})
+        MATCH (n:ProxmoxNetworkInterface {id: 'test-cluster/vm/100/net/net1'})
         RETURN n.actual_ipv4, n.guest_interface_name
         """
     )
@@ -644,7 +644,7 @@ def test_sync_with_guest_agent_disabled(
     # Assert - Check that no guest agent data is present
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/100'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/100'})
         RETURN n.guest_hostname, n.guest_os_name
         """
     )
@@ -707,7 +707,7 @@ def test_vm_enhanced_properties(
     # Assert - Check enhanced VM properties on VM 100
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/100'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/100'})
         RETURN n.ostype, n.onboot, n.protection, n.description,
                n.machine, n.bios, n.cpu, n.cpulimit, n.cpuunits, n.hotplug
         """
@@ -728,7 +728,7 @@ def test_vm_enhanced_properties(
     # Assert - Check enhanced VM properties on VM 101 (Windows VM)
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/101'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/101'})
         RETURN n.ostype, n.onboot, n.protection, n.machine, n.bios
         """
     )
@@ -794,7 +794,7 @@ def test_disk_enhanced_properties(
     # Assert - Check enhanced disk properties on VM 100 disk
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxDisk {id: 'node1/qemu/100:scsi0'})
+        MATCH (n:ProxmoxDisk {id: 'test-cluster/vm/100/disk/scsi0'})
         RETURN n.format, n.iothread, n.discard, n.ssd
         """
     )
@@ -808,7 +808,7 @@ def test_disk_enhanced_properties(
     # Assert - Check enhanced disk properties on VM 101 disk
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxDisk {id: 'node1/qemu/101:scsi0'})
+        MATCH (n:ProxmoxDisk {id: 'test-cluster/vm/101/disk/scsi0'})
         RETURN n.backup, n.cache
         """
     )
@@ -871,7 +871,7 @@ def test_vm_additional_hardware_properties(
     # Assert - Check additional hardware properties on VM 100
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/100'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/100'})
         RETURN n.balloon, n.numa, n.kvm, n.watchdog, n.rng0,
                n.hostpci_count, n.usb_count, n.serial_count
         """
@@ -890,7 +890,7 @@ def test_vm_additional_hardware_properties(
     # Assert - Check EFI and TPM on VM 101 (Windows 11 VM)
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxVM {id: 'node1/qemu/101'})
+        MATCH (n:ProxmoxVM {id: 'test-cluster/vm/101'})
         RETURN n.efidisk0, n.tpmstate0
         """
     )
@@ -898,3 +898,299 @@ def test_vm_additional_hardware_properties(
     assert data is not None
     assert data["n.efidisk0"] == "local-lvm:vm-101-disk-1,size=4M"
     assert data["n.tpmstate0"] == "local-lvm:vm-101-disk-2,size=4M,version=v2.0"
+
+
+# ============================================================================
+# Relationship Tests
+# ============================================================================
+
+
+@patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_vm_config")
+def test_disk_storage_relationship(
+    mock_get_vm_config, mock_get_containers, mock_get_vms, neo4j_session
+):
+    """
+    Test that disks create STORED_ON relationships to storage backends.
+    """
+    # Arrange - Create cluster node first
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.name = $cluster_id
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+    )
+
+    # Create storage nodes
+    neo4j_session.run(
+        """
+        MERGE (s1:ProxmoxStorage {id: $storage1_id})
+        SET s1.name = 'local-lvm', s1.cluster_id = $cluster_id
+        MERGE (s2:ProxmoxStorage {id: $storage2_id})
+        SET s2.name = 'ceph-pool', s2.cluster_id = $cluster_id
+        """,
+        storage1_id=f"{TEST_CLUSTER_ID}/storage/local-lvm",
+        storage2_id=f"{TEST_CLUSTER_ID}/storage/ceph-pool",
+        cluster_id=TEST_CLUSTER_ID,
+    )
+
+    proxmox = MagicMock()
+    proxmox.nodes.get.return_value = MOCK_NODES
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    def get_vms_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "qemu"]
+
+    def get_containers_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "lxc"]
+
+    def get_config_side_effect(proxmox_client, node, vmid, vm_type):
+        return MOCK_VM_CONFIG.get(vmid, {})
+
+    mock_get_vms.side_effect = get_vms_side_effect
+    mock_get_containers.side_effect = get_containers_side_effect
+    mock_get_vm_config.side_effect = get_config_side_effect
+
+    # Act
+    compute_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify disk->storage relationship exists
+    result = neo4j_session.run(
+        """
+        MATCH (disk:ProxmoxDisk)-[:STORED_ON]->(storage:ProxmoxStorage)
+        WHERE disk.vmid = 100
+        RETURN storage.name as storage_name, disk.disk_id as disk_id
+        ORDER BY disk.disk_id
+        """
+    )
+    records = list(result)
+    assert len(records) > 0
+    # Check that at least one disk links to storage
+    assert records[0]["storage_name"] in ["local-lvm", "ceph-pool"]
+
+
+@patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_vm_config")
+def test_nic_bridge_relationship(
+    mock_get_vm_config, mock_get_containers, mock_get_vms, neo4j_session
+):
+    """
+    Test that network interfaces create CONNECTED_TO_BRIDGE relationships to node bridges.
+    """
+    # Arrange - Create cluster and nodes
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.name = $cluster_id
+        MERGE (n:ProxmoxNode {id: $node_id})
+        SET n.name = 'node1'
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+        node_id=f"{TEST_CLUSTER_ID}/node/node1",
+    )
+
+    # Create node bridge interface
+    neo4j_session.run(
+        """
+        MERGE (bridge:ProxmoxNodeNetworkInterface {id: $bridge_id})
+        SET bridge.name = 'vmbr0', bridge.node_name = 'node1', bridge.type = 'bridge'
+        """,
+        bridge_id=f"{TEST_CLUSTER_ID}/node/node1/net/vmbr0",
+    )
+
+    proxmox = MagicMock()
+    proxmox.nodes.get.return_value = MOCK_NODES
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    def get_vms_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "qemu"]
+
+    def get_containers_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "lxc"]
+
+    def get_config_side_effect(proxmox_client, node, vmid, vm_type):
+        return MOCK_VM_CONFIG.get(vmid, {})
+
+    mock_get_vms.side_effect = get_vms_side_effect
+    mock_get_containers.side_effect = get_containers_side_effect
+    mock_get_vm_config.side_effect = get_config_side_effect
+
+    # Act
+    compute_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify NIC->bridge relationship exists
+    result = neo4j_session.run(
+        """
+        MATCH (nic:ProxmoxNetworkInterface)-[:CONNECTED_TO_BRIDGE]->(bridge:ProxmoxNodeNetworkInterface)
+        WHERE nic.vmid = 100
+        RETURN bridge.name as bridge_name, nic.net_id as nic_id
+        """
+    )
+    records = list(result)
+    assert len(records) > 0
+    assert records[0]["bridge_name"] == "vmbr0"
+
+
+@patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_vm_config")
+def test_nic_vnet_relationship(
+    mock_get_vm_config, mock_get_containers, mock_get_vms, neo4j_session
+):
+    """
+    Test that network interfaces create CONNECTED_TO_VNET relationships to SDN VNets.
+    """
+    # Arrange - Create cluster
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.name = $cluster_id
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+    )
+
+    # Create SDN VNet that matches a bridge name
+    neo4j_session.run(
+        """
+        MERGE (vnet:ProxmoxSDNVNet {id: $vnet_id})
+        SET vnet.vnet = 'vmbr0', vnet.cluster_id = $cluster_id, vnet.alias = 'Default Network'
+        """,
+        vnet_id=f"{TEST_CLUSTER_ID}/sdn/vnet/vmbr0",
+        cluster_id=TEST_CLUSTER_ID,
+    )
+
+    proxmox = MagicMock()
+    proxmox.nodes.get.return_value = MOCK_NODES
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    def get_vms_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "qemu"]
+
+    def get_containers_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "lxc"]
+
+    def get_config_side_effect(proxmox_client, node, vmid, vm_type):
+        return MOCK_VM_CONFIG.get(vmid, {})
+
+    mock_get_vms.side_effect = get_vms_side_effect
+    mock_get_containers.side_effect = get_containers_side_effect
+    mock_get_vm_config.side_effect = get_config_side_effect
+
+    # Act
+    compute_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify NIC->VNet relationship exists
+    result = neo4j_session.run(
+        """
+        MATCH (nic:ProxmoxNetworkInterface)-[:CONNECTED_TO_VNET]->(vnet:ProxmoxSDNVNet)
+        WHERE nic.vmid = 100
+        RETURN vnet.vnet as vnet_name, vnet.alias as vnet_alias, nic.net_id as nic_id
+        """
+    )
+    records = list(result)
+    assert len(records) > 0
+    assert records[0]["vnet_name"] == "vmbr0"
+    assert records[0]["vnet_alias"] == "Default Network"
+
+
+@patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_vm_config")
+def test_vm_cluster_relationship(
+    mock_get_vm_config, mock_get_containers, mock_get_vms, neo4j_session
+):
+    """
+    Test that VMs create RESOURCE relationships to the cluster.
+    """
+    # Arrange - Create cluster
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.name = $cluster_id
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+    )
+
+    proxmox = MagicMock()
+    proxmox.nodes.get.return_value = MOCK_NODES
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    def get_vms_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "qemu"]
+
+    def get_containers_side_effect(proxmox_client, node_name):
+        vms = MOCK_VM_DATA.get(node_name, [])
+        return [vm for vm in vms if vm.get("type") == "lxc"]
+
+    def get_config_side_effect(proxmox_client, node, vmid, vm_type):
+        return MOCK_VM_CONFIG.get(vmid, {})
+
+    mock_get_vms.side_effect = get_vms_side_effect
+    mock_get_containers.side_effect = get_containers_side_effect
+    mock_get_vm_config.side_effect = get_config_side_effect
+
+    # Act
+    compute_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify VM->Cluster relationship exists
+    result = neo4j_session.run(
+        """
+        MATCH (vm:ProxmoxVM)-[:RESOURCE]->(cluster:ProxmoxCluster)
+        WHERE vm.vmid = 100
+        RETURN cluster.id as cluster_id, vm.name as vm_name
+        """
+    )
+    record = result.single()
+    assert record is not None
+    assert record["cluster_id"] == TEST_CLUSTER_ID
+    assert record["vm_name"] == "test-vm-1"

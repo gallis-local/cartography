@@ -61,14 +61,14 @@ def test_firewalloptions_sync(mock_get_node_options, mock_get_cluster_options, n
     assert len(options) == 2
 
     # Check cluster-level options
-    assert options[0]["id"] == f"{cluster_id}:cluster:firewall_options"
+    assert options[0]["id"] == f"{cluster_id}/firewall/options"
     assert options[0]["scope"] == "cluster"
     assert options[0]["scope_id"] is None
     assert options[0]["policy_in"] == "DROP"
     assert options[0]["policy_out"] == "ACCEPT"
 
     # Check node-level options
-    assert options[1]["id"] == f"{cluster_id}:node:pve1:firewall_options"
+    assert options[1]["id"] == f"{cluster_id}/node/pve1/firewall/options"
     assert options[1]["scope"] == "node"
     assert options[1]["scope_id"] == "pve1"
     assert options[1]["policy_in"] == "ACCEPT"
@@ -169,8 +169,8 @@ def test_firewalloptions_multi_cluster_isolation(
 
     # Different cluster IDs
     option_ids = {o["id"] for o in options}
-    assert f"{cluster_a_id}:cluster:firewall_options" in option_ids
-    assert f"{cluster_b_id}:cluster:firewall_options" in option_ids
+    assert f"{cluster_a_id}/firewall/options" in option_ids
+    assert f"{cluster_b_id}/firewall/options" in option_ids
 
 
 @patch.object(cartography.intel.proxmox.firewalloptions, "get_cluster_firewall_options")

@@ -99,9 +99,12 @@ def transform_storage_data(
                     available = max(available, status.get("avail", 0))
                     break
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{storage_id}"
+        # NEW: f"{cluster_id}/storage/{storage_id}"
         transformed_storage.append(
             {
-                "id": f"{cluster_id}:{storage_id}",
+                "id": f"{cluster_id}/storage/{storage_id}",
                 "name": storage_id,
                 "cluster_id": cluster_id,
                 "type": storage.get("type"),
@@ -170,10 +173,15 @@ def load_storage_node_relationships(
     relationships = []
     for storage in storage_list:
         for node_name in storage["nodes"]:
+            # Extract cluster_id from storage["id"] which follows pattern "cluster_id/storage/name"
+            cluster_id_from_storage = storage["id"].split("/storage/")[0]
+            # Build full node ID using new pattern
+            node_id = f"{cluster_id_from_storage}/node/{node_name}"
+
             relationships.append(
                 {
                     "storage_id": storage["id"],
-                    "node_id": node_name,
+                    "node_id": node_id,
                 }
             )
 

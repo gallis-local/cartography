@@ -40,19 +40,19 @@ def test_sync_backup_jobs(mock_get_jobs, neo4j_session):
         update_tag=TEST_UPDATE_TAG,
     )
 
-    # Create storage and VMs for relationship tests
+    # Create storage and VMs for relationship tests (NEW UID patterns)
     neo4j_session.run(
         """
-        MERGE (s1:ProxmoxStorage {id: 'nfs-backup'})
+        MERGE (s1:ProxmoxStorage {id: 'test-cluster/storage/nfs-backup'})
         SET s1.name = 'nfs-backup', s1.lastupdated = $update_tag
-        MERGE (s2:ProxmoxStorage {id: 'local'})
+        MERGE (s2:ProxmoxStorage {id: 'test-cluster/storage/local'})
         SET s2.name = 'local', s2.lastupdated = $update_tag
         MERGE (v1:ProxmoxVM {vmid: 100})
-        SET v1.id = 'node1:100', v1.name = 'test-vm-1', v1.lastupdated = $update_tag
+        SET v1.id = 'test-cluster/vm/100', v1.name = 'test-vm-1', v1.lastupdated = $update_tag
         MERGE (v2:ProxmoxVM {vmid: 101})
-        SET v2.id = 'node1:101', v2.name = 'test-vm-2', v2.lastupdated = $update_tag
+        SET v2.id = 'test-cluster/vm/101', v2.name = 'test-vm-2', v2.lastupdated = $update_tag
         MERGE (v3:ProxmoxVM {vmid: 200})
-        SET v3.id = 'node2:200', v3.name = 'test-container-1', v3.lastupdated = $update_tag
+        SET v3.id = 'test-cluster/vm/200', v3.name = 'test-container-1', v3.lastupdated = $update_tag
         """,
         update_tag=TEST_UPDATE_TAG,
     )
@@ -68,10 +68,10 @@ def test_sync_backup_jobs(mock_get_jobs, neo4j_session):
 
     # Assert - Backup jobs exist
     expected_jobs = {
-        ("backup-daily-vms", "0 2 * * *", True),
-        ("backup-weekly-full", "0 0 * * 0", True),
-        ("backup-containers", "0 3 * * *", True),
-        ("backup-disabled", "0 4 * * *", False),
+        ("test-cluster/backup/backup-daily-vms", "0 2 * * *", 1),
+        ("test-cluster/backup/backup-weekly-full", "0 0 * * 0", 1),
+        ("test-cluster/backup/backup-containers", "0 3 * * *", 1),
+        ("test-cluster/backup/backup-disabled", "0 4 * * *", 0),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxBackupJob", ["id", "schedule", "enabled"])
@@ -80,10 +80,10 @@ def test_sync_backup_jobs(mock_get_jobs, neo4j_session):
 
     # Assert - Backup job to cluster relationships
     expected_rels = {
-        ("backup-daily-vms", TEST_CLUSTER_ID),
-        ("backup-weekly-full", TEST_CLUSTER_ID),
-        ("backup-containers", TEST_CLUSTER_ID),
-        ("backup-disabled", TEST_CLUSTER_ID),
+        ("test-cluster/backup/backup-daily-vms", TEST_CLUSTER_ID),
+        ("test-cluster/backup/backup-weekly-full", TEST_CLUSTER_ID),
+        ("test-cluster/backup/backup-containers", TEST_CLUSTER_ID),
+        ("test-cluster/backup/backup-disabled", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -100,10 +100,10 @@ def test_sync_backup_jobs(mock_get_jobs, neo4j_session):
 
     # Assert - Backup job to storage relationships
     expected_storage_rels = {
-        ("backup-daily-vms", "nfs-backup"),
-        ("backup-weekly-full", "nfs-backup"),
-        ("backup-containers", "local"),
-        ("backup-disabled", "local"),
+        ("test-cluster/backup/backup-daily-vms", "test-cluster/storage/nfs-backup"),
+        ("test-cluster/backup/backup-weekly-full", "test-cluster/storage/nfs-backup"),
+        ("test-cluster/backup/backup-containers", "test-cluster/storage/local"),
+        ("test-cluster/backup/backup-disabled", "test-cluster/storage/local"),
     }
     assert (
         check_rels(
@@ -131,15 +131,15 @@ def test_sync_backup_jobs(mock_get_jobs, neo4j_session):
     # backup-containers backs up container 200
     # backup-weekly-full has "all" so no specific relationships
     assert job_vm_rels == [
-        ("backup-containers", 200),
-        ("backup-daily-vms", 100),
-        ("backup-daily-vms", 101),
+        ("test-cluster/backup/backup-containers", 200),
+        ("test-cluster/backup/backup-daily-vms", 100),
+        ("test-cluster/backup/backup-daily-vms", 101),
     ]
 
     # Assert - Backup mode and compression are set correctly
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxBackupJob {id: 'backup-daily-vms'})
+        MATCH (j:ProxmoxBackupJob {id: 'test-cluster/backup/backup-daily-vms'})
         RETURN j.mode as mode, j.compression as compression
         """
     )
@@ -166,9 +166,9 @@ def test_backup_job_prune_properties(neo4j_session):
         update_tag=TEST_UPDATE_TAG,
     )
 
-    # Create storage
+    # Create storage (NEW UID pattern)
     neo4j_session.run(
-        "MERGE (s:ProxmoxStorage {id: 'nfs-backup'}) SET s.lastupdated = $update_tag",
+        "MERGE (s:ProxmoxStorage {id: 'test-cluster/storage/nfs-backup'}) SET s.lastupdated = $update_tag",
         update_tag=TEST_UPDATE_TAG,
     )
 
@@ -189,7 +189,7 @@ def test_backup_job_prune_properties(neo4j_session):
     # Assert - Prune properties for backup-daily-vms (has last, weekly, monthly)
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxBackupJob {id: 'backup-daily-vms'})
+        MATCH (j:ProxmoxBackupJob {id: 'test-cluster/backup/backup-daily-vms'})
         RETURN j.prune_keep_last as last,
                j.prune_keep_hourly as hourly,
                j.prune_keep_daily as daily,
@@ -209,7 +209,7 @@ def test_backup_job_prune_properties(neo4j_session):
     # Assert - Prune properties for backup-weekly-full (has last, hourly)
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxBackupJob {id: 'backup-weekly-full'})
+        MATCH (j:ProxmoxBackupJob {id: 'test-cluster/backup/backup-weekly-full'})
         RETURN j.prune_keep_last as last,
                j.prune_keep_hourly as hourly,
                j.prune_keep_daily as daily
@@ -223,7 +223,7 @@ def test_backup_job_prune_properties(neo4j_session):
     # Assert - Prune properties for backup-containers (has last, daily, yearly)
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxBackupJob {id: 'backup-containers'})
+        MATCH (j:ProxmoxBackupJob {id: 'test-cluster/backup/backup-containers'})
         RETURN j.prune_keep_last as last,
                j.prune_keep_daily as daily,
                j.prune_keep_yearly as yearly,
@@ -239,7 +239,7 @@ def test_backup_job_prune_properties(neo4j_session):
     # Assert - Backup job with no prune-backups should have all None values
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxBackupJob {id: 'backup-disabled'})
+        MATCH (j:ProxmoxBackupJob {id: 'test-cluster/backup/backup-disabled'})
         RETURN j.prune_keep_last as last,
                j.prune_keep_hourly as hourly,
                j.prune_keep_daily as daily,

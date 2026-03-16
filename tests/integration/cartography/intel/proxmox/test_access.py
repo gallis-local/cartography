@@ -72,18 +72,18 @@ def test_sync_access_control(
 
     # Assert - Users exist
     expected_users = {
-        ("root@pam", "root@example.com"),
-        ("admin@pve", "admin@example.com"),
-        ("readonly@pam", "readonly@example.com"),
-        ("disabled@pam", "disabled@example.com"),
+        ("test-cluster/user/root@pam", "root@example.com"),
+        ("test-cluster/user/admin@pve", "admin@example.com"),
+        ("test-cluster/user/readonly@pam", "readonly@example.com"),
+        ("test-cluster/user/disabled@pam", "disabled@example.com"),
     }
     assert check_nodes(neo4j_session, "ProxmoxUser", ["id", "email"]) == expected_users
 
     # Assert - Groups exist
     expected_groups = {
-        ("admins", "Administrator group"),
-        ("operators", "Operator group"),
-        ("auditors", "Read-only auditor group"),
+        ("test-cluster/group/admins", "Administrator group"),
+        ("test-cluster/group/operators", "Operator group"),
+        ("test-cluster/group/auditors", "Read-only auditor group"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxGroup", ["id", "comment"]) == expected_groups
@@ -91,9 +91,9 @@ def test_sync_access_control(
 
     # Assert - Roles exist
     expected_roles = {
-        ("Administrator", True),
-        ("PVEAuditor", True),
-        ("CustomRole", False),
+        ("test-cluster/role/Administrator", True),
+        ("test-cluster/role/PVEAuditor", True),
+        ("test-cluster/role/CustomRole", False),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxRole", ["id", "special"]) == expected_roles
@@ -110,10 +110,10 @@ def test_sync_access_control(
 
     # Assert - User to cluster relationships
     expected_user_rels = {
-        ("root@pam", TEST_CLUSTER_ID),
-        ("admin@pve", TEST_CLUSTER_ID),
-        ("readonly@pam", TEST_CLUSTER_ID),
-        ("disabled@pam", TEST_CLUSTER_ID),
+        ("test-cluster/user/root@pam", TEST_CLUSTER_ID),
+        ("test-cluster/user/admin@pve", TEST_CLUSTER_ID),
+        ("test-cluster/user/readonly@pam", TEST_CLUSTER_ID),
+        ("test-cluster/user/disabled@pam", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -132,66 +132,66 @@ def test_sync_access_control(
     result = neo4j_session.run(
         """
         MATCH (u:ProxmoxUser)-[:MEMBER_OF_GROUP]->(g:ProxmoxGroup)
-        RETURN u.userid as userid, g.groupid as groupid
+        RETURN u.id as userid, g.id as groupid
         ORDER BY userid, groupid
         """
     )
     user_group_rels = [(r["userid"], r["groupid"]) for r in result]
     assert user_group_rels == [
-        ("admin@pve", "admins"),
-        ("readonly@pam", "auditors"),
-        ("root@pam", "admins"),
-        ("root@pam", "operators"),
+        ("test-cluster/user/admin@pve", "test-cluster/group/admins"),
+        ("test-cluster/user/readonly@pam", "test-cluster/group/auditors"),
+        ("test-cluster/user/root@pam", "test-cluster/group/admins"),
+        ("test-cluster/user/root@pam", "test-cluster/group/operators"),
     ]
 
     # Assert - ACL to role relationships
     result = neo4j_session.run(
         """
         MATCH (acl:ProxmoxACL)-[:GRANTS_ROLE]->(r:ProxmoxRole)
-        RETURN acl.path as path, r.roleid as roleid
+        RETURN acl.path as path, r.id as roleid
         ORDER BY path, roleid
         """
     )
     acl_role_rels = [(r["path"], r["roleid"]) for r in result]
     assert acl_role_rels == [
-        ("/", "Administrator"),
-        ("/", "Administrator"),
-        ("/nodes/node1", "PVEAuditor"),
-        ("/pool/production", "CustomRole"),
-        ("/storage/local-lvm", "PVEAuditor"),
-        ("/vms", "PVEAuditor"),
-        ("/vms/100", "CustomRole"),
+        ("/", "test-cluster/role/Administrator"),
+        ("/", "test-cluster/role/Administrator"),
+        ("/nodes/node1", "test-cluster/role/PVEAuditor"),
+        ("/pool/production", "test-cluster/role/CustomRole"),
+        ("/storage/local-lvm", "test-cluster/role/PVEAuditor"),
+        ("/vms", "test-cluster/role/PVEAuditor"),
+        ("/vms/100", "test-cluster/role/CustomRole"),
     ]
 
     # Assert - ACL to user relationships
     result = neo4j_session.run(
         """
         MATCH (acl:ProxmoxACL)-[:APPLIES_TO_USER]->(u:ProxmoxUser)
-        RETURN acl.path as path, u.userid as userid
+        RETURN acl.path as path, u.id as userid
         ORDER BY path, userid
         """
     )
     acl_user_rels = [(r["path"], r["userid"]) for r in result]
     assert acl_user_rels == [
-        ("/", "root@pam"),
-        ("/pool/production", "admin@pve"),
-        ("/vms/100", "readonly@pam"),
+        ("/", "test-cluster/user/root@pam"),
+        ("/pool/production", "test-cluster/user/admin@pve"),
+        ("/vms/100", "test-cluster/user/readonly@pam"),
     ]
 
     # Assert - ACL to group relationships
     result = neo4j_session.run(
         """
         MATCH (acl:ProxmoxACL)-[:APPLIES_TO_GROUP]->(g:ProxmoxGroup)
-        RETURN acl.path as path, g.groupid as groupid
+        RETURN acl.path as path, g.id as groupid
         ORDER BY path, groupid
         """
     )
     acl_group_rels = [(r["path"], r["groupid"]) for r in result]
     assert acl_group_rels == [
-        ("/", "admins"),
-        ("/nodes/node1", "operators"),
-        ("/storage/local-lvm", "auditors"),
-        ("/vms", "auditors"),
+        ("/", "test-cluster/group/admins"),
+        ("/nodes/node1", "test-cluster/group/operators"),
+        ("/storage/local-lvm", "test-cluster/group/auditors"),
+        ("/vms", "test-cluster/group/auditors"),
     ]
 
     # Assert - User properties
@@ -251,25 +251,29 @@ def test_acl_resource_relationships(
     # Create test resources for ACLs to link to
     neo4j_session.run(
         """
-        // Create VM
+        // Create VM (NEW UID: test-cluster/vm/100)
         MERGE (vm:ProxmoxVM {vmid: 100})
-        SET vm.id = 'node1/qemu/100',
+        SET vm.id = 'test-cluster/vm/100',
             vm.name = 'test-vm',
+            vm.cluster_id = 'test-cluster',
             vm.lastupdated = $update_tag
 
-        // Create Storage
-        MERGE (s:ProxmoxStorage {id: 'local-lvm'})
+        // Create Storage (NEW UID: test-cluster/storage/local-lvm)
+        MERGE (s:ProxmoxStorage {id: 'test-cluster/storage/local-lvm'})
         SET s.name = 'local-lvm',
+            s.cluster_id = 'test-cluster',
             s.lastupdated = $update_tag
 
-        // Create Pool
+        // Create Pool (NEW UID: test-cluster/pool/production)
         MERGE (p:ProxmoxPool {poolid: 'production'})
-        SET p.id = 'production',
+        SET p.id = 'test-cluster/pool/production',
+            p.cluster_id = 'test-cluster',
             p.lastupdated = $update_tag
 
-        // Create Node
-        MERGE (n:ProxmoxNode {id: 'node1'})
+        // Create Node (NEW UID: test-cluster/node/node1)
+        MERGE (n:ProxmoxNode {id: 'test-cluster/node/node1'})
         SET n.name = 'node1',
+            n.cluster_id = 'test-cluster',
             n.lastupdated = $update_tag
         """,
         update_tag=TEST_UPDATE_TAG,
@@ -305,7 +309,7 @@ def test_acl_resource_relationships(
     # Assert - ACL to Storage relationships
     result = neo4j_session.run(
         """
-        MATCH (acl:ProxmoxACL {path: '/storage/local-lvm'})-[:GRANTS_ACCESS_TO]->(s:ProxmoxStorage {id: 'local-lvm'})
+        MATCH (acl:ProxmoxACL {path: '/storage/local-lvm'})-[:GRANTS_ACCESS_TO]->(s:ProxmoxStorage {id: 'test-cluster/storage/local-lvm'})
         RETURN count(*) as count
         """
     )
@@ -323,7 +327,7 @@ def test_acl_resource_relationships(
     # Assert - ACL to Node relationships
     result = neo4j_session.run(
         """
-        MATCH (acl:ProxmoxACL {path: '/nodes/node1'})-[:GRANTS_ACCESS_TO]->(n:ProxmoxNode {id: 'node1'})
+        MATCH (acl:ProxmoxACL {path: '/nodes/node1'})-[:GRANTS_ACCESS_TO]->(n:ProxmoxNode {name: 'node1'})
         RETURN count(*) as count
         """
     )
@@ -387,7 +391,9 @@ def test_effective_permissions(
     neo4j_session.run(
         """
         MERGE (vm:ProxmoxVM {vmid: 100})
-        SET vm.id = 'node1/qemu/100', vm.name = 'test-vm'
+        SET vm.id = 'test-cluster/vm/100',
+            vm.name = 'test-vm',
+            vm.cluster_id = 'test-cluster'
 
         MERGE (c:ProxmoxCluster {id: $cluster_id})
         """,

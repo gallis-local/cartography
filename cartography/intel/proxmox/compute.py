@@ -165,7 +165,10 @@ def transform_vm_data(
     transformed_vms = []
 
     for vm in vms:
-        vm_id = f"{cluster_id}:{vm['node']}/{vm['type']}/{vm['vmid']}"
+        # NEW UID PATTERN: Remove node from UID since VMs can migrate between nodes
+        # OLD: f"{cluster_id}:{vm['node']}/{vm['type']}/{vm['vmid']}"
+        # NEW: f"{cluster_id}/vm/{vm['vmid']}" - node-agnostic, type is metadata not identity
+        vm_id = f"{cluster_id}/vm/{vm['vmid']}"
 
         # Parse tags if they exist
         tags = []
@@ -287,17 +290,24 @@ def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, An
             parts = value.split(",")
             disk_path = parts[0]
 
-            # Extract integer vmid from full VM ID (e.g., "node1/qemu/100" -> 100)
-            vmid_int = int(vmid.split("/")[-1])
+            # Extract cluster_id and vmid_int from new format: "cluster_id/vm/vmid"
+            # Example: "cluster1/vm/100" -> cluster_id="cluster1", vmid_int=100
+            cluster_id = vmid.split("/vm/")[0]
+            vmid_int = int(vmid.split("/vm/")[1])
 
+            # NEW UID PATTERN: Hierarchical disk IDs showing clear parent-child relationship
+            # OLD: f"{vmid}:{key}"  # vmid contained node reference
+            # NEW: f"{cluster_id}/vm/{vmid_int}/disk/{key}"  # Node-agnostic, clear hierarchy
             disk_data = {
-                "id": f"{vmid}:{key}",  # Full ID with node/type/vmid prefix
+                "id": f"{cluster_id}/vm/{vmid_int}/disk/{key}",
                 "disk_id": key,
                 "vmid": vmid_int,  # Integer vmid for matching relationships
             }
 
             if ":" in disk_path:
-                disk_data["storage"] = disk_path.split(":")[0]
+                storage_name = disk_path.split(":")[0]
+                # Store full storage ID for relationship matching
+                disk_data["storage"] = f"{cluster_id}/storage/{storage_name}"
 
             # Parse parameters
             is_cdrom = False
@@ -426,17 +436,19 @@ def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str,
         if key.startswith("net") and len(key) > 3 and key[3:].isdigit():
             if isinstance(value, str):
                 # Parse network string: "virtio=XX:XX:XX:XX:XX:XX,bridge=vmbr0,firewall=1,ip=192.168.1.10/24,gw=192.168.1.1"
-                # Extract node name and integer vmid from full VM ID (e.g., "cluster_id:node1/qemu/100")
-                vmid_parts = vmid.split("/")
-                # Handle cluster_id prefix: "cluster_id:node" -> "node"
-                node_name = vmid_parts[0].split(":")[-1] if ":" in vmid_parts[0] else vmid_parts[0]
-                vmid_int = int(vmid_parts[-1])
+                # Extract cluster_id and vmid_int from new format: "cluster_id/vm/vmid"
+                # Example: "cluster1/vm/100" -> cluster_id="cluster1", vmid_int=100
+                cluster_id = vmid.split("/vm/")[0]
+                vmid_int = int(vmid.split("/vm/")[1])
 
+                # NEW UID PATTERN: Hierarchical NIC IDs showing clear parent-child relationship
+                # OLD: f"{vmid}:{key}"  # vmid contained node reference
+                # NEW: f"{cluster_id}/vm/{vmid_int}/net/{key}"  # Node-agnostic, clear hierarchy
                 nic_data = {
-                    "id": f"{vmid}:{key}",  # Full ID with node/type/vmid prefix
+                    "id": f"{cluster_id}/vm/{vmid_int}/net/{key}",
                     "net_id": key,
                     "vmid": vmid_int,  # Integer vmid for matching relationships
-                    "node_name": node_name,  # Node name for bridge relationship
+                    "node_name": None,  # Will be set by caller in sync() - node is mutable state
                 }
 
                 parts = value.split(",")
@@ -793,10 +805,17 @@ def sync(
             )
 
             # Extract disks and network interfaces
-            # Build full VM ID for child resources (node/type/vmid format)
-            full_vm_id = f"{vm['node']}/{vm['type']}/{vm['vmid']}"
+            # NEW: Build VM ID using new pattern (node-agnostic)
+            # OLD: f"{vm['node']}/{vm['type']}/{vm['vmid']}"
+            # NEW: f"{cluster_id}/vm/{vm['vmid']}"
+            full_vm_id = f"{cluster_id}/vm/{vm['vmid']}"
             disks = extract_disk_data(vm_config, full_vm_id)
             interfaces = extract_network_data(vm_config, full_vm_id)
+
+            # Set node_name on network interfaces (needed for bridge relationships)
+            # Node is mutable state, not part of identity, so we set it after extraction
+            for interface in interfaces:
+                interface["node_name"] = node_name
 
             # Get guest agent data if enabled and VM is QEMU
             if enable_guest_agent and vm["type"] == "qemu":

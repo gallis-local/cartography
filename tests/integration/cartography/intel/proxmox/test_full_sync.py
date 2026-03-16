@@ -133,8 +133,8 @@ def test_full_proxmox_sync(
 
     # 2. Nodes exist and connect to cluster
     expected_nodes = {
-        ("node1", "node1"),
-        ("node2", "node2"),
+        ("test-cluster/node/node1", "node1"),
+        ("test-cluster/node/node2", "node2"),
     }
     assert check_nodes(neo4j_session, "ProxmoxNode", ["id", "name"]) == expected_nodes
 
@@ -152,9 +152,9 @@ def test_full_proxmox_sync(
 
     # 4. VMs and containers exist
     expected_vms = {
-        ("node1/qemu/100", "test-vm-1"),
-        ("node1/qemu/101", "test-vm-2"),
-        ("node2/lxc/200", "test-container-1"),
+        ("test-cluster/vm/100", "test-vm-1"),
+        ("test-cluster/vm/101", "test-vm-2"),
+        ("test-cluster/vm/200", "test-container-1"),
     }
     assert check_nodes(neo4j_session, "ProxmoxVM", ["id", "name"]) == expected_vms
 
@@ -182,9 +182,9 @@ def test_full_proxmox_sync(
 
     # 7. Storage exists and connects to cluster
     expected_storage = {
-        ("local", "local"),
-        ("local-lvm", "local-lvm"),
-        ("nfs-backup", "nfs-backup"),
+        ("test-cluster/storage/local", "local"),
+        ("test-cluster/storage/local-lvm", "local-lvm"),
+        ("test-cluster/storage/nfs-backup", "nfs-backup"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxStorage", ["id", "name"]) == expected_storage
@@ -258,7 +258,7 @@ def test_cleanup_removes_stale_data(
     # Verify data exists
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNode {id: 'node1'})
+        MATCH (n:ProxmoxNode {id: 'test-cluster/node/node1'})
         RETURN n.lastupdated as lastupdated
         """
     )
@@ -314,7 +314,7 @@ def test_cleanup_removes_stale_data(
     # Verify current nodes still exist with updated timestamp
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNode {id: 'node1'})
+        MATCH (n:ProxmoxNode {id: 'test-cluster/node/node1'})
         RETURN n.lastupdated as lastupdated
         """
     )

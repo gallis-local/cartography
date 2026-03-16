@@ -283,9 +283,12 @@ def transform_node_data(
 
     for node in nodes:
         # Use direct access for required fields, .get() for optional
+        # NEW UID PATTERN: Consistent path-like structure with cluster scoping
+        # OLD: f"{cluster_id}:{node['node']}"
+        # NEW: f"{cluster_id}/node/{node['node']}"
         transformed_nodes.append(
             {
-                "id": f"{cluster_id}:{node['node']}",  # Required - cluster-scoped ID
+                "id": f"{cluster_id}/node/{node['node']}",  # Node UID: cluster-scoped, path-like
                 "name": node["node"],  # Required
                 "cluster_id": cluster_id,  # Required
                 "hostname": node["node"],  # Use node name as hostname
@@ -344,13 +347,19 @@ def transform_node_network_data(
     for iface in network_interfaces:
         # Required field
         iface_name = iface["iface"]
-        iface_id = f"{cluster_id}:{node_name}:{iface_name}"
+        # NEW UID PATTERN: Hierarchical structure showing interface belongs to node
+        # OLD: f"{cluster_id}:{node_name}:{iface_name}"
+        # NEW: f"{cluster_id}/node/{node_name}/net/{iface_name}"
+        iface_id = f"{cluster_id}/node/{node_name}/net/{iface_name}"
+
+        # Full node ID for relationship matching
+        node_id = f"{cluster_id}/node/{node_name}"
 
         transformed_interfaces.append(
             {
                 "id": iface_id,
                 "name": iface_name,
-                "node_name": node_name,
+                "node_name": node_id,  # Full node ID for relationship matching
                 "type": iface.get("type"),  # bridge, bond, eth, vlan, etc.
                 "address": iface.get("address"),
                 "netmask": iface.get("netmask"),

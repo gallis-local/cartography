@@ -72,9 +72,12 @@ def transform_pool_data(
         # Required field - use direct access
         poolid = pool["poolid"]
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{poolid}"
+        # NEW: f"{cluster_id}/pool/{poolid}"
         transformed_pools.append(
             {
-                "id": f"{cluster_id}:{poolid}",
+                "id": f"{cluster_id}/pool/{poolid}",
                 "poolid": poolid,
                 "comment": pool.get("comment"),
                 "cluster_id": cluster_id,
@@ -202,14 +205,18 @@ def sync(
         if "members" in details:
             for member in details["members"]:
                 member_data = {
-                    "pool_id": poolid,
+                    "pool_id": poolid,  # Pool ID (bare poolid, used by MatchLink to find pool)
                     "type": member.get("type"),
                 }
 
                 if member.get("type") in ("qemu", "lxc"):
+                    # For VMs/containers, use integer VMID (MatchLink matches on vmid property)
                     member_data["vmid"] = member.get("vmid")
                 elif member.get("type") == "storage":
-                    member_data["storage_id"] = member.get("storage")
+                    # For storage, build full storage ID using new pattern
+                    # MatchLink will match on the full storage ID
+                    storage_name = member.get("storage")
+                    member_data["storage_id"] = f"{cluster_id}/storage/{storage_name}"
 
                 pool_members.append(member_data)
 

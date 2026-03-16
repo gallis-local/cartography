@@ -54,13 +54,13 @@ def test_authrealm_sync(mock_get_realms, neo4j_session):
     assert len(realms) == 4
 
     # Check PAM realm
-    assert realms[2]["id"] == f"{cluster_id}:pam"
+    assert realms[2]["id"] == f"{cluster_id}/realm/pam"
     assert realms[2]["realm"] == "pam"
     assert realms[2]["type"] == "pam"
     assert realms[2]["is_default"] is True
 
     # Check LDAP realm
-    assert realms[1]["id"] == f"{cluster_id}:ldap-corp"
+    assert realms[1]["id"] == f"{cluster_id}/realm/ldap-corp"
     assert realms[1]["realm"] == "ldap-corp"
     assert realms[1]["type"] == "ldap"
 
@@ -149,8 +149,8 @@ def test_authrealm_multi_cluster_isolation(mock_get_realms, neo4j_session):
 
     # Different cluster IDs
     realm_ids = {r["id"] for r in realms}
-    assert f"{cluster_a_id}:pam" in realm_ids
-    assert f"{cluster_b_id}:pam" in realm_ids
+    assert f"{cluster_a_id}/realm/pam" in realm_ids
+    assert f"{cluster_b_id}/realm/pam" in realm_ids
 
 
 @patch.object(cartography.intel.proxmox.authrealm, "get_auth_realms")

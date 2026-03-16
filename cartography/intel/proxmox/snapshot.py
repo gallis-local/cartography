@@ -121,8 +121,10 @@ def transform_snapshot_data(
         node = snapshot["node"]
         vm_type = snapshot["vm_type"]
 
-        # Create unique ID: cluster:node/type/vmid:snapname
-        snapshot_id = f"{cluster_id}:{node}/{vm_type}/{vmid}:{name}"
+        # NEW UID PATTERN: Node-agnostic, hierarchical structure
+        # OLD: f"{cluster_id}:{node}/{vm_type}/{vmid}:{name}"  # Included node (mutable)
+        # NEW: f"{cluster_id}/vm/{vmid}/snapshot/{name}"  # Node-agnostic, clear hierarchy
+        snapshot_id = f"{cluster_id}/vm/{vmid}/snapshot/{name}"
 
         transformed_snapshots.append(
             {
@@ -131,7 +133,7 @@ def transform_snapshot_data(
                 "cluster_id": cluster_id,
                 "vmid": vmid,
                 "vm_type": vm_type,
-                "node": node,
+                "node": node,  # Still store node, but not in UID (mutable state)
                 "description": snapshot.get("description"),
                 "snaptime": snapshot.get("snaptime"),
                 "vmstate": snapshot.get("vmstate", 0) == 1,  # Convert to boolean

@@ -66,13 +66,13 @@ def test_snapshot_sync(mock_get_snapshots, neo4j_session):
     assert len(snapshots) == 2
 
     # Check snapshot 1
-    assert snapshots[0]["id"] == f"{cluster_id}:pve1/qemu/100:snapshot1"
+    assert snapshots[0]["id"] == f"{cluster_id}/vm/100/snapshot/snapshot1"
     assert snapshots[0]["name"] == "snapshot1"
     assert snapshots[0]["vmid"] == 100
     assert snapshots[0]["vm_type"] == "qemu"
 
     # Check snapshot 2
-    assert snapshots[1]["id"] == f"{cluster_id}:pve1/qemu/100:snapshot2"
+    assert snapshots[1]["id"] == f"{cluster_id}/vm/100/snapshot/snapshot2"
     assert snapshots[1]["name"] == "snapshot2"
 
 
@@ -145,7 +145,7 @@ def test_snapshot_to_vm_relationship(mock_get_snapshots, neo4j_session):
             vm.name = 'test-vm',
             vm.type = 'qemu'
         """,
-        vm_id=f"{cluster_id}:pve1/qemu/100",
+        vm_id=f"{cluster_id}/vm/100",
         vmid=100,
         cluster_id=cluster_id,
     )
@@ -256,8 +256,8 @@ def test_snapshot_multi_cluster_isolation(mock_get_snapshots, neo4j_session):
 
     # Different cluster IDs
     snapshot_ids = {s["id"] for s in snapshots}
-    assert f"{cluster_a_id}:pve1/qemu/100:daily-backup" in snapshot_ids
-    assert f"{cluster_b_id}:pve1/qemu/100:daily-backup" in snapshot_ids
+    assert f"{cluster_a_id}/vm/100/snapshot/daily-backup" in snapshot_ids
+    assert f"{cluster_b_id}/vm/100/snapshot/daily-backup" in snapshot_ids
 
 
 @patch.object(cartography.intel.proxmox.snapshot, "get_all_snapshots")

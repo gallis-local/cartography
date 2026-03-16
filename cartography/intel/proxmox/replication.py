@@ -61,8 +61,10 @@ def transform_replication_job_data(
         # Required fields
         job_id = job["id"]
 
-        # Create unique ID: cluster:job_id
-        replication_job_id = f"{cluster_id}:{job_id}"
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{job_id}"
+        # NEW: f"{cluster_id}/replication/{job_id}"
+        replication_job_id = f"{cluster_id}/replication/{job_id}"
 
         transformed_jobs.append(
             {
