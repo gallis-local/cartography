@@ -31,7 +31,7 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
             u.cluster_id = $cluster_id,
             u.enable = true
         """,
-        user_id=f"{cluster_id}:root@pam",
+        user_id=f"{cluster_id}/user/root@pam",
         userid="root@pam",
         cluster_id=cluster_id,
     )
@@ -45,7 +45,7 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
     }
 
     # Mock users data
-    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}:root@pam"}]
+    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}/user/root@pam"}]
 
     # Act
     sync(
@@ -72,12 +72,11 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
     assert len(tokens) == 2
 
     # Check token 1
-    assert tokens[0]["id"] == f"{cluster_id}:root@pam:token1"
+    assert tokens[0]["id"] == f"{cluster_id}/user/root@pam/token/token1"
     assert tokens[0]["tokenid"] == "token1"
-    assert tokens[0]["full_tokenid"] == "root@pam!token1"
 
     # Check token 2
-    assert tokens[1]["id"] == f"{cluster_id}:root@pam:token2"
+    assert tokens[1]["id"] == f"{cluster_id}/user/root@pam/token/token2"
     assert tokens[1]["tokenid"] == "token2"
 
 
@@ -94,7 +93,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
         MERGE (u:ProxmoxUser {id: $user_id})
         SET u.userid = $userid, u.cluster_id = $cluster_id
         """,
-        user_id=f"{cluster_id}:root@pam",
+        user_id=f"{cluster_id}/user/root@pam",
         userid="root@pam",
         cluster_id=cluster_id,
     )
@@ -107,7 +106,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
         "CLUSTER_ID": cluster_id,
     }
 
-    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}:root@pam"}]
+    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}/user/root@pam"}]
 
     # Act
     sync(
@@ -137,7 +136,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
 
 @patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
 def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
-    """Test ProxmoxAPIToken ASSOCIATED_WITH relationship to ProxmoxUser."""
+    """Test ProxmoxAPIToken BELONGS_TO relationship to ProxmoxUser."""
     # Setup
     cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
     proxmox_client = MagicMock()
@@ -150,7 +149,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
             u.cluster_id = $cluster_id,
             u.enable = true
         """,
-        user_id=f"{cluster_id}:root@pam",
+        user_id=f"{cluster_id}/user/root@pam",
         userid="root@pam",
         cluster_id=cluster_id,
     )
@@ -163,7 +162,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
         "CLUSTER_ID": cluster_id,
     }
 
-    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}:root@pam"}]
+    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}/user/root@pam"}]
 
     # Act
     sync(
@@ -178,7 +177,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (t:ProxmoxAPIToken)-[:ASSOCIATED_WITH]->(u:ProxmoxUser)
+        MATCH (t:ProxmoxAPIToken)-[:BELONGS_TO]->(u:ProxmoxUser)
         WHERE u.userid = $userid AND u.cluster_id = $cluster_id
         RETURN t.tokenid as tokenid, u.userid as userid
         """,
@@ -207,7 +206,7 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
             MERGE (u:ProxmoxUser {id: $user_id})
             SET u.userid = $userid, u.cluster_id = $cluster_id
             """,
-            user_id=f"{cluster_id}:root@pam",
+            user_id=f"{cluster_id}/user/root@pam",
             userid="root@pam",
             cluster_id=cluster_id,
         )
@@ -216,7 +215,7 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
     mock_get_tokens.return_value = [MOCK_API_TOKEN_DATA[0]]
 
     # Sync to cluster A
-    mock_users_a = [{"userid": "root@pam", "id": f"{cluster_a_id}:root@pam"}]
+    mock_users_a = [{"userid": "root@pam", "id": f"{cluster_a_id}/user/root@pam"}]
     sync(
         neo4j_session,
         proxmox_client,
@@ -227,7 +226,7 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
     )
 
     # Sync to cluster B
-    mock_users_b = [{"userid": "root@pam", "id": f"{cluster_b_id}:root@pam"}]
+    mock_users_b = [{"userid": "root@pam", "id": f"{cluster_b_id}/user/root@pam"}]
     sync(
         neo4j_session,
         proxmox_client,
@@ -252,8 +251,8 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
 
     # Different cluster IDs
     token_ids = {t["id"] for t in tokens}
-    assert f"{cluster_a_id}:root@pam:token1" in token_ids
-    assert f"{cluster_b_id}:root@pam:token1" in token_ids
+    assert f"{cluster_a_id}/user/root@pam/token/token1" in token_ids
+    assert f"{cluster_b_id}/user/root@pam/token/token1" in token_ids
 
 
 @patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
@@ -269,7 +268,7 @@ def test_apitoken_cleanup_stale_data(mock_get_tokens, neo4j_session):
         MERGE (u:ProxmoxUser {id: $user_id})
         SET u.userid = $userid, u.cluster_id = $cluster_id
         """,
-        user_id=f"{cluster_id}:root@pam",
+        user_id=f"{cluster_id}/user/root@pam",
         userid="root@pam",
         cluster_id=cluster_id,
     )
@@ -282,7 +281,7 @@ def test_apitoken_cleanup_stale_data(mock_get_tokens, neo4j_session):
         "CLUSTER_ID": cluster_id,
     }
 
-    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}:root@pam"}]
+    mock_users = [{"userid": "root@pam", "id": f"{cluster_id}/user/root@pam"}]
 
     sync(
         neo4j_session,

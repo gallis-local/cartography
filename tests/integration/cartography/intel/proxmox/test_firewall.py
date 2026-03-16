@@ -69,10 +69,14 @@ def test_sync_firewall(
     # Create nodes for relationship tests
     neo4j_session.run(
         """
-        MERGE (n1:ProxmoxNode {id: 'node1'})
-        SET n1.name = 'node1', n1.lastupdated = $update_tag
-        MERGE (n2:ProxmoxNode {id: 'node2'})
-        SET n2.name = 'node2', n2.lastupdated = $update_tag
+        MERGE (n1:ProxmoxNode {id: 'test-cluster/node/node1'})
+        SET n1.name = 'node1',
+            n1.cluster_id = 'test-cluster',
+            n1.lastupdated = $update_tag
+        MERGE (n2:ProxmoxNode {id: 'test-cluster/node/node2'})
+        SET n2.name = 'node2',
+            n2.cluster_id = 'test-cluster',
+            n2.lastupdated = $update_tag
         """,
         update_tag=TEST_UPDATE_TAG,
     )
@@ -116,7 +120,7 @@ def test_sync_firewall(
     # Assert - Node-scoped rules exist
     result = neo4j_session.run(
         """
-        MATCH (rule:ProxmoxFirewallRule {scope: 'node', scope_id: 'node1'})
+        MATCH (rule:ProxmoxFirewallRule {scope: 'node', scope_id: 'test-cluster/node/node1'})
         RETURN rule.dport as dport, rule.comment as comment
         """
     )
@@ -125,8 +129,8 @@ def test_sync_firewall(
 
     # Assert - IP sets exist
     expected_ipsets = {
-        ("cluster:management-ips", "management-ips"),
-        ("cluster:backup-servers", "backup-servers"),
+        ("test-cluster/firewall/ipset/management-ips", "management-ips"),
+        ("test-cluster/firewall/ipset/backup-servers", "backup-servers"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxFirewallIPSet", ["id", "name"])
@@ -156,12 +160,12 @@ def test_sync_firewall(
     result = neo4j_session.run(
         """
         MATCH (rule:ProxmoxFirewallRule)-[:APPLIES_TO_NODE]->(n:ProxmoxNode)
-        RETURN rule.scope_id as node_name, count(rule) as rule_count
-        ORDER BY node_name
+        RETURN rule.scope_id as node_id, count(rule) as rule_count
+        ORDER BY node_id
         """
     )
-    node_rules = [(r["node_name"], r["rule_count"]) for r in result]
-    assert node_rules == [("node1", 1), ("node2", 1)]
+    node_rules = [(r["node_id"], r["rule_count"]) for r in result]
+    assert node_rules == [("test-cluster/node/node1", 1), ("test-cluster/node/node2", 1)]
 
     # Assert - Rule properties
     result = neo4j_session.run(

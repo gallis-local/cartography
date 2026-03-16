@@ -134,11 +134,27 @@ def transform_firewall_rule_data(
     transformed_rules = []
 
     for rule in rules:
-        # Create unique ID based on cluster, scope and position
-        if scope_id:
-            rule_id = f"{cluster_id}:{scope}:{scope_id}:{rule.get('pos', 0)}"
+        # NEW UID PATTERN: Hierarchical structure based on scope
+        # OLD: f"{cluster_id}:{scope}:{scope_id}:{pos}" or f"{cluster_id}:{scope}:{pos}"
+        # NEW: path-like structure based on scope type
+        pos = rule.get("pos", 0)
+        if scope == "cluster":
+            rule_id = f"{cluster_id}/firewall/rule/{pos}"
+        elif scope == "node":
+            rule_id = f"{cluster_id}/node/{scope_id}/firewall/rule/{pos}"
+        elif scope == "vm":
+            rule_id = f"{cluster_id}/vm/{scope_id}/firewall/rule/{pos}"
         else:
-            rule_id = f"{cluster_id}:{scope}:{rule.get('pos', 0)}"
+            # Fallback for unknown scopes
+            rule_id = f"{cluster_id}/firewall/{scope}/{scope_id}/rule/{pos}" if scope_id else f"{cluster_id}/firewall/{scope}/rule/{pos}"
+
+        # Build full scope ID for relationship matching
+        # For node-scoped rules, need full node ID for matching
+        full_scope_id = scope_id
+        if scope == "node" and scope_id:
+            full_scope_id = f"{cluster_id}/node/{scope_id}"
+        elif scope == "vm" and scope_id:
+            full_scope_id = f"{cluster_id}/vm/{scope_id}"
 
         # Extract IPSet references from source/dest
         source = rule.get("source")
@@ -151,7 +167,7 @@ def transform_firewall_rule_data(
                 "id": rule_id,
                 "cluster_id": cluster_id,
                 "scope": scope,
-                "scope_id": scope_id,
+                "scope_id": full_scope_id,  # Use full ID for relationship matching
                 "pos": rule.get("pos", 0),
                 "type": rule.get("type"),
                 "action": rule.get("action"),
@@ -197,11 +213,18 @@ def transform_ipset_data(
         # Required field
         name = ipset["name"]
 
-        # Create unique ID based on cluster and scope
-        if scope_id:
-            ipset_id = f"{cluster_id}:{scope}:{scope_id}:{name}"
+        # NEW UID PATTERN: Hierarchical structure based on scope
+        # OLD: f"{cluster_id}:{scope}:{scope_id}:{name}" or f"{cluster_id}:{scope}:{name}"
+        # NEW: path-like structure based on scope type
+        if scope == "cluster":
+            ipset_id = f"{cluster_id}/firewall/ipset/{name}"
+        elif scope == "node":
+            ipset_id = f"{cluster_id}/node/{scope_id}/firewall/ipset/{name}"
+        elif scope == "vm":
+            ipset_id = f"{cluster_id}/vm/{scope_id}/firewall/ipset/{name}"
         else:
-            ipset_id = f"{cluster_id}:{scope}:{name}"
+            # Fallback for unknown scopes
+            ipset_id = f"{cluster_id}/firewall/{scope}/{scope_id}/ipset/{name}" if scope_id else f"{cluster_id}/firewall/{scope}/ipset/{name}"
 
         # Get CIDR entries for this IP set
         cidrs = []

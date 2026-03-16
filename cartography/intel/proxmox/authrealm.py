@@ -61,8 +61,10 @@ def transform_auth_realm_data(
         # Required fields
         realm_name = realm["realm"]
 
-        # Create unique ID: cluster:realm
-        realm_id = f"{cluster_id}:{realm_name}"
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{realm_name}"
+        # NEW: f"{cluster_id}/realm/{realm_name}"
+        realm_id = f"{cluster_id}/realm/{realm_name}"
 
         transformed_realms.append(
             {

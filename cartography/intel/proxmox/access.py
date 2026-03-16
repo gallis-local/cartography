@@ -154,9 +154,12 @@ def transform_user_data(
         # Parse tokens if they exist (tokens field contains list)
         tokens = user.get("tokens", [])
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{userid}"
+        # NEW: f"{cluster_id}/user/{userid}"
         transformed_users.append(
             {
-                "id": f"{cluster_id}:{userid}",
+                "id": f"{cluster_id}/user/{userid}",
                 "userid": userid,
                 "cluster_id": cluster_id,
                 "enable": bool(user.get("enable", True)),
@@ -190,9 +193,12 @@ def transform_group_data(
         # Required field
         groupid = group["groupid"]
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{groupid}"
+        # NEW: f"{cluster_id}/group/{groupid}"
         transformed_groups.append(
             {
-                "id": f"{cluster_id}:{groupid}",
+                "id": f"{cluster_id}/group/{groupid}",
                 "groupid": groupid,
                 "cluster_id": cluster_id,
                 "comment": group.get("comment"),
@@ -225,9 +231,12 @@ def transform_role_data(
         if privs_str:
             privs = [p.strip() for p in privs_str.split(",") if p.strip()]
 
+        # NEW UID PATTERN: Consistent path-like structure
+        # OLD: f"{cluster_id}:{roleid}"
+        # NEW: f"{cluster_id}/role/{roleid}"
         transformed_roles.append(
             {
-                "id": f"{cluster_id}:{roleid}",
+                "id": f"{cluster_id}/role/{roleid}",
                 "roleid": roleid,
                 "cluster_id": cluster_id,
                 "privs": privs,
@@ -291,8 +300,11 @@ def transform_acl_data(
         roleid = acl["roleid"]
         ugid = acl["ugid"]  # User or group ID
 
-        # Create unique ID from path + ugid + roleid
-        acl_id = f"{cluster_id}:{path}:{ugid}:{roleid}"
+        # NEW UID PATTERN: Use path-like structure for consistency
+        # OLD: f"{cluster_id}:{path}:{ugid}:{roleid}"
+        # NEW: f"{cluster_id}/acl{path}/{ugid}/{roleid}"
+        # Note: path already starts with '/' (e.g., "/vms/100"), so we don't add another slash
+        acl_id = f"{cluster_id}/acl{path}/{ugid}/{roleid}"
 
         # Determine principal type and extract base user ID for tokens
         # Proxmox format: groups don't have @, users are user@realm, tokens are user@realm!tokenname

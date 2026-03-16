@@ -69,8 +69,8 @@ def test_sync_cluster_and_nodes(
 
     # Assert - Check node nodes
     expected_node_nodes = {
-        ("node1", "node1", "online"),
-        ("node2", "node2", "online"),
+        ("test-cluster/node/node1", "node1", "online"),
+        ("test-cluster/node/node2", "node2", "online"),
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxNode", ["id", "name", "status"])
@@ -79,8 +79,8 @@ def test_sync_cluster_and_nodes(
 
     # Assert - Check node->cluster relationships
     expected_rels = {
-        ("node1", TEST_CLUSTER_ID),
-        ("node2", TEST_CLUSTER_ID),
+        ("test-cluster/node/node1", TEST_CLUSTER_ID),
+        ("test-cluster/node/node2", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -150,9 +150,9 @@ def test_sync_node_network_interfaces(
 
     # Assert - Check network interface nodes (sampling a few key ones)
     expected_interface_nodes = {
-        ("node1:vmbr0", "vmbr0", "bridge"),
-        ("node1:enp0s31f6", "enp0s31f6", "eth"),
-        ("node2:vmbr0", "vmbr0", "bridge"),
+        ("test-cluster/node/node1/net/vmbr0", "vmbr0", "bridge"),
+        ("test-cluster/node/node1/net/enp0s31f6", "enp0s31f6", "eth"),
+        ("test-cluster/node/node2/net/vmbr0", "vmbr0", "bridge"),
     }
     assert (
         check_nodes(
@@ -163,9 +163,9 @@ def test_sync_node_network_interfaces(
 
     # Assert - Check interface->node relationships
     expected_rels = {
-        ("node1:vmbr0", "node1"),
-        ("node1:enp0s31f6", "node1"),
-        ("node2:vmbr0", "node2"),
+        ("test-cluster/node/node1/net/vmbr0", "test-cluster/node/node1"),
+        ("test-cluster/node/node1/net/enp0s31f6", "test-cluster/node/node1"),
+        ("test-cluster/node/node2/net/vmbr0", "test-cluster/node/node2"),
     }
     assert (
         check_rels(
@@ -182,9 +182,9 @@ def test_sync_node_network_interfaces(
 
     # Assert - Check interface->cluster relationships
     expected_cluster_rels = {
-        ("node1:vmbr0", TEST_CLUSTER_ID),
-        ("node1:enp0s31f6", TEST_CLUSTER_ID),
-        ("node2:vmbr0", TEST_CLUSTER_ID),
+        ("test-cluster/node/node1/net/vmbr0", TEST_CLUSTER_ID),
+        ("test-cluster/node/node1/net/enp0s31f6", TEST_CLUSTER_ID),
+        ("test-cluster/node/node2/net/vmbr0", TEST_CLUSTER_ID),
     }
     assert (
         check_rels(
@@ -257,7 +257,7 @@ def test_network_interface_properties(
     # In this case, the IPv6 entry is last, so those properties will be stored.
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNodeNetworkInterface {id: 'node1:vmbr0'})
+        MATCH (n:ProxmoxNodeNetworkInterface {id: 'test-cluster/node/node1/net/vmbr0'})
         RETURN n.address, n.gateway, n.netmask, n.address6, n.gateway6, n.netmask6
         """
     )
@@ -370,7 +370,7 @@ def test_node_enhanced_metadata(
     # Assert - Check enhanced node properties for node1
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNode {id: 'node1'})
+        MATCH (n:ProxmoxNode {id: 'test-cluster/node/node1'})
         RETURN n.kversion, n.loadavg, n.wait, n.swap_total, n.swap_used,
                n.swap_free, n.pveversion, n.cpuinfo, n.idle
         """
@@ -442,7 +442,7 @@ def test_network_interface_enhanced_metadata(
     # Assert - Check enhanced network interface properties
     result = neo4j_session.run(
         """
-        MATCH (n:ProxmoxNodeNetworkInterface {id: 'node1:vmbr0'})
+        MATCH (n:ProxmoxNodeNetworkInterface {id: 'test-cluster/node/node1/net/vmbr0'})
         RETURN n.mtu, n.comments, n.cidr, n.cidr6, n.method, n.method6
         """
     )
@@ -560,3 +560,118 @@ def test_cluster_configuration_metadata(
     assert data["totem_ip_version"] == "ipv4"
     assert data["totem_secauth"] == "on"
     assert data["totem_version"] == 2
+
+
+
+
+# ============================================================================
+# Relationship Tests
+# ============================================================================
+
+
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_config", return_value=MOCK_CLUSTER_CONFIG
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_options", return_value=MOCK_CLUSTER_OPTIONS
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA
+)
+def test_node_cluster_relationship(
+    mock_get_cluster_status, mock_get_nodes, mock_get_options, mock_get_config, neo4j_session
+):
+    """
+    Test that nodes create RESOURCE relationships to the cluster.
+    """
+    # Arrange
+    proxmox = MagicMock()
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    # Act
+    cluster_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify node->cluster relationship
+    result = neo4j_session.run(
+        """
+        MATCH (node:ProxmoxNode)-[:RESOURCE]->(cluster:ProxmoxCluster)
+        WHERE cluster.id = $cluster_id
+        RETURN node.name as node_name, cluster.id as cluster_id
+        ORDER BY node_name
+        """
+,
+        cluster_id=TEST_CLUSTER_ID,
+    )
+    records = list(result)
+    assert len(records) > 0
+    assert records[0]["cluster_id"] == TEST_CLUSTER_ID
+    # Should have nodes from MOCK_NODE_DATA
+
+
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_config", return_value=MOCK_CLUSTER_CONFIG
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_options", return_value=MOCK_CLUSTER_OPTIONS
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA
+)
+@patch.object(cartography.intel.proxmox.cluster, "get_node_network")
+def test_node_interface_node_relationship(
+    mock_get_node_network, mock_get_cluster_status, mock_get_nodes, mock_get_options, mock_get_config, neo4j_session
+):
+    """
+    Test that node interfaces create HAS_NETWORK_INTERFACE relationships to nodes.
+    """
+    # Arrange
+    proxmox = MagicMock()
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    # Mock network data for each node
+    def get_network_side_effect(proxmox_client, node_name):
+        return MOCK_NODE_NETWORK_DATA.get(node_name, [])
+
+    mock_get_node_network.side_effect = get_network_side_effect
+
+    # Act
+    cluster_sync(
+        neo4j_session,
+        proxmox,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - Verify node interface->node relationship
+    result = neo4j_session.run(
+        """
+        MATCH (node:ProxmoxNode)-[:HAS_NETWORK_INTERFACE]->(iface:ProxmoxNodeNetworkInterface)
+        RETURN node.name as node_name, iface.name as iface_name, count(iface) as iface_count
+        ORDER BY node_name
+        LIMIT 1
+        """
+    )
+    record = result.single()
+    assert record is not None
+    assert record["node_name"] is not None
+    assert record["iface_name"] is not None
+    # Should have at least one interface per node from MOCK_NODE_NETWORK_DATA

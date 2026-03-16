@@ -118,7 +118,7 @@ def test_multi_cluster_node_isolation(
     assert TEST_CLUSTER_B in cluster_ids
 
     # Verify cluster-scoped IDs
-    expected_ids = {f"{TEST_CLUSTER_A}:pve1", f"{TEST_CLUSTER_B}:pve1"}
+    expected_ids = {f"{TEST_CLUSTER_A}/node/pve1", f"{TEST_CLUSTER_B}/node/pve1"}
     assert node_ids == expected_ids, f"Expected {expected_ids}, got {node_ids}"
 
 
@@ -208,8 +208,8 @@ def test_multi_cluster_vm_isolation(
     assert TEST_CLUSTER_B in cluster_ids
 
     # Verify cluster-scoped IDs
-    expected_id_a = f"{TEST_CLUSTER_A}:pve1/qemu/100"
-    expected_id_b = f"{TEST_CLUSTER_B}:pve1/qemu/100"
+    expected_id_a = f"{TEST_CLUSTER_A}/vm/100"
+    expected_id_b = f"{TEST_CLUSTER_B}/vm/100"
     expected_ids = {expected_id_a, expected_id_b}
     assert vm_ids == expected_ids, f"Expected {expected_ids}, got {vm_ids}"
 
@@ -284,7 +284,7 @@ def test_multi_cluster_user_isolation(
 
     # Verify cluster-scoped IDs
     userid = MOCK_USER_DATA[0]["userid"]
-    expected_ids = {f"{TEST_CLUSTER_A}:{userid}", f"{TEST_CLUSTER_B}:{userid}"}
+    expected_ids = {f"{TEST_CLUSTER_A}/user/{userid}", f"{TEST_CLUSTER_B}/user/{userid}"}
     assert user_ids == expected_ids, f"Expected {expected_ids}, got {user_ids}"
 
 

@@ -477,11 +477,45 @@ class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
+    """
+    Properties for relationship from ProxmoxNetworkInterface to ProxmoxSDNVNet.
+
+    Tracks which SDN VNet the VM network interface is connected to.
+    """
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxNetworkInterface)-[:CONNECTED_TO_VNET]->(:ProxmoxSDNVNet)
+
+    VM network interfaces connect to SDN VNets when the bridge name matches a VNet ID.
+    This enables network segmentation queries and SDN topology analysis.
+    """
+
+    target_node_label: str = "ProxmoxSDNVNet"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "vnet": PropertyRef("bridge"),  # Bridge name is the VNet ID
+            "cluster_id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "CONNECTED_TO_VNET"
+    properties: ProxmoxNetworkInterfaceToVNetRelProperties = (
+        ProxmoxNetworkInterfaceToVNetRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class ProxmoxNetworkInterfaceSchema(CartographyNodeSchema):
     """
     Schema for a ProxmoxNetworkInterface.
 
-    Network interfaces belong to VMs and connect to node bridges.
+    Network interfaces belong to VMs and connect to node bridges and SDN VNets.
     """
 
     label: str = "ProxmoxNetworkInterface"
@@ -495,5 +529,6 @@ class ProxmoxNetworkInterfaceSchema(CartographyNodeSchema):
         [
             ProxmoxNetworkInterfaceToVMRel(),
             ProxmoxNetworkInterfaceToBridgeRel(),
+            ProxmoxNetworkInterfaceToVNetRel(),
         ]
     )

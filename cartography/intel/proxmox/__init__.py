@@ -28,6 +28,7 @@ from cartography.intel.proxmox import firewalloptions
 from cartography.intel.proxmox import ha
 from cartography.intel.proxmox import pool
 from cartography.intel.proxmox import replication
+from cartography.intel.proxmox import sdn
 from cartography.intel.proxmox import snapshot
 from cartography.intel.proxmox import storage
 from cartography.models.proxmox.access import ProxmoxACLSchema
@@ -50,6 +51,11 @@ from cartography.models.proxmox.ha import ProxmoxHAGroupSchema
 from cartography.models.proxmox.ha import ProxmoxHAResourceSchema
 from cartography.models.proxmox.pool import ProxmoxPoolSchema
 from cartography.models.proxmox.replication import ProxmoxReplicationJobSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNControllerSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNIPAMSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNSubnetSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNVNetSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNZoneSchema
 from cartography.models.proxmox.snapshot import ProxmoxSnapshotSchema
 from cartography.models.proxmox.storage import ProxmoxStorageSchema
 from cartography.stats import get_stats_client
@@ -166,6 +172,14 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
 
     # Add cluster_id to common_job_parameters for cleanup jobs
     common_job_parameters["CLUSTER_ID"] = cluster_id
+
+    # Sync SDN (Software-Defined Networking) resources
+    sdn.sync_sdn(
+        neo4j_session,
+        proxmox_client,
+        cluster_id,
+        config.update_tag,
+    )
 
     # Sync VMs and containers
     vms = compute.sync(
@@ -356,6 +370,21 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         neo4j_session
     )
     GraphJob.from_node_schema(ProxmoxCertificateSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNZoneSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNVNetSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNSubnetSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNControllerSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNIPAMSchema(), common_job_parameters).run(
         neo4j_session
     )
 
