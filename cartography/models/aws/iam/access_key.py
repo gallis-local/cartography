@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -22,8 +23,10 @@ class AccountAccessKeyNodeProperties(CartographyNodeProperties):
 
     # Business fields from AWS IAM access keys
     createdate: PropertyRef = PropertyRef("createdate")
+    createdate_dt: PropertyRef = PropertyRef("createdate_dt")
     status: PropertyRef = PropertyRef("status")
     lastuseddate: PropertyRef = PropertyRef("lastuseddate")
+    lastuseddate_dt: PropertyRef = PropertyRef("lastuseddate_dt")
     lastusedservice: PropertyRef = PropertyRef("lastusedservice")
     lastusedregion: PropertyRef = PropertyRef("lastusedregion")
 
@@ -91,6 +94,7 @@ class AccountAccessKeyToAWSAccountRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class AccountAccessKeySchema(CartographyNodeSchema):
     label: str = "AccountAccessKey"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["APIKey"])
     properties: AccountAccessKeyNodeProperties = AccountAccessKeyNodeProperties()
     sub_resource_relationship: AccountAccessKeyToAWSAccountRel = (
         AccountAccessKeyToAWSAccountRel()

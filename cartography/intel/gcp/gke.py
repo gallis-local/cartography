@@ -10,6 +10,8 @@ from googleapiclient.discovery import Resource
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.gcp.labels import sync_labels
+from cartography.intel.gcp.util import gcp_api_execute_with_retry
 from cartography.models.gcp.gke import GCPGKEClusterSchema
 from cartography.util import timeit
 
@@ -34,7 +36,7 @@ def get_gke_clusters(container: Resource, project_id: str) -> Dict:
         req = (
             container.projects().zones().clusters().list(projectId=project_id, zone="-")
         )
-        res = req.execute()
+        res = gcp_api_execute_with_retry(req)
         return res
     except HttpError as e:
         err = json.loads(e.content.decode("utf-8"))["error"]
@@ -132,7 +134,23 @@ def sync_gke_clusters(
     """
     logger.info("Syncing GKE clusters for project %s.", project_id)
     gke_res = get_gke_clusters(container, project_id)
-    load_gke_clusters(neo4j_session, gke_res, project_id, gcp_update_tag)
+    clusters = transform_gke_clusters(gke_res)
+    if clusters:
+        load(
+            neo4j_session,
+            GCPGKEClusterSchema(),
+            clusters,
+            lastupdated=gcp_update_tag,
+            PROJECT_ID=project_id,
+        )
+    sync_labels(
+        neo4j_session,
+        clusters,
+        "gke_cluster",
+        project_id,
+        gcp_update_tag,
+        common_job_parameters,
+    )
     cleanup_gke_clusters(neo4j_session, common_job_parameters)
 
 
@@ -183,6 +201,7 @@ def transform_gke_clusters(api_result: Dict[str, Any]) -> List[Dict[str, Any]]:
             ),
             "masterauth_username": (c.get("masterAuth", {}) or {}).get("username"),
             "masterauth_password": (c.get("masterAuth", {}) or {}).get("password"),
+            "resourceLabels": c.get("resourceLabels", {}),
         }
         result.append(transformed)
     return result

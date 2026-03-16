@@ -69,6 +69,14 @@ _aws_account_manipulation_permissions = Fact(
         )
         RETURN *
     """,
+    cypher_count_query="""
+    MATCH (principal:AWSPrincipal)
+    WHERE NOT principal.name STARTS WITH 'AWSServiceRole'
+    AND NOT principal.name CONTAINS 'QuickSetup'
+    AND principal.name <> 'OrganizationAccountAccessRole'
+    RETURN COUNT(principal) AS count
+    """,
+    asset_id_field="principal_identifier",
     module=Module.AWS,
     maturity=Maturity.EXPERIMENTAL,
 )
@@ -95,6 +103,11 @@ identity_administration_privileges = Rule(
     ),
     output_model=IdentityAdministrationPrivileges,
     facts=(_aws_account_manipulation_permissions,),
-    tags=("iam", "privilege_escalation"),
+    tags=(
+        "iam",
+        "stride:elevation_of_privilege",
+        "stride:spoofing",
+        "stride:tampering",
+    ),
     version="0.1.0",
 )

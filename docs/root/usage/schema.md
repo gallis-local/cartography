@@ -29,6 +29,9 @@
 ```{include} ../modules/airbyte/schema.md
 ```
 
+```{include} ../modules/aibom/schema.md
+```
+
 
 ```{include} ../modules/anthropic/schema.md
 ```
@@ -54,13 +57,22 @@
 ```{include} ../modules/digitalocean/schema.md
 ```
 
+```{include} ../modules/docker_scout/schema.md
+```
+
 ```{include} ../modules/duo/schema.md
+```
+
+```{include} ../modules/entra/schema.md
 ```
 
 ```{include} ../modules/gcp/schema.md
 ```
 
 ```{include} ../modules/github/schema.md
+```
+
+```{include} ../modules/gitlab/schema.md
 ```
 
 ```{include} ../modules/googleworkspace/schema.md
@@ -75,6 +87,9 @@
 ```{include} ../modules/kandji/schema.md
 ```
 
+```{include} ../modules/keycloak/schema.md
+```
+
 ```{include} ../modules/kubernetes/schema.md
 ```
 
@@ -85,6 +100,9 @@
 ```
 
 ```{include} ../modules/okta/schema.md
+```
+
+```{include} ../modules/ontology/schema.md
 ```
 
 ```{include} ../modules/openai/schema.md
@@ -102,11 +120,29 @@
 ```{include} ../modules/sentinelone/schema.md
 ```
 
+```{include} ../modules/slack/schema.md
+```
+
 ```{include} ../modules/snipeit/schema.md
+```
+
+```{include} ../modules/syft/schema.md
+```
+
+```{include} ../modules/spacelift/schema.md
+```
+
+```{include} ../modules/subimage/schema.md
 ```
 
 ```{include} ../modules/tailscale/schema.md
 ```
 
-```{include} ../modules/keycloak/schema.md
+```{include} ../modules/trivy/schema.md
+```
+
+```{include} ../modules/ubuntu/schema.md
+```
+
+```{include} ../modules/workday/schema.md
 ```

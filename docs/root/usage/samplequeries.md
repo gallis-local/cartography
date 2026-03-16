@@ -74,24 +74,24 @@ ORDER by elb.dnsname, listener.port
 ```
 [test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28elb%3ALoadBalancer%7Bexposed_internet%3A%20true%7D%29%E2%80%94-%3E%28listener%3AELBListener%29%0ARETURN%20elb.dnsname%2C%20listener.port%0AORDER%20by%20elb.dnsname%2C%20listener.port)
 
-### Which [ELBv2](https://aws.amazon.com/elasticloadbalancing/) LoadBalancerV2s (Application Load Balancers) are internet accessible?
+### Which [ELBv2](https://aws.amazon.com/elasticloadbalancing/) AWSLoadBalancerV2s (Application Load Balancers) are internet accessible?
 ```cypher
-MATCH (elbv2:LoadBalancerV2{exposed_internet: true})—->(listener:ELBV2Listener)
+MATCH (elbv2:AWSLoadBalancerV2{exposed_internet: true})—->(listener:ELBV2Listener)
 RETURN elbv2.dnsname, listener.port
 ORDER by elbv2.dnsname, listener.port
 ```
-[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28elbv2%3ALoadBalancerV2%7Bexposed_internet%3A%20true%7D%29%E2%80%94-%3E%28listener%3AELBV2Listener%29%0ARETURN%20elbv2.dnsname%2C%20listener.port%0AORDER%20by%20elbv2.dnsname%2C%20listener.port)
+[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28elbv2%3AAWSLoadBalancerV2%7Bexposed_internet%3A%20true%7D%29%E2%80%94-%3E%28listener%3AELBV2Listener%29%0ARETURN%20elbv2.dnsname%2C%20listener.port%0AORDER%20by%20elbv2.dnsname%2C%20listener.port)
 
 ### Which open ports are internet accesible from ELB or ELBv2?
 ```cypher
     MATCH (elb:LoadBalancer{exposed_internet: true})—->(listener:ELBListener)
     RETURN DISTINCT elb.dnsname as dnsname, listener.port as port
     UNION
-    MATCH (lb:LoadBalancerV2)-[:ELBV2_LISTENER]->(l:ELBV2Listener)
+    MATCH (lb:AWSLoadBalancerV2)-[:ELBV2_LISTENER]->(l:ELBV2Listener)
     WHERE lb.scheme = "internet-facing"
     RETURN DISTINCT lb.dnsname as dnsname, l.port as port
 ```
-[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28elb%3ALoadBalancer%7Bexposed_internet%3A%20true%7D%29%E2%80%94-%3E%28listener%3AELBListener%29%0A%20%20%20%20RETURN%20DISTINCT%20elb.dnsname%20as%20dnsname%2C%20listener.port%20as%20port%20%0A%20%20%20%20UNION%0A%20%20%20%20MATCH%20%28lb%3ALoadBalancerV2%29-%5B%3AELBV2_LISTENER%5D-%3E%28l%3AELBV2Listener%29%0A%20%20%20%20WHERE%20lb.scheme%20%3D%20%22internet-facing%22%0A%20%20%20%20RETURN%20DISTINCT%20lb.dnsname%20as%20dnsname%2C%20l.port%20as%20port)
+[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28elb%3ALoadBalancer%7Bexposed_internet%3A%20true%7D%29%E2%80%94-%3E%28listener%3AELBListener%29%0A%20%20%20%20RETURN%20DISTINCT%20elb.dnsname%20as%20dnsname%2C%20listener.port%20as%20port%20%0A%20%20%20%20UNION%0A%20%20%20%20MATCH%20%28lb%3AAWSLoadBalancerV2%29-%5B%3AELBV2_LISTENER%5D-%3E%28l%3AELBV2Listener%29%0A%20%20%20%20WHERE%20lb.scheme%20%3D%20%22internet-facing%22%0A%20%20%20%20RETURN%20DISTINCT%20lb.dnsname%20as%20dnsname%2C%20l.port%20as%20port)
 
 ### Find everything about an IP Address
 ```cypher
@@ -174,3 +174,33 @@ MATCH (repo:GitHubRepository)-[edge:REQUIRES]->(dep:Dependency)
 RETURN repo.name, dep.name, edge.specifier, dep.version
 ```
 [test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28repo%3AGitHubRepository%29-%5Bedge%3AREQUIRES%5D-%3E%28dep%3ADependency%29%0ARETURN%20repo.name%2C%20dep.name%2C%20edge.specifier%2C%20dep.version)
+
+### What AWS accounts and roles can a given AWS Identity Center user access? Via what permission sets?
+```cypher
+MATCH (user:AWSSSOUser{user_name:"myuser"})<-[:ALLOWED_BY]-(role:AWSRole)<-[:RESOURCE]-(account:AWSAccount)
+MATCH (role)<-[:ASSIGNED_TO_ROLE]-(ps:AWSPermissionSet)
+RETURN account.id, account.name, role.arn, ps.name
+```
+[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28user%3AAWSSSOUser%7Buser_name%3A%22myuser%22%7D%29%3C-%5B%3AALLOWED_BY%5D-%28role%3AAWSRole%29%3C-%5B%3ARESOURCE%5D-%3E%28account%3AAWSAccount%29%0A%20%20%20%20MATCH%20%28role%29%3C-%5B%3AASSIGNED_TO_ROLE%5D-%28ps%3AAWSPermissionSet%29%0A%20%20%20%20RETURN%20account.id%2C%20account.name%2C%20role.arn%2C%20ps.name)
+
+### What are the users and groups that can assume a given AWSRole via Identity Center?
+```cypher
+// Users
+MATCH (r:AWSRole {arn: "arn:aws:iam::123456789012:role/myrole"})-[:ALLOWED_BY]->(u:AWSSSOUser)
+RETURN 'user' AS principal_type,  u.id AS principal_id,  u.user_name AS principal_name
+
+UNION
+
+// Groups
+MATCH (r:AWSRole {arn: "arn:aws:iam::123456789012:role/myrole"})-[:ALLOWED_BY]->(g:AWSSSOGroup)
+RETURN 'group' AS principal_type, g.id AS principal_id, g.display_name AS principal_name
+```
+[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28r%3AAWSRole%20%7Barn%3A%20%22arn%3Aaws%3Aiam%3A%3A123456789012%3Arole%2Fmyrole%22%7D%29-%5B%3AALLOWED_BY%5D-%3E%28u%3AAWSSSOUser%29%0ARETURN%20%27user%27%20AS%20principal_type%2C%20u.id%20AS%20principal_id%2C%20u.user_name%20AS%20principal_name%0A%0AUNION%0A%0A%2F%2F%20Groups%0AMATCH%20%28r%3AAWSRole%20%7Barn%3A%20%22arn%3Aaws%3Aiam%3A%3A123456789012%3Arole%2Fmyrole%22%7D%29-%5B%3AALLOWED_BY%5D-%3E%28g%3AAWSSSOGroup%29%0ARETURN%20%27group%27%20AS%20principal_type%2C%20g.id%20AS%20principal_id%2C%20g.display_name%20AS%20principal_name)
+
+### What are the permissionsets provisioned to a given AWS Account?
+```cypher
+MATCH (account:AWSAccount{id:"123456789012"})-[:RESOURCE]->(role:AWSRole)
+MATCH (role)<-[:ASSIGNED_TO_ROLE]-(ps:AWSPermissionSet)
+RETURN ps.arn as permission_set_arn, ps.name as permission_set_name
+```
+[test it locally](http://localhost:7474/browser/?preselectAuthMethod=NO_AUTH&db=neo4j&connectURL=bolt://neo4j:neo4j@localhost:7474&cmd=edit&arg=MATCH%20%28account%3AAWSAccount%7Bid%3A%22123456789012%22%7D%29-%5B%3ARESOURCE%5D-%3E%28role%3AAWSRole%29%0A%20%20%20%20MATCH%20%28role%29%3C-%5B%3AASSIGNED_TO_ROLE%5D-%28ps%3AAWSPermissionSet%29%0A%20%20%20%20RETURN%20ps.arn%20as%20permission_set_arn%2C%20ps.name%20as%20permission_set_name)

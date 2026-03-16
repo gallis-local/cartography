@@ -1,7 +1,17 @@
+from copy import deepcopy
+from unittest.mock import patch
+
+import pytest
+
+import cartography.intel.github.repos
 from cartography.intel.github.repos import _create_git_url_from_ssh_url
+from cartography.intel.github.repos import _merge_repos_with_privileged_details
+from cartography.intel.github.repos import _repos_need_privileged_details
 from cartography.intel.github.repos import _transform_dependency_graph
 from cartography.intel.github.repos import _transform_dependency_manifests
+from cartography.intel.github.repos import _transform_python_requirements
 from cartography.intel.github.repos import transform
+from tests.data.github.repos import DEP_MANIFESTS_BY_URL
 from tests.data.github.repos import DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS
 from tests.data.github.repos import GET_REPOS
 
@@ -103,6 +113,41 @@ def test_transform_dependency_converts_to_expected_format():
     assert react_dep["manifest_file"] == "package.json"
 
 
+def test_transform_python_requirements_skips_flags_and_continuations():
+    repo_url = "https://github.com/test-org/test-repo"
+    output_list = []
+    requirements_list = [
+        "requests==2.31.0 \\",
+        "    --hash=sha256:1111111111111111111111111111111111111111111111111111111111111111 \\",
+        "    --hash=sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "--extra-index-url https://example.com/simple",
+        "-r base.txt",
+        "boto3==1.34.0 \\",
+        '    ; python_version >= "3.9"',
+        "pytest==8.0.2",
+    ]
+
+    _transform_python_requirements(requirements_list, repo_url, output_list)
+
+    deps_by_name = {dep["name"]: dep for dep in output_list}
+
+    assert set(deps_by_name) == {"boto3", "pytest", "requests"}
+
+    requests_dep = deps_by_name["requests"]
+    assert requests_dep["version"] == "2.31.0"
+    assert requests_dep["specifier"] == "==2.31.0"
+    assert requests_dep["id"] == "requests|2.31.0"
+    assert requests_dep["repo_url"] == repo_url
+
+    boto3_dep = deps_by_name["boto3"]
+    assert boto3_dep["version"] == "1.34.0"
+    assert boto3_dep["specifier"] == "==1.34.0"
+
+    pytest_dep = deps_by_name["pytest"]
+    assert pytest_dep["version"] == "8.0.2"
+    assert pytest_dep["specifier"] == "==8.0.2"
+
+
 def test_create_git_url_from_ssh_url():
     """
     Test that _create_git_url_from_ssh_url correctly converts SSH URLs to git:// format.
@@ -135,3 +180,147 @@ def test_transform_skips_null_repository_entries():
 
     assert len(result["repos"]) == 1
     assert result["repos"][0]["id"] == repo_with_collab_counts["url"]
+
+
+def test_transform_includes_branch_protection_rules():
+    """
+    Test that the transform function includes branch protection rules in the output.
+    """
+    # Arrange - GET_REPOS[2] has branchProtectionRules
+    repo_with_branch_protection_rules = GET_REPOS[2]
+
+    # Act
+    result = transform(
+        [repo_with_branch_protection_rules],
+        {repo_with_branch_protection_rules["url"]: []},
+        {repo_with_branch_protection_rules["url"]: []},
+    )
+
+    # Assert: Check that branch_protection_rules key is present in the result
+    assert "branch_protection_rules" in result
+
+    # Assert: Check that we have 1 branch protection rule from the test data
+    assert len(result["branch_protection_rules"]) == 1
+
+    # Assert: Check the branch protection rule has expected properties
+    rule = result["branch_protection_rules"][0]
+    assert rule["id"] == "BPR_kwDOAbc123=="
+    assert rule["pattern"] == "main"
+    assert rule["allows_deletions"] is False
+    assert rule["requires_approving_reviews"] is True
+    assert rule["required_approving_review_count"] == 2
+    assert rule["repo_url"] == repo_with_branch_protection_rules["url"]
+
+
+def test_transform_prefers_dependency_graph_over_requirements_txt():
+    repo = dict(GET_REPOS[2])
+    repo_url = repo["url"]
+    # Simulate what sync() does: inject dep manifests fetched separately
+    repo["dependencyGraphManifests"] = DEP_MANIFESTS_BY_URL[repo_url]
+
+    result = transform(
+        [repo],
+        {repo_url: []},
+        {repo_url: []},
+    )
+
+    # Dependency graph is present; requirements files are used only as fallback
+    assert result["python_requirements"] == []
+    # Dependencies should still come from the dependency graph data
+    dependency_ids = {dep["id"] for dep in result["dependencies"]}
+    assert dependency_ids == {
+        "react|18.2.0",
+        "lodash",
+        "django|= 4.2.0",
+        "org.springframework:spring-core|5.3.21",
+    }
+
+
+def test_transform_uses_requirements_when_dependency_graph_missing():
+    repo = GET_REPOS[0]
+    repo_url = repo["url"]
+
+    result = transform(
+        [repo],
+        {repo_url: []},
+        {repo_url: []},
+    )
+
+    # No dependency graph data, so requirements parsing should run
+    requirement_names = {req["name"] for req in result["python_requirements"]}
+    assert {"cartography", "httplib2", "jinja2", "lxml"}.issubset(requirement_names)
+
+
+def test_merge_repos_with_privileged_details_merges_by_url():
+    base_repos = deepcopy(GET_REPOS[:2])
+    for repo in base_repos:
+        repo.pop("directCollaborators", None)
+        repo.pop("outsideCollaborators", None)
+        repo.pop("branchProtectionRules", None)
+
+    privileged_repo_data = {
+        base_repos[0]["url"]: {
+            "directCollaborators": {"totalCount": 0},
+            "outsideCollaborators": {"totalCount": 0},
+            "branchProtectionRules": {"nodes": []},
+        },
+        "https://github.com/simpsoncorp/non_matching_repo": {
+            "directCollaborators": {"totalCount": 99},
+            "outsideCollaborators": {"totalCount": 99},
+            "branchProtectionRules": {"nodes": []},
+        },
+    }
+
+    merged_repos, merged_repo_count, missing_repo_count = (
+        _merge_repos_with_privileged_details(base_repos, privileged_repo_data)
+    )
+
+    assert merged_repo_count == 1
+    assert missing_repo_count == 1
+    assert merged_repos[0]["directCollaborators"] == {"totalCount": 0}
+    assert merged_repos[0]["outsideCollaborators"] == {"totalCount": 0}
+    assert merged_repos[0]["branchProtectionRules"] == {"nodes": []}
+    assert "directCollaborators" not in merged_repos[1]
+    assert "outsideCollaborators" not in merged_repos[1]
+    assert "branchProtectionRules" not in merged_repos[1]
+    # Ensure input repos are not mutated by merge.
+    assert "directCollaborators" not in base_repos[0]
+
+
+def test_repos_need_privileged_details_when_fields_missing():
+    repo = deepcopy(GET_REPOS[0])
+    repo.pop("directCollaborators", None)
+    repo.pop("outsideCollaborators", None)
+    repo.pop("branchProtectionRules", None)
+
+    assert _repos_need_privileged_details([repo]) is True
+
+
+def test_repos_need_privileged_details_when_fields_present():
+    assert _repos_need_privileged_details([GET_REPOS[0], GET_REPOS[2]]) is False
+
+
+@patch.object(
+    cartography.intel.github.repos,
+    "get_repo_privileged_details_by_url",
+    side_effect=RuntimeError("privileged fetch failed"),
+)
+@patch.object(cartography.intel.github.repos, "get")
+def test_sync_raises_when_privileged_fetch_fails(
+    mock_get,
+    mock_get_privileged,
+):
+    repo = deepcopy(GET_REPOS[0])
+    repo.pop("directCollaborators", None)
+    repo.pop("outsideCollaborators", None)
+    repo.pop("branchProtectionRules", None)
+    mock_get.return_value = [repo]
+
+    with pytest.raises(RuntimeError, match="privileged fetch failed"):
+        cartography.intel.github.repos.sync(
+            None,
+            {"UPDATE_TAG": TEST_UPDATE_TAG},
+            "token",
+            "https://api.github.com/graphql",
+            "example-org",
+        )

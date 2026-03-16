@@ -23,9 +23,13 @@ _aws_rds_public_access = Fact(
     cypher_visual_query="""
     MATCH p1=(rds:RDSInstance{publicly_accessible: true})
     OPTIONAL MATCH p2=(rds)-[:MEMBER_OF_EC2_SECURITY_GROUP]->(sg:EC2SecurityGroup)
-    OPTIONAL MATCH p3=(rds)-[:MEMBER_OF_EC2_SECURITY_GROUP]->(sg:EC2SecurityGroup)<-[:MEMBER_OF_EC2_SECURITY_GROUP]-(rule:IpPermissionInbound:IpRule)
-    OPTIONAL MATCH p4=(rds)-[:MEMBER_OF_EC2_SECURITY_GROUP]->(sg:EC2SecurityGroup)<-[:MEMBER_OF_EC2_SECURITY_GROUP]-(rule:IpPermissionInbound:IpRule)<-[:MEMBER_OF_IP_RULE]-(ip:IpRange)
+    OPTIONAL MATCH p3=(rds)-[:MEMBER_OF_EC2_SECURITY_GROUP]->(sg:EC2SecurityGroup)<-[:MEMBER_OF_EC2_SECURITY_GROUP]-(rule:AWSIpPermissionInbound:AWSIpRule)
+    OPTIONAL MATCH p4=(rds)-[:MEMBER_OF_EC2_SECURITY_GROUP]->(sg:EC2SecurityGroup)<-[:MEMBER_OF_EC2_SECURITY_GROUP]-(rule:AWSIpPermissionInbound:AWSIpRule)<-[:MEMBER_OF_IP_RULE]-(ip:AWSIpRange)
     RETURN *
+    """,
+    cypher_count_query="""
+    MATCH (rds:RDSInstance)
+    RETURN COUNT(rds) AS count
     """,
     module=Module.AWS,
     maturity=Maturity.EXPERIMENTAL,
@@ -48,6 +52,12 @@ database_instance_exposed = Rule(
     description=("Database instances accessible from the internet"),
     output_model=DatabaseInstanceExposed,
     facts=(_aws_rds_public_access,),
-    tags=("infrastructure", "databases", "attack_surface"),
+    tags=(
+        "infrastructure",
+        "databases",
+        "attack_surface",
+        "stride:information_disclosure",
+        "stride:tampering",
+    ),
     version="0.1.0",
 )

@@ -9,6 +9,8 @@ from googleapiclient.discovery import Resource
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.gcp.labels import sync_labels
+from cartography.intel.gcp.util import gcp_api_execute_with_retry
 from cartography.models.gcp.dns import GCPDNSZoneSchema
 from cartography.models.gcp.dns import GCPRecordSetSchema
 from cartography.util import timeit
@@ -23,7 +25,7 @@ def get_dns_zones(dns: Resource, project_id: str) -> List[Dict]:
         zones: List[Dict] = []
         request = dns.managedZones().list(project=project_id)
         while request is not None:
-            response = request.execute()
+            response = gcp_api_execute_with_retry(request)
             for managed_zone in response["managedZones"]:
                 zones.append(managed_zone)
             request = dns.managedZones().list_next(
@@ -61,7 +63,7 @@ def get_dns_rrs(dns: Resource, dns_zones: List[Dict], project_id: str) -> List[D
                 managedZone=zone["id"],
             )
             while request is not None:
-                response = request.execute()
+                response = gcp_api_execute_with_retry(request)
                 for resource_record_set in response["rrsets"]:
                     resource_record_set["zone"] = zone["id"]
                     rrs.append(resource_record_set)
@@ -104,6 +106,7 @@ def transform_dns_zones(dns_zones: List[Dict]) -> List[Dict]:
                 "kind": z.get("kind"),
                 "nameservers": z.get("nameServers"),
                 "created_at": z.get("creationTime"),
+                "labels": z.get("labels", {}),
             }
         )
     return zones
@@ -190,6 +193,14 @@ def sync(
     dns_zones_resp = get_dns_zones(dns, project_id)
     dns_zones = transform_dns_zones(dns_zones_resp)
     load_dns_zones(neo4j_session, dns_zones, project_id, gcp_update_tag)
+    sync_labels(
+        neo4j_session,
+        dns_zones,
+        "dns_zone",
+        project_id,
+        gcp_update_tag,
+        common_job_parameters,
+    )
     dns_rrs_resp = get_dns_rrs(dns, dns_zones_resp, project_id)
     dns_rrs = transform_dns_rrs(dns_rrs_resp)
     load_rrs(neo4j_session, dns_rrs, project_id, gcp_update_tag)

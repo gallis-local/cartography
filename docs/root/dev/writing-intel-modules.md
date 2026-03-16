@@ -15,7 +15,7 @@ To get started coding without reading this doc, just copy the structure of our [
 
 ### Supplying credentials and arguments to your module
 
-If you need to supply an API key or other credential to your Cartography module, we recommend adding a CLI argument. An example of this can be seen [in our Okta module](https://github.com/cartography-cncf/cartography/blob/811990606c22a42791d213c7ca845b15f87e47f1/cartography/cli.py#L136) where we require the user to specify the name of an environment variable containing their Okta API key. This credential will then be bound to Cartography's [Config object](https://github.com/cartography-cncf/cartography/blob/811990606c22a42791d213c7ca845b15f87e47f1/cartography/config.py#L3) which is present in all modules. You can specify different arguments from the commandline for your module via the Config object.
+If you need to supply an API key or other credential to your Cartography module, we recommend adding a CLI argument. The CLI uses [Typer](https://typer.tiangolo.com/) with options organized into help panels per module. Add your options in `cartography/cli.py` following the existing patterns (e.g., Okta options). Credentials are typically read from environment variables and bound to Cartography's [Config object](https://github.com/cartography-cncf/cartography/blob/master/cartography/config.py) which is available in all modules.
 
 ### An important note on validating your commandline args
 
@@ -56,6 +56,8 @@ On the other hand, we should use `data.get('SomeField')` if `SomeField` is somet
 
 For the sake of consistency, if a field does not exist, set it to `None` and not `""`.
 
+Neo4j handles fields in `datetime` format, so when a date is returned as a string, it's best to parse it to enable the use of operators during querying.
+
 ### Load
 
 [As seen in our AWS EMR example](https://github.com/cartography-cncf/cartography/blob/e6ada9a1a741b83a34c1c3207515a1863debeeb9/cartography/intel/aws/emr.py#L113-L132), the `load` function ingests a list of dicts to Neo4j by calling [cartography.client.core.tx.load()](https://github.com/cartography-cncf/cartography/blob/e6ada9a1a741b83a34c1c3207515a1863debeeb9/cartography/client/core/tx.py#L191-L212):
@@ -76,9 +78,15 @@ def load_emr_clusters(
         Region=region,
         AWS_ID=current_aws_account_id,
     )
-
 ```
 
+```{tip}
+When defining nodes and properties, please follow the naming convention below:
+- **Node classes** should end with `Schema`
+- **Relationship classes** should end with `Rel`
+- **Node property classes** should end with `Properties`
+- **Relationship property classes** should end with `RelProperties`
+```
 
 #### Defining a node
 
@@ -138,6 +146,86 @@ Index creation is idempotent (we only create them if they don't exist).
 See [below](#indexescypher) for more information on indexes.
 
 
+#### Extra node labels
+
+You can add additional Neo4j labels to your nodes using `ExtraNodeLabels`:
+
+```python
+from cartography.models.core.nodes import ExtraNodeLabels
+
+@dataclass(frozen=True)
+class EMRClusterSchema(CartographyNodeSchema):
+    label: str = 'EMRCluster'
+    properties: EMRClusterNodeProperties = EMRClusterNodeProperties()
+    sub_resource_relationship: EMRClusterToAWSAccountRel = EMRClusterToAWSAccountRel()
+
+    # Add extra labels to the node
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(['Resource', 'AWSResource'])
+```
+
+This creates nodes with multiple labels: `(:EMRCluster:Resource:AWSResource)`. Extra labels are useful for:
+- Creating taxonomies (e.g., all AWS resources share an `AWSResource` label)
+- Enabling cross-module queries (e.g., find all `Resource` nodes regardless of specific type)
+- Ontology mapping
+
+#### Conditional node labels
+
+```{warning}
+Conditional labels are a specialized feature primarily used for ontology mapping scenarios where a single data source produces records that map to different semantic types. Most intel modules do not need this feature.
+```
+
+Sometimes you want to apply labels only when certain conditions are met. Use `ConditionalNodeLabel` for this:
+
+```python
+from cartography.models.core.nodes import ConditionalNodeLabel, ExtraNodeLabels
+
+@dataclass(frozen=True)
+class ECRImageSchema(CartographyNodeSchema):
+    label: str = "ECRImage"
+    properties: ECRImageNodeProperties = ECRImageNodeProperties()
+    sub_resource_relationship: ECRImageToAccountRel = ECRImageToAccountRel()
+
+    # Apply different ontology labels based on the image type
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([
+        ConditionalNodeLabel(
+            label="Image",
+            conditions={"type": "IMAGE"}
+        ),
+        ConditionalNodeLabel(
+            label="ImageAttestation",
+            conditions={"type": "IMAGE_ATTESTATION"}
+        ),
+        ConditionalNodeLabel(
+            label="ImageManifestList",
+            conditions={"type": "IMAGE_MANIFEST_LIST"}
+        ),
+    ])
+```
+
+**Primary use case: Container Registry Images**
+
+ECR (and other container registries) store different types of artifacts that share the same base schema but have fundamentally different semantic meanings:
+
+| `type` field value | Ontology Label | Description |
+|-------------------|----------------|-------------|
+| `IMAGE` | `Image` | Standard container image |
+| `IMAGE_ATTESTATION` | `ImageAttestation` | SLSA/Sigstore attestation |
+| `IMAGE_MANIFEST_LIST` | `ImageManifestList` | Multi-arch manifest list |
+
+Without conditional labels, we cannot accurately map these to distinct ontology types. An `ECRImage` node with `type: "IMAGE_ATTESTATION"` should be labeled as `ImageAttestation` in the ontology, not just generic `Image`.
+
+**How it works:**
+- String labels are applied unconditionally to all nodes during ingestion
+- `ConditionalNodeLabel` labels are applied in a separate query after ingestion, only to nodes matching all specified conditions
+- Conditions use exact string equality and are combined with AND logic
+- When conditions change, labels are automatically added or removed on subsequent syncs
+
+**Important notes:**
+- Condition values must be strings (e.g., `"true"` not `True`)
+- All conditions must match for the label to be applied (AND logic)
+- Indexes are automatically created for conditional labels and their condition fields
+
+
 #### Defining relationships
 
 Relationships can be defined on `CartographyNodeSchema` on either their [sub_resource_relationship](https://github.com/cartography-cncf/cartography/blob/e6ada9a1a741b83a34c1c3207515a1863debeeb9/cartography/graph/model.py#L216-L228) field or their [other_relationships](https://github.com/cartography-cncf/cartography/blob/e6ada9a1a741b83a34c1c3207515a1863debeeb9/cartography/graph/model.py#L230-L237) field (you can find an example of `other_relationships` [here in our test data](https://github.com/cartography-cncf/cartography/blob/4bfafe0e0c205909d119cc7f0bae84b9f6944bdd/tests/data/graph/querybuilder/sample_models/interesting_asset.py#L89-L94)).
@@ -168,6 +256,74 @@ This class is best described by explaining how it is processed: `build_ingestion
 class EMRClusterToAWSAccountRelRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef('lastupdated', set_in_kwargs=True)
 ```
+
+```{important}
+**Relationship Naming Guidelines**
+
+When naming relationships in Cartography:
+- Prefer clear verbs (e.g., OWNS, CONTAINS)
+- Avoid ambiguous or passive phrasing (e.g., IS, CAN)
+- Use direct and active forms
+    - Prefer OWNS over OWNED_BY
+    - Prefer CONTAINS over BELONGS_TO
+
+Consistent, action-oriented naming improves graph readability and makes Cypher queries more intuitive.
+```
+
+### Sub-Resources relationship
+
+A *sub-resource* is a specific type of composition relationship in which a node "belongs to" a higher-level entity such as an Account, Subscription, etc.
+
+Examples:
+
+* In **AWS**, the parent is typically an `AWSAccount`.
+* In **Azure**, it's a `Tenant` or `Subscription`.
+* In **GCP**, it's a `GCPProject`.
+
+To define a sub-resource relationship, use the `sub_resource_relationship` property on the node class. It must follow these constraints:
+
+* The target node matcher must have `set_in_kwargs=True` (required for auto-cleanup functionality).
+* All `sub_resource_relationship`s must:
+
+  * Use the label `RESOURCE`
+  * Have the direction set to `INWARD`
+* Each module:
+
+  * **Must have at least one root node** (a node without a `sub_resource_relationship`)
+  * **Must have at most one root node**
+
+#### Common Relationship Types
+
+While you're free to define custom relationships, using standardized types improves maintainability and facilitates querying and analysis.
+
+**Composition**
+
+* `(:Parent)-[:CONTAINS]->(:Child)`
+* `(:Parent)-[:HAS]->(:Child)`
+
+**Tagging**
+
+* `(:Entity)-[:TAGGED]->(:Tag)`
+
+**Group Membership**
+
+* `(:Element)-[:MEMBER_OF]->(:Group)`
+* `(:Element)-[:ADMIN_OF]->(:Group)`
+    ```{note}
+    If an element is an admin, both relationships (`MEMBER_OF` and `ADMIN_OF`) should be present for consistency.
+    ```
+
+**Ownership**
+
+* `(:Entity)-[:OWNS]->(:OtherEntity)`
+
+**Permissions (ACL)**
+
+* `(:Actor)-[:CAN_ACCESS]->(:Entity)`
+* `(:Actor)-[:CAN_READ]->(:Entity)`
+* `(:Actor)-[:CAN_WRITE]->(:Entity)`
+* `(:Actor)-[:CAN_ADD]->(:Entity)`
+* `(:Actor)-[:CAN_DELETE]->(:Entity)`
 
 #### The result
 
@@ -203,9 +359,7 @@ This section explains cartography general patterns, conventions, and design deci
 
 #### cartography's `update_tag`:
 
-`cartography`'s global [config object carries around an update_tag property](https://github.com/cartography-cncf/cartography/blob/8d60311a10156cd8aa16de7e1fe3e109cc3eca0f/cartography/cli.py#L91-L98)
-which is a tag/label associated with the current sync.
-Cartography's CLI code [sets this to a Unix timestamp of when the CLI was run](https://github.com/cartography-cncf/cartography/blob/8d60311a10156cd8aa16de7e1fe3e109cc3eca0f/cartography/sync.py#L131-L134).
+`cartography`'s global config object carries around an `update_tag` property which is a tag/label associated with the current sync. Cartography's sync code [sets this to a Unix timestamp of when the sync was started](https://github.com/cartography-cncf/cartography/blob/master/cartography/sync.py).
 
 All `cartography` intel modules set the `lastupdated` property on all nodes and all relationships to this `update_tag`.
 
@@ -369,6 +523,53 @@ synced.
 
 For some other modules that don't have a clear tenant-like relationship, you can set `scoped_cleanup` to False on the
 node_schema. This might make sense for a vuln scanner module where there is no logical tenant object.
+
+#### Hierarchical data and cascade_delete
+
+Some data sources have multi-tier hierarchical structures where nodes own other nodes via RESOURCE relationships. Examples include:
+
+- **GCP**: Organization → Folders → Projects → Compute instances, Storage buckets, etc.
+- **GitLab**: Organization → Groups → Projects → Branches, Dependencies, etc.
+
+In Cartography, RESOURCE relationships point from parent to child:
+
+```
+(Parent)-[:RESOURCE]->(Child)
+```
+
+When a parent node becomes stale and is deleted, you may want its children to be deleted as well. The `cascade_delete` parameter enables this behavior:
+
+```python
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict) -> None:
+    cleanup_job = GraphJob.from_node_schema(
+        MyParentSchema(),
+        common_job_parameters,
+        cascade_delete=True,  # Also delete children when parent is stale
+    )
+    cleanup_job.run(neo4j_session)
+```
+
+When `cascade_delete=True`, the cleanup query becomes:
+
+```cypher
+WHERE n.lastupdated <> $UPDATE_TAG
+WITH n LIMIT $LIMIT_SIZE
+OPTIONAL MATCH (n)-[:RESOURCE]->(child)
+WHERE child IS NULL OR child.lastupdated <> $UPDATE_TAG
+DETACH DELETE child, n;
+```
+
+**When to use cascade_delete:**
+
+- Use `cascade_delete=True` when child nodes are meaningless without their parent (e.g., GitLab branches without their project)
+- Use `cascade_delete=False` (default) when children should persist independently or when another module manages their lifecycle
+
+**Important notes:**
+
+- Only affects direct children (one level deep via `RESOURCE` relationships). Grandchildren require cleaning up intermediate levels first.
+- Children that were re-parented in the current sync (matching `UPDATE_TAG`) are protected from deletion.
+- Only valid with scoped cleanup (`scoped_cleanup=True`). Unscoped cleanups will raise an error if `cascade_delete=True`.
+- Default is `False` for backward compatibility.
 
 #### Legacy notes
 

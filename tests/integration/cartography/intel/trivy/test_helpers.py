@@ -23,8 +23,9 @@ def assert_trivy_findings(neo4j_session: Session) -> None:
 
 
 def assert_trivy_packages(neo4j_session: Session) -> None:
-    """Assert Package nodes exist with expected values."""
-    assert check_nodes(neo4j_session, "Package", ["id", "name", "version"]) == {
+    """Assert Package nodes exist with expected values (vulnerable + non-vulnerable)."""
+    assert check_nodes(neo4j_session, "TrivyPackage", ["id", "name", "version"]) == {
+        # Vulnerable packages (from Vulnerabilities array)
         ("0.14.0|h11", "h11", "0.14.0"),
         ("1.20.1-2+deb12u2|krb5-locales", "krb5-locales", "1.20.1-2+deb12u2"),
         ("1.20.1-2+deb12u2|libk5crypto3", "libk5crypto3", "1.20.1-2+deb12u2"),
@@ -39,6 +40,11 @@ def assert_trivy_packages(neo4j_session: Session) -> None:
         ("4.19.0-2|libtasn1-6", "libtasn1-6", "4.19.0-2"),
         ("5.36.0-7+deb12u1|perl-base", "perl-base", "5.36.0-7+deb12u1"),
         ("5.4.1-0.2|liblzma5", "liblzma5", "5.4.1-0.2"),
+        # Non-vulnerable packages (from Packages array only)
+        ("2.6.1|apt", "apt", "2.6.1"),
+        ("5.2.15-2+b2|bash", "bash", "5.2.15-2+b2"),
+        ("2.31.0|requests", "requests", "2.31.0"),
+        ("2.0.7|urllib3", "urllib3", "2.0.7"),
     }
 
 
@@ -47,7 +53,7 @@ def assert_all_trivy_relationships(neo4j_session: Session) -> None:
     # Package to ECRImage relationships
     assert check_rels(
         neo4j_session,
-        "Package",
+        "TrivyPackage",
         "id",
         "ECRImage",
         "id",
@@ -110,12 +116,29 @@ def assert_all_trivy_relationships(neo4j_session: Session) -> None:
             "5.4.1-0.2|liblzma5",
             "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         ),
+        # Non-vulnerable packages from Packages array
+        (
+            "2.6.1|apt",
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+        (
+            "5.2.15-2+b2|bash",
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+        (
+            "2.31.0|requests",
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+        (
+            "2.0.7|urllib3",
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        ),
     }
 
     # Package to TrivyFix relationships
     assert check_rels(
         neo4j_session,
-        "Package",
+        "TrivyPackage",
         "id",
         "TrivyFix",
         "id",
@@ -173,7 +196,7 @@ def assert_all_trivy_relationships(neo4j_session: Session) -> None:
     # Package to TrivyImageFinding relationships
     assert check_rels(
         neo4j_session,
-        "Package",
+        "TrivyPackage",
         "id",
         "TrivyImageFinding",
         "id",
@@ -253,3 +276,142 @@ def assert_all_trivy_relationships(neo4j_session: Session) -> None:
             "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         ),
     }
+
+
+def assert_trivy_finding_extended_fields(neo4j_session: Session) -> None:
+    """Assert TrivyImageFinding nodes have extended fields populated."""
+    result = neo4j_session.run(
+        """
+        MATCH (f:TrivyImageFinding)
+        WHERE f.cwe_ids IS NOT NULL
+        RETURN f.id AS id, f.cwe_ids AS cwe_ids, f.status AS status,
+               f.data_source_id AS data_source_id, f.data_source_name AS data_source_name,
+               f.layer_digest AS layer_digest, f.references AS refs
+        LIMIT 5
+        """
+    ).data()
+    # Verify at least one finding has the extended fields
+    assert len(result) > 0, "Expected at least one finding with extended fields"
+    for row in result:
+        assert row["cwe_ids"] is not None, f"cwe_ids should be set for {row['id']}"
+        assert row["status"] is not None, f"status should be set for {row['id']}"
+        assert (
+            row["data_source_id"] is not None
+        ), f"data_source_id should be set for {row['id']}"
+        assert (
+            row["data_source_name"] is not None
+        ), f"data_source_name should be set for {row['id']}"
+
+
+def assert_trivy_package_extended_fields(neo4j_session: Session) -> None:
+    """Assert Package nodes have extended fields populated."""
+    result = neo4j_session.run(
+        """
+        MATCH (p:TrivyPackage)
+        WHERE p.purl IS NOT NULL
+        RETURN p.id AS id, p.purl AS purl, p.pkg_id AS pkg_id
+        LIMIT 5
+        """
+    ).data()
+    # Verify at least one package has the extended fields
+    assert len(result) > 0, "Expected at least one package with extended fields"
+    for row in result:
+        assert row["purl"] is not None, f"purl should be set for {row['id']}"
+        assert row["pkg_id"] is not None, f"pkg_id should be set for {row['id']}"
+
+
+def assert_trivy_gcp_image_relationships(
+    neo4j_session: Session,
+    expected_package_rels: set,
+    expected_finding_rels: set,
+) -> None:
+    """
+    Assert Trivy relationships to GCP image nodes are correctly created.
+    Checks both ContainerImage and PlatformImage nodes, combining results.
+    """
+    # Package to GCPArtifactRegistryContainerImage relationships (DEPLOYED)
+    container_image_package_rels = check_rels(
+        neo4j_session,
+        "TrivyPackage",
+        "id",
+        "GCPArtifactRegistryContainerImage",
+        "digest",
+        "DEPLOYED",
+        rel_direction_right=True,
+    )
+
+    # Package to GCPArtifactRegistryPlatformImage relationships (DEPLOYED)
+    platform_image_package_rels = check_rels(
+        neo4j_session,
+        "TrivyPackage",
+        "id",
+        "GCPArtifactRegistryPlatformImage",
+        "digest",
+        "DEPLOYED",
+        rel_direction_right=True,
+    )
+
+    # Combine both sets of relationships
+    actual_package_rels = container_image_package_rels | platform_image_package_rels
+    assert actual_package_rels == expected_package_rels
+
+    # TrivyImageFinding to GCPArtifactRegistryContainerImage relationships (AFFECTS)
+    container_image_finding_rels = check_rels(
+        neo4j_session,
+        "TrivyImageFinding",
+        "id",
+        "GCPArtifactRegistryContainerImage",
+        "digest",
+        "AFFECTS",
+        rel_direction_right=True,
+    )
+
+    # TrivyImageFinding to GCPArtifactRegistryPlatformImage relationships (AFFECTS)
+    platform_image_finding_rels = check_rels(
+        neo4j_session,
+        "TrivyImageFinding",
+        "id",
+        "GCPArtifactRegistryPlatformImage",
+        "digest",
+        "AFFECTS",
+        rel_direction_right=True,
+    )
+
+    # Combine both sets of relationships
+    actual_finding_rels = container_image_finding_rels | platform_image_finding_rels
+    assert actual_finding_rels == expected_finding_rels
+
+
+def assert_trivy_gitlab_image_relationships(
+    neo4j_session: Session,
+    expected_package_rels: set,
+    expected_finding_rels: set,
+) -> None:
+    """Assert Trivy relationships to GitLabContainerImage are correctly created."""
+    # Package to GitLabContainerImage relationships (DEPLOYED)
+    assert (
+        check_rels(
+            neo4j_session,
+            "TrivyPackage",
+            "id",
+            "GitLabContainerImage",
+            "id",
+            "DEPLOYED",
+            rel_direction_right=True,
+        )
+        == expected_package_rels
+    )
+
+    # TrivyImageFinding to GitLabContainerImage relationships (AFFECTS)
+    assert (
+        check_rels(
+            neo4j_session,
+            "TrivyImageFinding",
+            "id",
+            "GitLabContainerImage",
+            "id",
+            "AFFECTS",
+            rel_direction_right=True,
+        )
+        == expected_finding_rels
+    )

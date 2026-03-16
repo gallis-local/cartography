@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -17,8 +18,14 @@ class DynamoDBTableNodeProperties(CartographyNodeProperties):
     name: PropertyRef = PropertyRef("TableName")
     region: PropertyRef = PropertyRef("Region", set_in_kwargs=True)
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+    # Basic table properties
     rows: PropertyRef = PropertyRef("Rows")
     size: PropertyRef = PropertyRef("Size")
+    table_status: PropertyRef = PropertyRef("TableStatus")
+    creation_date_time: PropertyRef = PropertyRef("CreationDateTime")
+
+    # Provisioned throughput
     provisioned_throughput_read_capacity_units: PropertyRef = PropertyRef(
         "ProvisionedThroughputReadCapacityUnits",
     )
@@ -49,6 +56,7 @@ class DynamoDBTableToAWSAccountRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class DynamoDBTableSchema(CartographyNodeSchema):
     label: str = "DynamoDBTable"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Database"])
     properties: DynamoDBTableNodeProperties = DynamoDBTableNodeProperties()
     sub_resource_relationship: DynamoDBTableToAWSAccountRel = (
         DynamoDBTableToAWSAccountRel()

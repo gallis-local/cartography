@@ -98,10 +98,11 @@ class RoleAssignmentAllowedByRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-class RoleAssignmentAllowedByMatchLink(CartographyRelSchema):
+class AWSRoleToSSOUserMatchLink(CartographyRelSchema):
     """
-    MatchLink schema for ALLOWED_BY relationships from role assignments.
-    Creates relationships like: (AWSRole)-[:ALLOWED_BY]->(AWSSSOUser)
+    MatchLink for (AWSRole)-[:ALLOWED_BY]->(AWSSSOUser).
+
+    See schema documentation for details.
     """
 
     # MatchLink-specific fields for AWSRole as source
@@ -113,7 +114,10 @@ class RoleAssignmentAllowedByMatchLink(CartographyRelSchema):
     # Standard CartographyRelSchema fields for AWSSSOUser as target
     target_node_label: str = "AWSSSOUser"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("UserId")},
+        {
+            "id": PropertyRef("UserId"),
+            "identity_store_id": PropertyRef("IdentityStoreId"),
+        },
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "ALLOWED_BY"
@@ -123,10 +127,11 @@ class RoleAssignmentAllowedByMatchLink(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
-class RoleAssignmentAllowedByGroupMatchLink(CartographyRelSchema):
+class AWSRoleToSSOGroupMatchLink(CartographyRelSchema):
     """
-    MatchLink schema for ALLOWED_BY relationships from group role assignments.
-    Creates relationships like: (AWSRole)-[:ALLOWED_BY]->(AWSSSOGroup)
+    MatchLink for (AWSRole)-[:ALLOWED_BY]->(AWSSSOGroup).
+
+    See schema documentation for details.
     """
 
     source_node_label: str = "AWSRole"
@@ -136,7 +141,10 @@ class RoleAssignmentAllowedByGroupMatchLink(CartographyRelSchema):
 
     target_node_label: str = "AWSSSOGroup"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("GroupId")},
+        {
+            "id": PropertyRef("GroupId"),
+            "identity_store_id": PropertyRef("IdentityStoreId"),
+        },
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "ALLOWED_BY"

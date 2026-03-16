@@ -15,8 +15,12 @@ Grant the following roles to the identity at the **organization level**. This en
 | `roles/iam.securityReviewer` | List/get IAM roles and service accounts | Yes |
 | `roles/resourcemanager.organizationViewer` | List/get GCP Organizations | Yes |
 | `roles/resourcemanager.folderViewer` | List/get GCP Folders | Yes |
-| `roles/serviceusage.serviceUsageConsumer` | Check which APIs are enabled on each project | Yes |
+| `roles/bigquery.dataViewer` | List/get BigQuery datasets, tables, and routines | Optional |
+| `roles/bigquery.connectionUser` | List BigQuery connections | Optional |
 | `roles/cloudasset.viewer` | Sync IAM policy bindings (effective policies across org hierarchy) | Optional |
+| `roles/artifactregistry.reader` | List/get Artifact Registry repositories and artifacts | Optional |
+| `roles/run.viewer` | List/get Cloud Run services, jobs, and executions | Optional |
+| `roles/notebooks.viewer` | List/get Vertex AI Workbench (Notebooks API) resources | Optional |
 
 To grant a role at the organization level:
 ```bash
@@ -37,6 +41,49 @@ Ensure the machine running Cartography can authenticate to this identity:
 - **Method 1 (Credentials file)**: Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to a JSON credentials file. Ensure only the Cartography user has read access to this file.
 - **Method 2 (Default service account)**: If running on GCE or another GCP service, use the default service account credentials. See the [official docs](https://cloud.google.com/docs/authentication/production) on Application Default Credentials.
 
+### API Enablement Requirements
+
+Cartography makes API calls that are billed against your service account's **host project** (the project where the service account was created). For Cartography to sync resources, the corresponding APIs must be enabled on this host project.
+
+#### Enable Required APIs
+
+Run the following commands on your service account's host project:
+
+```bash
+# Core APIs (required)
+gcloud services enable cloudresourcemanager.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable serviceusage.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable iam.googleapis.com --project=YOUR_HOST_PROJECT
+
+# Optional APIs (enable based on what you want to sync)
+gcloud services enable compute.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable storage.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable container.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable dns.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable cloudkms.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable bigtableadmin.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable sqladmin.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable bigquery.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable bigqueryconnection.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable cloudfunctions.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable secretmanager.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable artifactregistry.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable run.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable aiplatform.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable notebooks.googleapis.com --project=YOUR_HOST_PROJECT
+gcloud services enable cloudasset.googleapis.com --project=YOUR_HOST_PROJECT
+```
+
+#### Using GOOGLE_CLOUD_QUOTA_PROJECT
+
+If you set `GOOGLE_CLOUD_QUOTA_PROJECT` to override the default quota project, ensure that project also has all the above APIs enabled. The quota project and host project should typically be the same project for simplicity.
+
+#### Graceful Handling
+
+If an API is not enabled on your host/quota project, Cartography will log a warning and skip syncing that resource type rather than crashing. Other modules will continue normally.
+
+Some services also emit per-location permission warnings (for example Cloud Run in restricted regions). Cartography logs these and skips only affected locations.
+
 ### Cloud Asset Inventory (CAI)
 
 Cartography uses the [Cloud Asset Inventory API](https://cloud.google.com/asset-inventory/docs/overview) for two features:
@@ -46,21 +93,22 @@ Cartography uses the [Cloud Asset Inventory API](https://cloud.google.com/asset-
 
 #### Setup
 
-CAI API calls are billed against your **quota project** (the project associated with your Application Default Credentials), not the target projects being scanned.
+When using a service account, CAI API calls are automatically billed against the service account's **host project**. No additional configuration is required.
 
-1. Enable the Cloud Asset Inventory API on your quota project:
+1. Enable the Cloud Asset Inventory API on the service account's host project:
    ```bash
-   gcloud services enable cloudasset.googleapis.com --project=YOUR_QUOTA_PROJECT
+   gcloud services enable cloudasset.googleapis.com --project=YOUR_SERVICE_ACCOUNT_PROJECT
    ```
 
-2. Check your current quota project:
-   ```bash
-   gcloud config get-value project
-   ```
+2. For policy bindings sync, grant `roles/cloudasset.viewer` at the **organization level** (see roles table above).
 
-3. For policy bindings sync, grant `roles/cloudasset.viewer` at the **organization level** (see roles table above).
+#### How It Works
+
+- CAI uses Google's default quota project resolution. For service accounts, this is the project where the service account was created.
+- This means you don't need to explicitly configure a quota project or grant additional permissions like `serviceusage.serviceUsageConsumer`.
+- Cartography automatically attempts CAI operations and gracefully handles permission errors.
 
 #### Limitations
 
-- **IAM Fallback**: Only retrieves custom roles defined at the project level. Predefined roles (e.g., `roles/viewer`, `roles/editor`) are not included. Enable the IAM API on target projects for complete role coverage.
+- **IAM Fallback**: Requires the Cloud Asset Inventory API to be enabled on the service account's host project. If the API is not enabled or the identity lacks permissions, Cartography will log a warning and skip the CAI fallback (other sync operations will continue normally). Note: The CAI fallback only syncs service accounts and project-level custom roles. Predefined roles and organization-level custom roles are synced separately at the organization level via the IAM API.
 - **Policy Bindings**: Requires organization-level `roles/cloudasset.viewer`. If this role is missing, Cartography will log a warning and skip policy bindings sync (other sync operations will continue normally).

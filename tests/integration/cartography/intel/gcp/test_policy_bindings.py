@@ -11,7 +11,7 @@ import tests.data.gcp.policy_bindings
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
-TEST_PROJECT_ID = "project-123"
+TEST_PROJECT_ID = "project-abc"
 TEST_UPDATE_TAG = 123456789
 COMMON_JOB_PARAMS = {
     "UPDATE_TAG": TEST_UPDATE_TAG,
@@ -33,6 +33,19 @@ def _create_test_project(neo4j_session):
         SET project.lastupdated = $update_tag
         """,
         project_id=TEST_PROJECT_ID,
+        update_tag=TEST_UPDATE_TAG,
+    )
+
+
+def _create_test_organization(neo4j_session):
+    """Create a test GCP organization node for org-level roles."""
+    neo4j_session.run(
+        """
+        MERGE (org:GCPOrganization{id: $org_id})
+        ON CREATE SET org.firstseen = timestamp()
+        SET org.lastupdated = $update_tag
+        """,
+        org_id=COMMON_JOB_PARAMS["ORG_RESOURCE_NAME"],
         update_tag=TEST_UPDATE_TAG,
     )
 
@@ -59,8 +72,18 @@ def _create_test_project(neo4j_session):
 )
 @patch.object(
     cartography.intel.gcp.iam,
-    "get_gcp_roles",
+    "get_gcp_predefined_roles",
     return_value=tests.data.gcp.policy_bindings.MOCK_IAM_ROLES,
+)
+@patch.object(
+    cartography.intel.gcp.iam,
+    "get_gcp_org_roles",
+    return_value=[],
+)
+@patch.object(
+    cartography.intel.gcp.iam,
+    "get_gcp_project_custom_roles",
+    return_value=[],
 )
 @patch.object(
     cartography.intel.gcp.iam,
@@ -69,7 +92,9 @@ def _create_test_project(neo4j_session):
 )
 def test_sync_gcp_policy_bindings(
     mock_get_service_accounts,
-    mock_get_roles,
+    mock_get_project_custom_roles,
+    mock_get_org_roles,
+    mock_get_predefined_roles,
     mock_get_all_users,
     mock_get_all_groups,
     mock_get_group_members,
@@ -81,10 +106,21 @@ def test_sync_gcp_policy_bindings(
     """
     # ARRANGE
     _create_test_project(neo4j_session)
+    _create_test_organization(neo4j_session)
     mock_iam_client = MagicMock()
     mock_admin_resource = MagicMock()
     mock_asset_client = MagicMock()
 
+    # Sync org-level IAM (predefined roles) first
+    cartography.intel.gcp.iam.sync_org_iam(
+        neo4j_session,
+        mock_iam_client,
+        COMMON_JOB_PARAMS["ORG_RESOURCE_NAME"],
+        TEST_UPDATE_TAG,
+        COMMON_JOB_PARAMS,
+    )
+
+    # Sync project-level IAM (service accounts and project custom roles)
     cartography.intel.gcp.iam.sync(
         neo4j_session,
         mock_iam_client,
@@ -122,17 +158,17 @@ def test_sync_gcp_policy_bindings(
         neo4j_session, "GCPPolicyBinding", ["id", "role", "resource_type"]
     ) == {
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/editor",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/editor",
             "roles/editor",
             "project",
         ),
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/viewer",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/viewer",
             "roles/viewer",
             "project",
         ),
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/storage.admin_5982c9d5",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/storage.admin_5982c9d5",
             "roles/storage.admin",
             "project",
         ),
@@ -155,15 +191,15 @@ def test_sync_gcp_policy_bindings(
     ) == {
         (
             TEST_PROJECT_ID,
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/editor",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/editor",
         ),
         (
             TEST_PROJECT_ID,
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/viewer",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/viewer",
         ),
         (
             TEST_PROJECT_ID,
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/storage.admin_5982c9d5",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/storage.admin_5982c9d5",
         ),
         (
             TEST_PROJECT_ID,
@@ -184,7 +220,7 @@ def test_sync_gcp_policy_bindings(
         # GSuite users
         (
             "alice@example.com",
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/editor",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/editor",
         ),
         (
             "alice@example.com",
@@ -192,17 +228,17 @@ def test_sync_gcp_policy_bindings(
         ),
         (
             "bob@example.com",
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/storage.admin_5982c9d5",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/storage.admin_5982c9d5",
         ),
         # IAM service account
         (
-            "sa@project-123.iam.gserviceaccount.com",
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/editor",
+            "sa@project-abc.iam.gserviceaccount.com",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/editor",
         ),
         # GSuite group
         (
             "viewers@example.com",
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/viewer",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/viewer",
         ),
     }
 
@@ -217,15 +253,15 @@ def test_sync_gcp_policy_bindings(
         rel_direction_right=True,
     ) == {
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/editor",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/editor",
             "roles/editor",
         ),
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/viewer",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/viewer",
             "roles/viewer",
         ),
         (
-            "//cloudresourcemanager.googleapis.com/projects/project-123_roles/storage.admin_5982c9d5",
+            "//cloudresourcemanager.googleapis.com/projects/project-abc_roles/storage.admin_5982c9d5",
             "roles/storage.admin",
         ),
         (

@@ -63,6 +63,7 @@ machine to pull data from AWS.
 
         - `AWS_DEFAULT_REGION` must be specified.
         - The docker-compose.yml maps in `~/.aws/` on your host machine to `/var/cartography/.aws` in the cartography container so that the container has access to AWS profile and credential files.
+        - You can use `--aws-requested-syncs` to sync only specific AWS resources instead of all of them. This accepts a comma-separated list of resource identifiers. For example, to sync only EC2 instances, S3 buckets, and IAM resources: `--aws-requested-syncs "ec2:instance,s3,iam"`. See [AWS Configuration](https://cartography-cncf.github.io/cartography/modules/aws/config.html#selective-syncing-with---aws-requested-syncs) for the full list of available resources.
 
 1. **Run security frameworks against your graph.**
 
@@ -192,19 +193,19 @@ Do this if you prefer to install and manage all the dependencies yourself. Carto
 
     Older or newer versions of Python may work but are not explicitly supported. You will probably have more luck with newer versions.
 
-1. **Run Neo4j graph database version 4.4 or higher. 4.3 and lower will _not_ work.**
+1. **Run Neo4j graph database version 5.x or higher.**
 
-        ⚠️ Neo4j 5.x will probably work since it's included in our test suite, but we do not explicitly support it yet.
+        ⚠️ Neo4j 4.x may work but is not guaranteed to be compatible. We recommend using Neo4j 5.x.
 
-    1. We recommend running Neo4j as a Docker container so that you save time and don't need to install Java. Run `docker run --publish=7474:7474 --publish=7687:7687 -v data:/data --env=NEO4J_AUTH=none neo4j:4.4-community`.
+    1. We recommend running Neo4j as a Docker container so that you save time and don't need to install Java. Run `docker run --publish=7474:7474 --publish=7687:7687 -v data:/data --env=NEO4J_AUTH=none neo4j:5-community`.
 
     1. Otherwise, if you prefer to **install Neo4j from scratch**,
 
-        1. Neo4j requires a JVM (JDK/JRE 11 or higher). One option is [Amazon Coretto 11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/what-is-corretto-11.html).
+        1. Neo4j requires a JVM (JDK/JRE 17 or higher). One option is [Amazon Coretto 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/what-is-corretto-17.html).
 
             ⚠️ Make sure you have the `JAVA_HOME` environment variable set. The following works for Mac OS: `export JAVA_HOME=$(/usr/libexec/java_home)`
 
-        1. Go to the [Neo4j download page](https://neo4j.com/download-center/#community), and download Neo4j Community Edition 4.4.\*.
+        1. Go to the [Neo4j download page](https://neo4j.com/download-center/#community), and download Neo4j Community Edition 5.\*.
 
         1. [Install](https://neo4j.com/docs/operations-manual/current/installation/) Neo4j.
 
@@ -251,6 +252,10 @@ Do this if you prefer to install and manage all the dependencies yourself. Carto
         ```
 
     You can view a full list of Cartography's CLI arguments by running `cartography --help`.
+
+    ```{tip}
+    Use `--selected-modules` with `--help` to see only relevant options: `cartography --selected-modules aws --help` shows only AWS-related options. See [CLI documentation](usage/cli) for shell autocompletion setup.
+    ```
 
     If everything worked, the sync will pull data from your configured accounts and ingest data to Neo4j! This process might take a long time if your account has a lot of assets.
     ![nativeinstall-run.png](images/nativeinstall-run.png)

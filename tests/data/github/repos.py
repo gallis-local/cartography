@@ -3,6 +3,7 @@ from typing import Any
 from typing import List
 
 from cartography.intel.github.repos import UserAffiliationAndRepoPermission
+from tests.data.github.branch_protection_rules import PROTECTED_BRANCH_STRONG
 
 # Dependency graph test data for unit tests
 DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS = {
@@ -13,11 +14,13 @@ DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS = {
                 "nodes": [
                     {
                         "packageName": "react",
+                        "packageUrl": "pkg:npm/react@18.2.0",
                         "requirements": "18.2.0",
                         "packageManager": "NPM",
                     },
                     {
                         "packageName": "lodash",
+                        "packageUrl": "",
                         "requirements": "",
                         "packageManager": "NPM",
                     },
@@ -30,6 +33,7 @@ DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS = {
                 "nodes": [
                     {
                         "packageName": "Django",
+                        "packageUrl": "pkg:pypi/django@4.2.0",
                         "requirements": "= 4.2.0",
                         "packageManager": "PIP",
                     },
@@ -42,6 +46,7 @@ DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS = {
                 "nodes": [
                     {
                         "packageName": "org.springframework:spring-core",
+                        "packageUrl": "pkg:maven/org.springframework/spring-core@5.3.21",
                         "requirements": "5.3.21",
                         "packageManager": "MAVEN",
                     },
@@ -86,7 +91,7 @@ GET_REPOS: List[dict[str, Any]] = [
         "directCollaborators": {"totalCount": 0},
         "outsideCollaborators": {"totalCount": 0},
         "requirements": {
-            "text": "cartography\nhttplib2<0.7.0\njinja2\nlxml\n-e git+https://example.com#egg=foobar\nhttps://example.com/foobar.tar.gz\npip @ https://github.com/pypa/pip/archive/1.3.1.zip#sha1=da9234ee9982d4bbb3c72346a6de940a148ea686\n",
+            "text": "cartography\ncartography==0.1.0\nhttplib2<0.7.0\njinja2\nlxml\nokta==0.9.0\n-e git+https://example.com#egg=foobar\nhttps://example.com/foobar.tar.gz\npip @ https://github.com/pypa/pip/archive/1.3.1.zip#sha1=da9234ee9982d4bbb3c72346a6de940a148ea686\n",
         },  # noqa
         "setupCfg": {
             "text": textwrap.dedent(
@@ -95,6 +100,7 @@ GET_REPOS: List[dict[str, Any]] = [
                 install_requires =
                     neo4j
                     scipy!=1.20.0  # comment
+                    okta
             """,
             ),
         },
@@ -178,9 +184,17 @@ GET_REPOS: List[dict[str, Any]] = [
             """,
             ),
         },
-        "dependencyGraphManifests": DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS,
+        "branchProtectionRules": {
+            "nodes": [PROTECTED_BRANCH_STRONG],
+        },
     },
 ]
+
+# Dependency graph manifests returned by the per-repo fetch function, keyed by repo URL.
+# Only repos with dependency manifests have entries here.
+DEP_MANIFESTS_BY_URL: dict[str, dict[str, Any]] = {
+    GET_REPOS[2]["url"]: DEPENDENCY_GRAPH_WITH_MULTIPLE_ECOSYSTEMS,
+}
 
 
 # - This list is not a raw API response, but the lightly processed collected results of all the API calls, for all

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -12,13 +13,13 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 
 @dataclass(frozen=True)
-class SSOGroupProperties(CartographyNodeProperties):
+class AWSSSOGroupProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("GroupId")
     display_name: PropertyRef = PropertyRef("DisplayName")
     description: PropertyRef = PropertyRef("Description")
     identity_store_id: PropertyRef = PropertyRef("IdentityStoreId")
     external_id: PropertyRef = PropertyRef("ExternalId", extra_index=True)
-    region: PropertyRef = PropertyRef("Region")
+    region: PropertyRef = PropertyRef("Region", set_in_kwargs=True)
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
@@ -61,8 +62,9 @@ class AWSSSOGroupToPermissionSetRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class AWSSSOGroupSchema(CartographyNodeSchema):
     label: str = "AWSSSOGroup"
-    properties: SSOGroupProperties = SSOGroupProperties()
+    properties: AWSSSOGroupProperties = AWSSSOGroupProperties()
     sub_resource_relationship: AWSSSOGroupToAWSAccountRel = AWSSSOGroupToAWSAccountRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             AWSSSOGroupToPermissionSetRel(),

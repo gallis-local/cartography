@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -26,7 +27,7 @@ class ScalewayGroupProperties(CartographyNodeProperties):
 
 
 @dataclass(frozen=True)
-class ScalewayGroupToUserProperties(CartographyRelProperties):
+class ScalewayGroupToUserRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
@@ -39,11 +40,11 @@ class ScalewayGroupToUserRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "MEMBER_OF"
-    properties: ScalewayGroupToUserProperties = ScalewayGroupToUserProperties()
+    properties: ScalewayGroupToUserRelProperties = ScalewayGroupToUserRelProperties()
 
 
 @dataclass(frozen=True)
-class ScalewayGroupToApplicationProperties(CartographyRelProperties):
+class ScalewayGroupToApplicationRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
@@ -56,8 +57,8 @@ class ScalewayGroupToApplicationRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "MEMBER_OF"
-    properties: ScalewayGroupToApplicationProperties = (
-        ScalewayGroupToApplicationProperties()
+    properties: ScalewayGroupToApplicationRelProperties = (
+        ScalewayGroupToApplicationRelProperties()
     )
 
 
@@ -84,6 +85,7 @@ class ScalewayGroupToOrganizationRel(CartographyRelSchema):
 class ScalewayGroupSchema(CartographyNodeSchema):
     label: str = "ScalewayGroup"
     properties: ScalewayGroupProperties = ScalewayGroupProperties()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
     sub_resource_relationship: ScalewayGroupToOrganizationRel = (
         ScalewayGroupToOrganizationRel()
     )

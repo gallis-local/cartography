@@ -38,6 +38,10 @@ _aws_s3_public = Fact(
     OPTIONAL MATCH p=(b)-[:POLICY_STATEMENT]->(:S3PolicyStatement)
     RETURN *
     """,
+    cypher_count_query="""
+    MATCH (b:S3Bucket)
+    RETURN COUNT(b) AS count
+    """,
     module=Module.AWS,
     maturity=Maturity.EXPERIMENTAL,
 )
@@ -69,6 +73,10 @@ _azure_storage_public_blob_access = Fact(
     WHERE bc.publicaccess IN ['Container', 'Blob']
     RETURN *
     """,
+    cypher_count_query="""
+    MATCH (bc:AzureStorageBlobContainer)
+    RETURN COUNT(bc) AS count
+    """,
     module=Module.AZURE,
     maturity=Maturity.EXPERIMENTAL,
 )
@@ -95,6 +103,10 @@ object_storage_public = Rule(
         _aws_s3_public,
         _azure_storage_public_blob_access,
     ),
-    tags=("infrastructure", "attack_surface"),
+    tags=(
+        "infrastructure",
+        "attack_surface",
+        "stride:information_disclosure",
+    ),
     version="0.1.0",
 )
