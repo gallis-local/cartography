@@ -286,6 +286,22 @@ entra_mapping = OntologyMapping(
     ],
 )
 
+unifi_mapping = OntologyMapping(
+    module_name="unifi",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="UnifiDevice",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="hostname", node_field="name", required=True
+                ),
+                OntologyFieldMapping(ontology_field="model", node_field="model"),
+                OntologyFieldMapping(ontology_field="platform", node_field="type"),
+            ],
+        ),
+    ],
+)
+
 DEVICES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "bigfix": bigfix_mapping,
     "crowdstrike": crowdstrike_mapping,
@@ -298,4 +314,5 @@ DEVICES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "sentinelone": sentinelone_mapping,
     "snipeit": snipeit_mapping,
     "tailscale": tailscale_mapping,
+    "unifi": unifi_mapping,
 }
