@@ -67,7 +67,7 @@ def transform_certificate_data(
         # NEW: f"{cluster_id}/node/{node_name}/cert/{filename}"
         cert_id = f"{cluster_id}/node/{node_name}/cert/{filename}"
 
-        # Full node ID for relationship matching
+        # Full node ID (cluster_id/node/name) for relationship matching
         full_node_id = f"{cluster_id}/node/{node_name}"
 
         # Parse SAN (Subject Alternative Names)
@@ -99,7 +99,7 @@ def transform_certificate_data(
             {
                 "id": cert_id,
                 "cluster_id": cluster_id,
-                "node_name": full_node_id,  # Full node ID for relationship matching
+                "node_id": full_node_id,  # Full node ID (cluster_id/node/name) for relationship matching
                 "filename": filename,
                 "fingerprint": cert.get("fingerprint"),
                 "issuer": cert.get("issuer"),
