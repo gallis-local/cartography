@@ -13,11 +13,7 @@ import cartography.intel.proxmox.access
 import cartography.intel.proxmox.cluster
 import cartography.intel.proxmox.compute
 from tests.data.proxmox.access import MOCK_USER_DATA
-from tests.data.proxmox.cluster import MOCK_CLUSTER_DATA
-from tests.data.proxmox.cluster import MOCK_NODE_DATA
-from tests.data.proxmox.compute import MOCK_VM_DATA
 from tests.integration.util import check_nodes
-from tests.integration.util import check_rels
 
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_A = "cluster-a"
@@ -34,8 +30,8 @@ MOCK_VM_DATA_MULTI = {
 }
 
 
-@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA)
-@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA)
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODES)
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
@@ -123,8 +119,8 @@ def test_multi_cluster_node_isolation(
     assert node_ids == expected_ids, f"Expected {expected_ids}, got {node_ids}"
 
 
-@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA)
-@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA)
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODES)
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
@@ -168,20 +164,18 @@ def test_multi_cluster_vm_isolation(
     }
 
     # Act - Sync both clusters
-    cartography.intel.proxmox.sync(
-        neo4j_session,
-        proxmox_a,
-        TEST_CLUSTER_A,
-        TEST_UPDATE_TAG,
-        common_params_a,
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, TEST_UPDATE_TAG, common_params_a
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, TEST_UPDATE_TAG, common_params_a
     )
 
-    cartography.intel.proxmox.sync(
-        neo4j_session,
-        proxmox_b,
-        TEST_CLUSTER_B,
-        TEST_UPDATE_TAG,
-        common_params_b,
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, TEST_UPDATE_TAG, common_params_b
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, TEST_UPDATE_TAG, common_params_b
     )
 
     # Assert - Should have 2 separate ProxmoxVM nodes
@@ -291,8 +285,8 @@ def test_multi_cluster_user_isolation(
     assert user_ids == expected_ids, f"Expected {expected_ids}, got {user_ids}"
 
 
-@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA)
-@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA)
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODES)
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
@@ -365,20 +359,18 @@ def test_multi_cluster_network_adjacency_isolation(
     }
 
     # Act - Sync both clusters
-    cartography.intel.proxmox.sync(
-        neo4j_session,
-        proxmox_a,
-        TEST_CLUSTER_A,
-        TEST_UPDATE_TAG,
-        common_params_a,
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, TEST_UPDATE_TAG, common_params_a
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, TEST_UPDATE_TAG, common_params_a
     )
 
-    cartography.intel.proxmox.sync(
-        neo4j_session,
-        proxmox_b,
-        TEST_CLUSTER_B,
-        TEST_UPDATE_TAG,
-        common_params_b,
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, TEST_UPDATE_TAG, common_params_b
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, TEST_UPDATE_TAG, common_params_b
     )
 
     # Assert - Should have 4 VMs total (2 per cluster)
