@@ -114,18 +114,6 @@ def get_cluster_config(proxmox_client: Any) -> Any:
     return proxmox_client.cluster.config.get()
 
 
-@timeit
-def get_replication_jobs(proxmox_client: Any) -> List[Dict[str, Any]]:
-    """
-    Get cluster replication jobs.
-
-    :param proxmox_client: Proxmox API client
-    :return: List of replication job dicts
-    :raises: Exception if API call fails
-    """
-    return proxmox_client.cluster.replication.get()
-
-
 # ============================================================================
 # TRANSFORM functions - manipulate data for graph ingestion
 # Per docs: Use data['field'] for required, data.get('field') for optional
@@ -352,14 +340,14 @@ def transform_node_network_data(
         # NEW: f"{cluster_id}/node/{node_name}/net/{iface_name}"
         iface_id = f"{cluster_id}/node/{node_name}/net/{iface_name}"
 
-        # Full node ID for relationship matching
-        node_id = f"{cluster_id}/node/{node_name}"
+        # Full node ID (cluster_id/node/name) for relationship matching
+        full_node_id = f"{cluster_id}/node/{node_name}"
 
         transformed_interfaces.append(
             {
                 "id": iface_id,
                 "name": iface_name,
-                "node_name": node_id,  # Full node ID for relationship matching
+                "node_id": full_node_id,  # Full node ID (cluster_id/node/name) for relationship matching
                 "type": iface.get("type"),  # bridge, bond, eth, vlan, etc.
                 "address": iface.get("address"),
                 "netmask": iface.get("netmask"),
