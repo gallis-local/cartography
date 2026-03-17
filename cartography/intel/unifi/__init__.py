@@ -153,7 +153,6 @@ async def _sync_unifi(
             neo4j_session,
             controller,
             site_id,
-            update_tag,
             common_job_parameters,
         )
 
@@ -170,7 +169,6 @@ async def _sync_unifi(
             neo4j_session,
             controller,
             site_id,
-            update_tag,
             common_job_parameters,
         )
 
@@ -179,7 +177,6 @@ async def _sync_unifi(
             neo4j_session,
             controller,
             site_id,
-            update_tag,
             common_job_parameters,
         )
 
