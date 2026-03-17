@@ -13,6 +13,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 # ============================================================================
@@ -33,6 +34,7 @@ class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     cluster_id: PropertyRef = PropertyRef("cluster_id")
     scope: PropertyRef = PropertyRef("scope")  # cluster or node
     scope_id: PropertyRef = PropertyRef("scope_id")  # node name for node-level
+    node_id: PropertyRef = PropertyRef("node_id")  # full node ID (cluster_id/node/name) for node-level
     enable: PropertyRef = PropertyRef("enable")  # Enable/disable firewall
     policy_in: PropertyRef = PropertyRef("policy_in")  # Default incoming policy (ACCEPT, REJECT, DROP)
     policy_out: PropertyRef = PropertyRef("policy_out")  # Default outgoing policy
@@ -75,6 +77,37 @@ class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProxmoxFirewallOptionsToNodeRelProperties(CartographyRelProperties):
+    """
+    Properties for relationship from ProxmoxFirewallOptions to ProxmoxNode.
+    """
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxFirewallOptions)-[:APPLIES_TO_NODE]->(:ProxmoxNode)
+
+    Node-level firewall options apply to a specific node.
+    Only created when scope == "node".
+    """
+
+    target_node_label: str = "ProxmoxNode"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("node_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_NODE"
+    properties: ProxmoxFirewallOptionsToNodeRelProperties = (
+        ProxmoxFirewallOptionsToNodeRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     """
     Schema for ProxmoxFirewallOptions.
@@ -86,4 +119,9 @@ class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     properties: ProxmoxFirewallOptionsNodeProperties = ProxmoxFirewallOptionsNodeProperties()
     sub_resource_relationship: ProxmoxFirewallOptionsToClusterRel = (
         ProxmoxFirewallOptionsToClusterRel()
+    )
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            ProxmoxFirewallOptionsToNodeRel(),
+        ]
     )
