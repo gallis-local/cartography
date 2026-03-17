@@ -241,7 +241,7 @@ async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
         neo4j_session, mock_controller, common_job_parameters
     )
 
-    # AP uplinks to switch
+    # AP (00:11:22:33:44:55) uplinks to switch (AA:BB:CC:DD:EE:FF)
     expected_rels = {
         ("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF"),
     }
@@ -253,7 +253,7 @@ async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
             "UnifiDevice",
             "id",
             "UPLINK_TO",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_rels
     )

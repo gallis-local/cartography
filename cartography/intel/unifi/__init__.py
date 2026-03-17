@@ -131,15 +131,17 @@ async def _sync_unifi(
         )
 
         # 7. DPI (Deep Packet Inspection) objects
-        # DPI groups first, then apps
-        await cartography.intel.unifi.dpi_groups.sync(
+        # Apps must come before groups: UnifiDPIGroupSchema creates CONTAINS_APP
+        # edges via OPTIONAL MATCH on UnifiDPIApp nodes, so app nodes must already
+        # exist when groups are loaded or the relationship silently does not form.
+        await cartography.intel.unifi.dpi_apps.sync(
             neo4j_session,
             controller,
             site_id,
             common_job_parameters,
         )
 
-        await cartography.intel.unifi.dpi_apps.sync(
+        await cartography.intel.unifi.dpi_groups.sync(
             neo4j_session,
             controller,
             site_id,
