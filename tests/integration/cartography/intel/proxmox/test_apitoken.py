@@ -16,7 +16,7 @@ TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
 
 
-@patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
+@patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_sync(mock_get_tokens, neo4j_session):
     """Test API token sync creates ProxmoxAPIToken nodes and relationships."""
     # Setup
@@ -80,7 +80,7 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
     assert tokens[1]["tokenid"] == "token2"
 
 
-@patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
+@patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken RESOURCE relationship to ProxmoxCluster."""
     # Setup
@@ -134,7 +134,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     assert rels[0]["cluster_id"] == cluster_id
 
 
-@patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
+@patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken BELONGS_TO relationship to ProxmoxUser."""
     # Setup
@@ -191,7 +191,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     assert rels[0]["userid"] == "root@pam"
 
 
-@patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
+@patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
     """Test API tokens from different clusters don't merge."""
     # Setup two clusters
@@ -255,7 +255,7 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
     assert f"{cluster_b_id}/user/root@pam/token/token1" in token_ids
 
 
-@patch.object(cartography.intel.proxmox.apitoken, "get_api_tokens_for_user")
+@patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_cleanup_stale_data(mock_get_tokens, neo4j_session):
     """Test cleanup removes stale API tokens from previous sync."""
     # Setup
