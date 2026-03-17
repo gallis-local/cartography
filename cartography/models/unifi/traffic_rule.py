@@ -37,7 +37,7 @@ class UnifiTrafficRuleToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiTrafficRule)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiTrafficRule)
 class UnifiTrafficRuleToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

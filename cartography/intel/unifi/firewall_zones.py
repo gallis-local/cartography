@@ -47,7 +47,7 @@ def load_firewall_zones(
         UnifiFirewallZoneSchema(),
         data,
         lastupdated=update_tag,
-        SITE_ID=site_id,
+        site_id=site_id,
     )
 
 
@@ -76,4 +76,4 @@ async def sync(
     """
     zones = await get(controller, site_id)
     load_firewall_zones(neo4j_session, zones, site_id, update_tag)
-    cleanup(neo4j_session, {**common_job_parameters, "SITE_ID": site_id})
+    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
