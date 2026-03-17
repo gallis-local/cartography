@@ -32,6 +32,15 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
         # ap_mac is set for wireless clients only; sw_mac for wired clients only
         ap_mac = getattr(client, "ap_mac", None) or None
 
+        # For wireless clients, find the switch the AP uplinks to.
+        # Devices are synced before clients so controller.devices is populated.
+        ap_switch_mac = None
+        if ap_mac:
+            ap_device = controller.devices.get(ap_mac)
+            if ap_device:
+                ap_uplink = ap_device.raw.get("uplink") or {}
+                ap_switch_mac = ap_uplink.get("uplink_mac") or None
+
         # Build port_id for wired clients: "{sw_mac}_{sw_port}"
         sw_mac = client.switch_mac or None
         sw_port = client.switch_port
@@ -59,6 +68,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "sw_mac": sw_mac,
                 "sw_port": sw_port,
                 "port_id": port_id,
+                "ap_switch_mac": ap_switch_mac,
                 "site_id": site_id,
             }
         )

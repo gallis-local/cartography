@@ -157,7 +157,8 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
     (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
     ```
 
-- A wired UnifiClient is connected to a UnifiDevice (switch)
+- A UnifiClient is connected to a UnifiDevice (switch).
+  Wired clients connect directly; wireless clients connect via their AP's uplink switch.
 
     ```
     (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
@@ -192,6 +193,7 @@ Representation of a client currently connected to the UniFi network.
 | vlan | VLAN ID the client is on (wired clients only) |
 | sw_mac | MAC address of the switch the client is connected to (wired clients only) |
 | sw_port | Switch port number the client is connected to (wired clients only) |
+| ap_switch_mac | MAC address of the switch the client's AP uplinks to (wireless clients only) |
 
 #### Relationships
 
@@ -207,13 +209,16 @@ Representation of a client currently connected to the UniFi network.
     (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
     ```
 
-- A wired UnifiClient is connected to its switch
+- All UnifiClients have a `CONNECTED_TO_SWITCH` relationship to the switch carrying their traffic.
+  For wired clients this is the directly connected switch (via `sw_mac`).
+  For wireless clients this is the switch the AP uplinks to (via `ap_switch_mac`).
+  This allows querying all clients on a switch with a single relationship type.
 
     ```
     (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
     ```
 
-- A wireless UnifiClient is connected to a UnifiWlan (site-scoped by name)
+- A wireless UnifiClient is connected to a UnifiWlan (matched by SSID name, scoped to site)
 
     ```
     (UnifiWlan)-[CONNECTED_TO_WLAN]->(UnifiClient)
