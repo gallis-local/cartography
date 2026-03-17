@@ -246,8 +246,8 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
 
-    # Sync access control (users, groups, roles, ACLs)
-    users = access.sync(
+    # Sync authentication realms first (users reference realms via AUTHENTICATES_VIA)
+    authrealm.sync(
         neo4j_session,
         proxmox_client,
         cluster_id,
@@ -255,8 +255,8 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
 
-    # Sync authentication realms
-    authrealm.sync(
+    # Sync access control (users, groups, roles, ACLs)
+    users = access.sync(
         neo4j_session,
         proxmox_client,
         cluster_id,

@@ -34,6 +34,7 @@ class ProxmoxUserNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     userid: PropertyRef = PropertyRef("userid", extra_index=True)
+    realm: PropertyRef = PropertyRef("realm", extra_index=True)  # Auth realm (e.g., pam, ldap)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
     enable: PropertyRef = PropertyRef("enable")
     expire: PropertyRef = PropertyRef("expire")
@@ -103,6 +104,36 @@ class ProxmoxUserToGroupRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProxmoxUserToAuthRealmRelProperties(CartographyRelProperties):
+    """
+    Properties for relationship from ProxmoxUser to ProxmoxAuthRealm.
+    """
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxUserToAuthRealmRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxUser)-[:AUTHENTICATES_VIA]->(:ProxmoxAuthRealm)
+
+    Users authenticate via a realm (PAM, LDAP, AD, OpenID, etc.).
+    Enables queries like "find all users using LDAP" without string parsing.
+    """
+
+    target_node_label: str = "ProxmoxAuthRealm"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "realm": PropertyRef("realm"),
+            "cluster_id": PropertyRef("cluster_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "AUTHENTICATES_VIA"
+    properties: ProxmoxUserToAuthRealmRelProperties = ProxmoxUserToAuthRealmRelProperties()
+
+
+@dataclass(frozen=True)
 class ProxmoxUserSchema(CartographyNodeSchema):
     """
     Schema for ProxmoxUser.
@@ -116,6 +147,7 @@ class ProxmoxUserSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxUserToGroupRel(),
+            ProxmoxUserToAuthRealmRel(),
         ]
     )
 
