@@ -173,10 +173,8 @@ def load_storage_node_relationships(
     relationships = []
     for storage in storage_list:
         for node_name in storage["nodes"]:
-            # Extract cluster_id from storage["id"] which follows pattern "cluster_id/storage/name"
-            cluster_id_from_storage = storage["id"].split("/storage/")[0]
-            # Build full node ID using new pattern
-            node_id = f"{cluster_id_from_storage}/node/{node_name}"
+            # Build full node ID using cluster_id already present in the dict
+            node_id = f"{storage['cluster_id']}/node/{node_name}"
 
             relationships.append(
                 {
