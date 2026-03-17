@@ -195,7 +195,7 @@ class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
     name: PropertyRef = PropertyRef(
         "name", extra_index=True
     )  # Interface name (e.g., vmbr0, eth0)
-    node_name: PropertyRef = PropertyRef("node_name")
+    node_id: PropertyRef = PropertyRef("node_id")
     type: PropertyRef = PropertyRef("type")  # bridge, bond, eth, vlan, etc.
     address: PropertyRef = PropertyRef("address")  # IPv4 address
     netmask: PropertyRef = PropertyRef("netmask")  # Subnet mask
@@ -273,7 +273,7 @@ class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxNode"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("node_name"),
+            "id": PropertyRef("node_id"),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
