@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
@@ -151,3 +152,45 @@ async def test_cleanup_unifi_wlans(mock_get, neo4j_session):
         """
     )
     assert result.single()["count"] == 0
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.wlans,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_WLANS,
+)
+async def test_wlan_new_properties(mock_get, neo4j_session):
+    """
+    Test that new WLAN properties (mac_filter_policy, bc_filter_enabled, wlangroup_id, etc.) are stored.
+    """
+    common_job_parameters = {"UPDATE_TAG": 123456789}
+    await cartography.intel.unifi.wlans.sync(
+        neo4j_session, MagicMock(), "default", common_job_parameters
+    )
+
+    # Corporate WiFi
+    result = neo4j_session.run(
+        """
+        MATCH (w:UnifiWlan {id: 'wlan_001'})
+        RETURN w.mac_filter_policy AS policy, w.bc_filter_enabled AS bc,
+               w.wlangroup_id AS wlangroup_id, w.name_combine_enabled AS name_combine
+        """
+    ).data()
+    assert len(result) == 1
+    assert result[0]["policy"] == "allow"
+    assert result[0]["bc"] is False
+    assert result[0]["wlangroup_id"] == "wlangroup_001"
+    assert result[0]["name_combine"] is True
+
+    # Guest WiFi — schedule should be stored
+    result = neo4j_session.run(
+        """
+        MATCH (w:UnifiWlan {id: 'wlan_002'})
+        RETURN w.schedule AS schedule, w.no2ghz_oui AS no2ghz_oui
+        """
+    ).data()
+    assert len(result) == 1
+    assert result[0]["schedule"] == ["sun", "sat"]
+    assert result[0]["no2ghz_oui"] is True

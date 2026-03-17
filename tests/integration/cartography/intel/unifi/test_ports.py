@@ -43,12 +43,12 @@ async def test_load_unifi_ports(mock_get, neo4j_session):
     assert len(records) == 2
 
     # Check Port 1
-    assert records[0]["id"] == "AA:BB:CC:DD:EE:FF:1"
+    assert records[0]["id"] == "AA:BB:CC:DD:EE:FF_1"
     assert records[0]["port_idx"] == 1
     assert records[0]["name"] == "Port 1"
 
     # Check Port 2
-    assert records[1]["id"] == "AA:BB:CC:DD:EE:FF:2"
+    assert records[1]["id"] == "AA:BB:CC:DD:EE:FF_2"
     assert records[1]["port_idx"] == 2
     assert records[1]["name"] == "Port 2"
 
@@ -78,7 +78,7 @@ async def test_port_poe_properties(mock_get, neo4j_session):
     # Check Port 1 PoE properties
     result = neo4j_session.run(
         """
-        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF:1'})
+        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF_1'})
         RETURN p.port_poe AS port_poe, p.poe_enable AS poe_enable,
                p.poe_mode AS poe_mode, p.poe_voltage AS poe_voltage
         """
@@ -92,7 +92,7 @@ async def test_port_poe_properties(mock_get, neo4j_session):
     # Check Port 2 (no PoE enabled)
     result = neo4j_session.run(
         """
-        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF:2'})
+        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF_2'})
         RETURN p.poe_enable AS poe_enable
         """
     )
@@ -125,7 +125,7 @@ async def test_port_connectivity_properties(mock_get, neo4j_session):
     # Check Port 1 connectivity (up and running)
     result = neo4j_session.run(
         """
-        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF:1'})
+        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF_1'})
         RETURN p.up AS up, p.speed AS speed, p.full_duplex AS full_duplex
         """
     )
@@ -137,7 +137,7 @@ async def test_port_connectivity_properties(mock_get, neo4j_session):
     # Check Port 2 connectivity (down)
     result = neo4j_session.run(
         """
-        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF:2'})
+        MATCH (p:UnifiPort{id: 'AA:BB:CC:DD:EE:FF_2'})
         RETURN p.up AS up, p.speed AS speed
         """
     )

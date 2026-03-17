@@ -109,6 +109,15 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
 | type | Device type (e.g. `uap`, `usw`, `ugw`) |
 | model | Device model code (e.g. `U7PG2`, `US24P250`) |
 | name | Human-readable device name |
+| ip | Current IP address of the device |
+| version | Firmware version string |
+| state | Device state (e.g. `CONNECTED`, `DISCONNECTED`, `UPGRADING`) |
+| uptime | Seconds since the device last rebooted |
+| last_seen | Unix timestamp of last contact with the controller |
+| upgradable | Whether a firmware upgrade is available |
+| uplink_mac | MAC address of the upstream device this device uplinks to |
+| uplink_port_id | Composite ID of the upstream port this device connects through (`<uplink_mac>_<port_idx>`) |
+| wlan_ids | List of WLAN IDs broadcast by this device (access points only) |
 
 #### Relationships
 
@@ -118,23 +127,47 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
     (UnifiDevice)-[RESOURCE]->(UnifiSite)
     ```
 
+- A UnifiDevice uplinks to another UnifiDevice
+
+    ```
+    (UnifiDevice)-[UPLINK_TO]->(UnifiDevice)
+    ```
+
+- A UnifiDevice uplinks through a specific UnifiPort on the upstream device
+
+    ```
+    (UnifiDevice)-[UPLINK_VIA_PORT]->(UnifiPort)
+    ```
+
+- A UnifiDevice (access point) broadcasts UnifiWlans
+
+    ```
+    (UnifiDevice)-[BROADCASTS]->(UnifiWlan)
+    ```
+
 - A UnifiDevice has UnifiPorts
 
     ```
     (UnifiPort)-[HAS_PORT]->(UnifiDevice)
     ```
 
-- A UnifiClient is connected to a UnifiDevice
+- A wireless UnifiClient is connected to a UnifiDevice (access point)
 
     ```
-    (UnifiClient)-[CONNECTED_TO]->(UnifiDevice)
+    (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
+    ```
+
+- A wired UnifiClient is connected to a UnifiDevice (switch)
+
+    ```
+    (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
     ```
 
 ---
 
 ### UnifiClient
 
-Representation of a client connected to the UniFi network.
+Representation of a client currently connected to the UniFi network.
 
 | Field | Description |
 |-------|-------------|
@@ -143,13 +176,22 @@ Representation of a client connected to the UniFi network.
 | id | Client MAC address (used as unique identifier) |
 | mac | Client MAC address |
 | ip | Current IP address of the client |
+| hostname | Client hostname (from DHCP or mDNS) |
+| name | Human-readable alias set in the controller |
 | is_guest | Whether this is a guest network client |
 | oui | Organizationally Unique Identifier (manufacturer) |
 | satisfaction | Connection quality score (0–100) |
-| channel | WiFi channel in use |
-| radio | Radio band (`ng` = 2.4 GHz, `na` = 5 GHz) |
+| channel | WiFi channel in use (wireless clients only) |
+| radio | Radio band (`ng` = 2.4 GHz, `na` = 5 GHz; wireless clients only) |
+| essid | SSID the client is connected to (wireless clients only) |
 | is_wired | Whether the client is connected via ethernet |
+| blocked | Whether this client is blocked on the network |
 | qos_policy_applied | Whether a QoS policy is applied to this client |
+| uptime | Seconds the client has been continuously connected |
+| last_seen | Unix timestamp of last activity |
+| vlan | VLAN ID the client is on (wired clients only) |
+| sw_mac | MAC address of the switch the client is connected to (wired clients only) |
+| sw_port | Switch port number the client is connected to (wired clients only) |
 
 #### Relationships
 
@@ -159,10 +201,28 @@ Representation of a client connected to the UniFi network.
     (UnifiClient)-[RESOURCE]->(UnifiSite)
     ```
 
-- A UnifiClient is connected to a UnifiDevice
+- A wireless UnifiClient is connected to its access point
 
     ```
-    (UnifiClient)-[CONNECTED_TO]->(UnifiDevice)
+    (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
+    ```
+
+- A wired UnifiClient is connected to its switch
+
+    ```
+    (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
+    ```
+
+- A wireless UnifiClient is connected to a UnifiWlan (site-scoped by name)
+
+    ```
+    (UnifiWlan)-[CONNECTED_TO_WLAN]->(UnifiClient)
+    ```
+
+- A wired UnifiClient connects via a specific UnifiPort
+
+    ```
+    (UnifiPort)-[CONNECTED_VIA]->(UnifiClient)
     ```
 
 ---
@@ -183,8 +243,15 @@ Representation of a UniFi wireless network (SSID) configuration.
 | wpa_mode | WPA mode (e.g. `wpa2`, `wpa3`) |
 | wpa_enc | WPA encryption (e.g. `ccmp`) |
 | usergroup_id | Associated user group ID |
-| hide_ssid | Whether the SSID is hidden |
+| hide_ssid | Whether the SSID is hidden from scans |
 | mac_filter_enabled | Whether MAC address filtering is active |
+| mac_filter_policy | MAC filter policy (`allow` or `deny`) |
+| bc_filter_enabled | Whether broadcast/multicast filtering is enabled |
+| no2ghz_oui | Whether to suppress 2.4 GHz for devices with a 5 GHz-capable OUI |
+| name_combine_enabled | Whether band-steering combines 2.4 GHz and 5 GHz under a single SSID |
+| wlangroup_id | WLAN group this network belongs to |
+| schedule | Active time schedule (list of day strings, empty = always on) |
+| site_id | ID of the site this WLAN belongs to (used for site-scoped client matching) |
 
 #### Relationships
 
@@ -194,25 +261,37 @@ Representation of a UniFi wireless network (SSID) configuration.
     (UnifiWlan)-[RESOURCE]->(UnifiSite)
     ```
 
+- A UnifiDevice (access point) broadcasts this UnifiWlan
+
+    ```
+    (UnifiDevice)-[BROADCASTS]->(UnifiWlan)
+    ```
+
+- Wireless UnifiClients are connected to this UnifiWlan
+
+    ```
+    (UnifiWlan)-[CONNECTED_TO_WLAN]->(UnifiClient)
+    ```
+
 ---
 
 ### UnifiPort
 
-Representation of a switch port on a UniFi device.
+Representation of a physical switch port on a UniFi device.
 
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Composite ID (`<device_mac>:<port_idx>`) |
+| id | Composite ID (`<device_mac>_<port_idx>`) |
 | port_idx | Port number on the device |
 | name | Port label/name |
-| port_poe | Whether this port supports PoE |
-| poe_enable | Whether PoE is enabled on this port |
+| port_poe | Whether this port supports PoE hardware |
+| poe_enable | Whether PoE is currently enabled on this port |
 | poe_mode | PoE operating mode (e.g. `auto`) |
-| poe_voltage | PoE voltage |
+| poe_voltage | PoE voltage level |
 | portconf_id | Applied port profile ID |
-| up | Whether the port link is up |
+| up | Whether the port link is currently up |
 | speed | Link speed in Mbps |
 | full_duplex | Whether the port is running in full-duplex mode |
 
@@ -224,10 +303,22 @@ Representation of a switch port on a UniFi device.
     (UnifiPort)-[RESOURCE]->(UnifiSite)
     ```
 
-- A UnifiPort is on a UnifiDevice
+- A UnifiPort is a physical port on a UnifiDevice
 
     ```
     (UnifiPort)-[HAS_PORT]->(UnifiDevice)
+    ```
+
+- A wired UnifiClient connects through this UnifiPort
+
+    ```
+    (UnifiPort)-[CONNECTED_VIA]->(UnifiClient)
+    ```
+
+- A UnifiDevice uplinks to its upstream switch through this UnifiPort
+
+    ```
+    (UnifiDevice)-[UPLINK_VIA_PORT]->(UnifiPort)
     ```
 
 ---
@@ -262,7 +353,7 @@ Representation of a NAT port forwarding rule on the UniFi gateway.
 
 ### UnifiTrafficRule
 
-Representation of a UniFi traffic management rule (QoS, blocking, etc.).
+Representation of a UniFi traffic management rule (QoS, blocking, application control, etc.).
 
 | Field | Description |
 |-------|-------------|
@@ -276,6 +367,11 @@ Representation of a UniFi traffic management rule (QoS, blocking, etc.).
 | bandwidth_limit_enabled | Whether bandwidth limiting is active |
 | download_limit_kbps | Download bandwidth limit in Kbps |
 | upload_limit_kbps | Upload bandwidth limit in Kbps |
+| app_ids | List of DPI application IDs this rule targets |
+| app_category_ids | List of DPI application category IDs this rule targets |
+| network_ids | List of network IDs this rule applies to |
+| domains | List of domain names this rule matches |
+| target_client_macs | List of client MAC addresses this rule explicitly targets |
 
 #### Relationships
 
@@ -285,11 +381,23 @@ Representation of a UniFi traffic management rule (QoS, blocking, etc.).
     (UnifiTrafficRule)-[RESOURCE]->(UnifiSite)
     ```
 
+- A UnifiTrafficRule targets specific UnifiDPIApps
+
+    ```
+    (UnifiTrafficRule)-[APPLIES_TO_APP]->(UnifiDPIApp)
+    ```
+
+- A UnifiTrafficRule targets specific UnifiClients
+
+    ```
+    (UnifiTrafficRule)-[APPLIES_TO_CLIENT]->(UnifiClient)
+    ```
+
 ---
 
 ### UnifiTrafficRoute
 
-Representation of a static routing rule on the UniFi gateway.
+Representation of a policy-based routing rule on the UniFi gateway.
 
 | Field | Description |
 |-------|-------------|
@@ -298,9 +406,12 @@ Representation of a static routing rule on the UniFi gateway.
 | id | Route unique ID |
 | description | Human-readable route description |
 | enabled | Whether this route is active |
-| matching_target | Matching target type (e.g. `IP`) |
-| network_id | Associated network ID |
+| matching_target | Matching target type (e.g. `IP`, `DOMAIN`, `REGION`) |
+| network_id | ID of the network this route applies to |
 | next_hop | Next-hop IP address for this route |
+| regions | List of geographic region codes this route matches |
+| domains | List of domain names this route matches |
+| target_client_macs | List of client MAC addresses this route explicitly targets |
 
 #### Relationships
 
@@ -308,6 +419,12 @@ Representation of a static routing rule on the UniFi gateway.
 
     ```
     (UnifiTrafficRoute)-[RESOURCE]->(UnifiSite)
+    ```
+
+- A UnifiTrafficRoute targets specific UnifiClients
+
+    ```
+    (UnifiTrafficRoute)-[APPLIES_TO_CLIENT]->(UnifiClient)
     ```
 
 ---
@@ -324,6 +441,7 @@ Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 | name | Group name |
 | attr_no_delete | Whether this group cannot be deleted (built-in) |
 | attr_hidden_id | Internal hidden ID for built-in groups |
+| dpiapp_ids | List of DPI application IDs in this group |
 
 #### Relationships
 
@@ -331,6 +449,12 @@ Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 
     ```
     (UnifiDPIGroup)-[RESOURCE]->(UnifiSite)
+    ```
+
+- A UnifiDPIGroup contains UnifiDPIApps
+
+    ```
+    (UnifiDPIGroup)-[CONTAINS_APP]->(UnifiDPIApp)
     ```
 
 - A UnifiDPIApp is a member of a UnifiDPIGroup
@@ -369,6 +493,18 @@ Representation of a Deep Packet Inspection (DPI) application restriction in UniF
     (UnifiDPIApp)-[MEMBER_OF]->(UnifiDPIGroup)
     ```
 
+- A UnifiDPIGroup contains this UnifiDPIApp
+
+    ```
+    (UnifiDPIGroup)-[CONTAINS_APP]->(UnifiDPIApp)
+    ```
+
+- A UnifiTrafficRule targets this UnifiDPIApp
+
+    ```
+    (UnifiTrafficRule)-[APPLIES_TO_APP]->(UnifiDPIApp)
+    ```
+
 ---
 
 ### UnifiFirewallPolicy
@@ -387,8 +523,11 @@ Representation of a firewall policy rule in UniFi.
 | protocol | Matched protocol (e.g. `tcp`, `udp`, `all`) |
 | predefined | Whether this is a built-in policy |
 | index | Policy priority order (lower = higher priority) |
-| connection_state_type | Connection state matched (e.g. `NEW`, `ESTABLISHED`) |
+| ip_version | IP version matched (`IPv4`, `IPv6`) |
+| connection_state_type | Connection state matched (e.g. `NEW`, `ESTABLISHED`, `ALL`) |
 | logging | Whether matching traffic is logged |
+| source_zone_id | ID of the source firewall zone |
+| destination_zone_id | ID of the destination firewall zone |
 
 #### Relationships
 
@@ -396,6 +535,18 @@ Representation of a firewall policy rule in UniFi.
 
     ```
     (UnifiFirewallPolicy)-[RESOURCE]->(UnifiSite)
+    ```
+
+- A UnifiFirewallPolicy originates from a source UnifiFirewallZone
+
+    ```
+    (UnifiFirewallPolicy)-[FROM_ZONE]->(UnifiFirewallZone)
+    ```
+
+- A UnifiFirewallPolicy targets a destination UnifiFirewallZone
+
+    ```
+    (UnifiFirewallPolicy)-[TO_ZONE]->(UnifiFirewallZone)
     ```
 
 ---
@@ -422,6 +573,18 @@ Representation of a network security zone in UniFi.
 
     ```
     (UnifiFirewallZone)-[RESOURCE]->(UnifiSite)
+    ```
+
+- UnifiFirewallPolicies reference this zone as their source
+
+    ```
+    (UnifiFirewallPolicy)-[FROM_ZONE]->(UnifiFirewallZone)
+    ```
+
+- UnifiFirewallPolicies reference this zone as their destination
+
+    ```
+    (UnifiFirewallPolicy)-[TO_ZONE]->(UnifiFirewallZone)
     ```
 
 ---
