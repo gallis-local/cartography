@@ -6,6 +6,7 @@ import pytest
 
 import cartography.intel.unifi.dpi_apps
 import cartography.intel.unifi.dpi_groups
+import cartography.intel.unifi.sites
 import tests.data.unifi
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
@@ -108,6 +109,10 @@ async def test_unifi_dpi_app_to_site_relationship(mock_apps, neo4j_session):
     MEMBER_OF (app→group) was removed; the canonical direction is
     Group-[:CONTAINS_APP]->App, tested in test_unifi_dpi_group_contains_app_relationship.
     """
+    # Site must exist before loading apps so the RESOURCE relationship can be created
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session, tests.data.unifi.UNIFI_SITES, TEST_UPDATE_TAG
+    )
     mock_controller = MagicMock()
     site_id = "default"
     common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
