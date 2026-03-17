@@ -33,7 +33,7 @@ async def test_sync_vouchers(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert
@@ -72,7 +72,7 @@ async def test_sync_vouchers_relationships(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert - Check RESOURCE relationships
@@ -148,7 +148,7 @@ async def test_sync_vouchers_cleanup(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert - Stale voucher should be removed

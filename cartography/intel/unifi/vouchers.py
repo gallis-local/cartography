@@ -80,12 +80,11 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Any,
     site_id: str,
-    update_tag: int,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync vouchers from UniFi controller to Neo4j
     """
     vouchers = await get(controller, site_id)
-    load_vouchers(neo4j_session, vouchers, site_id, update_tag)
+    load_vouchers(neo4j_session, vouchers, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
