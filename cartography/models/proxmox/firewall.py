@@ -296,7 +296,7 @@ class ProxmoxFirewallRuleToIPSetMatchLink(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "name": PropertyRef("ipset_name"),
-            "scope": PropertyRef("scope"),
+            "cluster_id": PropertyRef("cluster_id"),
         }
     )
     source_node_label: str = "ProxmoxFirewallRule"

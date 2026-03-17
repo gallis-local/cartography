@@ -267,8 +267,6 @@ def transform_sdn_ipams(
                 "type": ipam.get("type"),
                 "cluster_id": cluster_id,
                 "url": ipam.get("url"),
-                # Don't store actual token, just indicate if one is configured
-                "token": "configured" if ipam.get("token") else None,
                 "section": ipam.get("section"),
             }
         )
