@@ -146,6 +146,7 @@ UNIFI_CLIENTS = [
         "sw_mac": None,
         "sw_port": None,
         "port_id": None,
+        "ap_switch_mac": "AA:BB:CC:DD:EE:FF",
         "site_id": "default",
     },
     {
@@ -169,6 +170,7 @@ UNIFI_CLIENTS = [
         "sw_mac": None,
         "sw_port": None,
         "port_id": None,
+        "ap_switch_mac": "AA:BB:CC:DD:EE:FF",
         "site_id": "default",
     },
     {
@@ -192,6 +194,7 @@ UNIFI_CLIENTS = [
         "sw_mac": "AA:BB:CC:DD:EE:FF",
         "sw_port": 1,
         "port_id": "AA:BB:CC:DD:EE:FF_1",
+        "ap_switch_mac": None,
         "site_id": "default",
     },
 ]
