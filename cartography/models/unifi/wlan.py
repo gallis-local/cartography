@@ -23,6 +23,13 @@ class UnifiWlanNodeProperties(CartographyNodeProperties):
     usergroup_id: PropertyRef = PropertyRef("usergroup_id")
     hide_ssid: PropertyRef = PropertyRef("hide_ssid")
     mac_filter_enabled: PropertyRef = PropertyRef("mac_filter_enabled")
+    mac_filter_policy: PropertyRef = PropertyRef("mac_filter_policy")
+    bc_filter_enabled: PropertyRef = PropertyRef("bc_filter_enabled")
+    no2ghz_oui: PropertyRef = PropertyRef("no2ghz_oui")
+    name_combine_enabled: PropertyRef = PropertyRef("name_combine_enabled")
+    wlangroup_id: PropertyRef = PropertyRef("wlangroup_id")
+    schedule: PropertyRef = PropertyRef("schedule")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

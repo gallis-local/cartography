@@ -27,6 +27,8 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     # Convert aiounifi FirewallPolicy objects to dictionaries
     firewall_policies = []
     for policy in controller.firewall_policies.values():
+        source = policy.source if isinstance(policy.source, dict) else {}
+        destination = policy.destination if isinstance(policy.destination, dict) else {}
         firewall_policies.append(
             {
                 "id": policy.id,
@@ -37,8 +39,11 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "protocol": policy.protocol,
                 "predefined": policy.predefined,
                 "index": policy.index,
+                "ip_version": policy.ip_version,
                 "connection_state_type": policy.connection_state_type,
                 "logging": policy.raw.get("logging", False),
+                "source_zone_id": source.get("zone_id"),
+                "destination_zone_id": destination.get("zone_id"),
                 "site_id": site_id,
             }
         )

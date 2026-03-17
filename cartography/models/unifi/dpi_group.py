@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -17,6 +18,7 @@ class UnifiDPIGroupNodeProperties(CartographyNodeProperties):
     name: PropertyRef = PropertyRef("name")
     attr_no_delete: PropertyRef = PropertyRef("attr_no_delete")
     attr_hidden_id: PropertyRef = PropertyRef("attr_hidden_id")
+    dpiapp_ids: PropertyRef = PropertyRef("dpiapp_ids")
 
 
 @dataclass(frozen=True)
@@ -37,7 +39,29 @@ class UnifiDPIGroupToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiDPIGroupToAppRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiDPIGroup)-[:CONTAINS_APP]->(:UnifiDPIApp)
+class UnifiDPIGroupToAppRel(CartographyRelSchema):
+    target_node_label: str = "UnifiDPIApp"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("dpiapp_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "CONTAINS_APP"
+    properties: UnifiDPIGroupToAppRelProperties = UnifiDPIGroupToAppRelProperties()
+
+
+@dataclass(frozen=True)
 class UnifiDPIGroupSchema(CartographyNodeSchema):
     label: str = "UnifiDPIGroup"
     properties: UnifiDPIGroupNodeProperties = UnifiDPIGroupNodeProperties()
     sub_resource_relationship: UnifiDPIGroupToSiteRel = UnifiDPIGroupToSiteRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiDPIGroupToAppRel(),
+        ],
+    )

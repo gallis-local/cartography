@@ -33,6 +33,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "name": group.name,
                 "attr_no_delete": group.attr_no_delete or False,
                 "attr_hidden_id": group.attr_hidden_id or "",
+                "dpiapp_ids": group.dpiapp_ids or None,
                 "site_id": site_id,
             }
         )

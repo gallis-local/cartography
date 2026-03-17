@@ -27,6 +27,16 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     # Convert aiounifi TrafficRoute objects to dictionaries
     traffic_routes = []
     for route in controller.traffic_routes.values():
+        # Extract domain name strings from the domains list of Domain objects
+        domain_names = [
+            d["domain"] for d in (route.raw.get("domains") or []) if d.get("domain")
+        ]
+        # Extract client MACs from target_devices
+        target_client_macs = [
+            td["client_mac"]
+            for td in (route.raw.get("target_devices") or [])
+            if td.get("client_mac")
+        ]
         traffic_routes.append(
             {
                 "id": route.id,
@@ -35,6 +45,9 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "matching_target": str(route.matching_target),
                 "network_id": route.network_id,
                 "next_hop": route.next_hop,
+                "regions": route.raw.get("regions") or None,
+                "domains": domain_names or None,
+                "target_client_macs": target_client_macs or None,
                 "site_id": site_id,
             }
         )

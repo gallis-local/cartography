@@ -3,6 +3,7 @@ from typing import Any
 
 import neo4j
 from aiounifi.controller import Controller
+from aiounifi.models.device import DeviceState
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -29,6 +30,21 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     # Convert aiounifi Device objects to dictionaries
     devices = []
     for device in controller.devices.values():
+        state_val = device.raw.get("state")
+        uplink = device.raw.get("uplink") or {}
+
+        # Collect broadcast WLAN IDs from vap_table (active broadcasts) and
+        # wlan_overrides (configured per-radio overrides), deduplicating across both.
+        wlan_id_set: set[str] = set()
+        for vap in device.raw.get("vap_table") or []:
+            wlan_conf_id = vap.get("wlanconf_id") or vap.get("wlan_id")
+            if wlan_conf_id:
+                wlan_id_set.add(wlan_conf_id)
+        for override in device.wlan_overrides:
+            wlan_id = override.get("wlan_id")
+            if wlan_id:
+                wlan_id_set.add(wlan_id)
+
         devices.append(
             {
                 "mac": device.mac,
@@ -36,6 +52,19 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "type": device.type,
                 "model": device.model,
                 "name": device.name or device.mac,  # Fallback to MAC if no name
+                "ip": device.ip,
+                "version": device.raw.get("version"),
+                "state": DeviceState(state_val).name if state_val is not None else None,
+                "uptime": device.uptime,
+                "last_seen": device.last_seen,
+                "upgradable": device.upgradable,
+                "uplink_mac": uplink.get("uplink_mac"),
+                "uplink_port_id": (
+                    f"{uplink['uplink_mac']}_{uplink['uplink_remote_port_idx']}"
+                    if uplink.get("uplink_mac") and uplink.get("uplink_remote_port_idx") is not None
+                    else None
+                ),
+                "wlan_ids": list(wlan_id_set) or None,
                 "site_id": site_id,
             }
         )

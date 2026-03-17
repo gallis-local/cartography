@@ -27,6 +27,13 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     # Convert aiounifi TrafficRule objects to dictionaries
     traffic_rules = []
     for rule in controller.traffic_rules.values():
+        bw_limit = rule.raw.get("bandwidth_limit", {}) or {}
+        # Extract client MACs from target_devices
+        target_client_macs = [
+            td["client_mac"]
+            for td in (rule.raw.get("target_devices") or [])
+            if td.get("client_mac")
+        ]
         traffic_rules.append(
             {
                 "id": rule.id,
@@ -35,15 +42,15 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "action": rule.action,
                 "matching_target": rule.matching_target,
                 # Bandwidth limit settings
-                "bandwidth_limit_enabled": rule.raw.get("bandwidth_limit", {}).get(
-                    "enabled", False
-                ),
-                "download_limit_kbps": rule.raw.get("bandwidth_limit", {}).get(
-                    "download_limit_kbps"
-                ),
-                "upload_limit_kbps": rule.raw.get("bandwidth_limit", {}).get(
-                    "upload_limit_kbps"
-                ),
+                "bandwidth_limit_enabled": bw_limit.get("enabled", False),
+                "download_limit_kbps": bw_limit.get("download_limit_kbps"),
+                "upload_limit_kbps": bw_limit.get("upload_limit_kbps"),
+                # Matching criteria
+                "app_ids": rule.raw.get("app_ids") or None,
+                "app_category_ids": rule.raw.get("app_category_ids") or None,
+                "network_ids": rule.raw.get("network_ids") or None,
+                "domains": rule.raw.get("domains") or None,
+                "target_client_macs": target_client_macs or None,
                 "site_id": site_id,
             }
         )

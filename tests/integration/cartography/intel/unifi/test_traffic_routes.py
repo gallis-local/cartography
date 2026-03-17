@@ -4,8 +4,13 @@ from unittest.mock import patch
 
 import pytest
 
+import cartography.intel.unifi.clients
+import cartography.intel.unifi.sites
 import cartography.intel.unifi.traffic_routes
 import tests.data.unifi
+from tests.integration.cartography.intel.unifi.test_devices import (
+    _ensure_local_neo4j_has_test_devices,
+)
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
@@ -193,3 +198,49 @@ async def test_unifi_traffic_route_cleanup(mock_get, neo4j_session):
         """
     )
     assert result.single()["count"] == 0
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.traffic_routes,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_TRAFFIC_ROUTES,
+)
+async def test_unifi_traffic_route_to_client_relationship(mock_get, neo4j_session):
+    """
+    Ensure that traffic routes with target_client_macs are linked to clients via APPLIES_TO_CLIENT.
+    """
+    neo4j_session.run(
+        "MERGE (s:UnifiSite {id: 'default'}) SET s.lastupdated = $t",
+        t=TEST_UPDATE_TAG,
+    )
+    _ensure_local_neo4j_has_test_devices(neo4j_session)
+    mock_controller = MagicMock()
+    site_id = "default"
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+
+    # Load clients first
+    cartography.intel.unifi.clients.load_clients(
+        neo4j_session, tests.data.unifi.UNIFI_CLIENTS, site_id, TEST_UPDATE_TAG
+    )
+    await cartography.intel.unifi.traffic_routes.sync(
+        neo4j_session, mock_controller, site_id, common_job_parameters
+    )
+
+    # route_001 targets client DD:EE:FF:00:11:22 (wired workstation)
+    expected_rels = {
+        ("route_001", "DD:EE:FF:00:11:22"),
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiTrafficRoute",
+            "id",
+            "UnifiClient",
+            "id",
+            "APPLIES_TO_CLIENT",
+            rel_direction_right=True,
+        )
+        == expected_rels
+    )

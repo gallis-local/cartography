@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -21,8 +22,11 @@ class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
     protocol: PropertyRef = PropertyRef("protocol")
     predefined: PropertyRef = PropertyRef("predefined")
     index: PropertyRef = PropertyRef("index")
+    ip_version: PropertyRef = PropertyRef("ip_version")
     connection_state_type: PropertyRef = PropertyRef("connection_state_type")
     logging: PropertyRef = PropertyRef("logging")
+    source_zone_id: PropertyRef = PropertyRef("source_zone_id")
+    destination_zone_id: PropertyRef = PropertyRef("destination_zone_id")
 
 
 @dataclass(frozen=True)
@@ -45,9 +49,53 @@ class UnifiFirewallPolicyToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiFirewallPolicyToSourceZoneRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiFirewallPolicy)-[:FROM_ZONE]->(:UnifiFirewallZone)
+class UnifiFirewallPolicyToSourceZoneRel(CartographyRelSchema):
+    target_node_label: str = "UnifiFirewallZone"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("source_zone_id")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "FROM_ZONE"
+    properties: UnifiFirewallPolicyToSourceZoneRelProperties = (
+        UnifiFirewallPolicyToSourceZoneRelProperties()
+    )
+
+
+@dataclass(frozen=True)
+class UnifiFirewallPolicyToDestZoneRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiFirewallPolicy)-[:TO_ZONE]->(:UnifiFirewallZone)
+class UnifiFirewallPolicyToDestZoneRel(CartographyRelSchema):
+    target_node_label: str = "UnifiFirewallZone"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("destination_zone_id")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "TO_ZONE"
+    properties: UnifiFirewallPolicyToDestZoneRelProperties = (
+        UnifiFirewallPolicyToDestZoneRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiFirewallPolicySchema(CartographyNodeSchema):
     label: str = "UnifiFirewallPolicy"
     properties: UnifiFirewallPolicyNodeProperties = UnifiFirewallPolicyNodeProperties()
     sub_resource_relationship: UnifiFirewallPolicyToSiteRel = (
         UnifiFirewallPolicyToSiteRel()
+    )
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiFirewallPolicyToSourceZoneRel(),
+            UnifiFirewallPolicyToDestZoneRel(),
+        ],
     )
