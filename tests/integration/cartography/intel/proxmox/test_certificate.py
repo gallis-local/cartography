@@ -76,7 +76,7 @@ def test_sync_certificates(mock_get_node_certs, neo4j_session):
         ("test-cluster/node/node2/cert/pveproxy-ssl.pem", "test-cluster/node/node2"),
     }
     assert (
-        check_nodes(neo4j_session, "ProxmoxCertificate", ["id", "node_name"])
+        check_nodes(neo4j_session, "ProxmoxCertificate", ["id", "node_id"])
         == expected_certs
     )
 
@@ -119,7 +119,7 @@ def test_sync_certificates(mock_get_node_certs, neo4j_session):
     # Assert - Certificate properties for node1
     result = neo4j_session.run(
         """
-        MATCH (cert:ProxmoxCertificate {node_name: 'node1'})
+        MATCH (cert:ProxmoxCertificate {node_id: 'test-cluster/node/node1'})
         RETURN cert.fingerprint as fingerprint,
                cert.subject as subject,
                cert.issuer as issuer,
@@ -153,7 +153,7 @@ def test_sync_certificates(mock_get_node_certs, neo4j_session):
     # Assert - Certificate expiration (node2 is expired)
     result = neo4j_session.run(
         """
-        MATCH (cert:ProxmoxCertificate {node_name: 'test-cluster/node/node2'})
+        MATCH (cert:ProxmoxCertificate {node_id: 'test-cluster/node/node2'})
         RETURN cert.notafter as notafter
         """
     )

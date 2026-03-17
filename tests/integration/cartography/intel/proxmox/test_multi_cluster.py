@@ -97,6 +97,7 @@ def test_multi_cluster_node_isolation(
     )
 
     # Assert - Should have 2 separate ProxmoxNode nodes
+    # check_nodes returns a set of tuples: {(id, name, cluster_id), ...}
     nodes = check_nodes(
         neo4j_session,
         "ProxmoxNode",
@@ -105,10 +106,10 @@ def test_multi_cluster_node_isolation(
 
     assert len(nodes) == 2, f"Expected 2 nodes, got {len(nodes)}"
 
-    # Check that both nodes have different IDs but same name
-    node_ids = {node["id"] for node in nodes}
-    node_names = {node["name"] for node in nodes}
-    cluster_ids = {node["cluster_id"] for node in nodes}
+    # Unpack tuple elements by position (id=0, name=1, cluster_id=2)
+    node_ids = {node[0] for node in nodes}
+    node_names = {node[1] for node in nodes}
+    cluster_ids = {node[2] for node in nodes}
 
     assert len(node_ids) == 2, f"Node IDs should be unique: {node_ids}"
     assert len(node_names) == 1, f"Node names should be the same: {node_names}"
@@ -184,6 +185,7 @@ def test_multi_cluster_vm_isolation(
     )
 
     # Assert - Should have 2 separate ProxmoxVM nodes
+    # check_nodes returns a set of tuples: {(id, vmid, name, cluster_id), ...}
     vms = check_nodes(
         neo4j_session,
         "ProxmoxVM",
@@ -192,11 +194,11 @@ def test_multi_cluster_vm_isolation(
 
     assert len(vms) == 2, f"Expected 2 VMs, got {len(vms)}"
 
-    # Check that both VMs have different IDs but same VMID and name
-    vm_ids = {vm["id"] for vm in vms}
-    vm_vmids = {vm["vmid"] for vm in vms}
-    vm_names = {vm["name"] for vm in vms}
-    cluster_ids = {vm["cluster_id"] for vm in vms}
+    # Unpack tuple elements by position (id=0, vmid=1, name=2, cluster_id=3)
+    vm_ids = {vm[0] for vm in vms}
+    vm_vmids = {vm[1] for vm in vms}
+    vm_names = {vm[2] for vm in vms}
+    cluster_ids = {vm[3] for vm in vms}
 
     assert len(vm_ids) == 2, f"VM IDs should be unique: {vm_ids}"
     assert len(vm_vmids) == 1, f"VM VMIDs should be the same: {vm_vmids}"
@@ -263,6 +265,7 @@ def test_multi_cluster_user_isolation(
     )
 
     # Assert - Should have 2 separate ProxmoxUser nodes
+    # check_nodes returns a set of tuples: {(id, userid, cluster_id), ...}
     users = check_nodes(
         neo4j_session,
         "ProxmoxUser",
@@ -271,10 +274,10 @@ def test_multi_cluster_user_isolation(
 
     assert len(users) == 2, f"Expected 2 users, got {len(users)}"
 
-    # Check that both users have different IDs but same userid
-    user_ids = {user["id"] for user in users}
-    userids = {user["userid"] for user in users}
-    cluster_ids = {user["cluster_id"] for user in users}
+    # Unpack tuple elements by position (id=0, userid=1, cluster_id=2)
+    user_ids = {user[0] for user in users}
+    userids = {user[1] for user in users}
+    cluster_ids = {user[2] for user in users}
 
     assert len(user_ids) == 2, f"User IDs should be unique: {user_ids}"
     assert len(userids) == 1, f"User userids should be the same: {userids}"
@@ -379,6 +382,7 @@ def test_multi_cluster_network_adjacency_isolation(
     )
 
     # Assert - Should have 4 VMs total (2 per cluster)
+    # check_nodes returns a set of tuples: {(id, vmid, cluster_id), ...}
     vms = check_nodes(
         neo4j_session,
         "ProxmoxVM",
@@ -387,34 +391,23 @@ def test_multi_cluster_network_adjacency_isolation(
 
     assert len(vms) == 4, f"Expected 4 VMs, got {len(vms)}"
 
-    # Check NETWORK_ADJACENT relationships
-    # Should have 2 relationships: one within cluster-a, one within cluster-b
-    # Should NOT have cross-cluster relationships
-    adjacency_rels = check_rels(
-        neo4j_session,
-        "ProxmoxVM",
-        "NETWORK_ADJACENT",
-        "ProxmoxVM",
-        ["bridge", "vlan_tag"],
+    # Check NETWORK_ADJACENT relationships using raw Cypher
+    # (check_rels doesn't support relationship property filters)
+    result = neo4j_session.run(
+        """
+        MATCH (vm1:ProxmoxVM)-[:NETWORK_ADJACENT]->(vm2:ProxmoxVM)
+        RETURN vm1.cluster_id AS cluster1, vm2.cluster_id AS cluster2
+        ORDER BY cluster1
+        """
     )
+    adjacency_rels = list(result)
 
     # Each cluster should have 1 adjacency relationship between its 2 VMs
     assert len(adjacency_rels) == 2, f"Expected 2 NETWORK_ADJACENT relationships, got {len(adjacency_rels)}"
 
     # Verify no cross-cluster relationships
     for rel in adjacency_rels:
-        # Get the VMs involved in this relationship
-        result = neo4j_session.run(
-            """
-            MATCH (vm1:ProxmoxVM)-[r:NETWORK_ADJACENT]-(vm2:ProxmoxVM)
-            WHERE id(r) = $rel_id
-            RETURN vm1.cluster_id AS cluster1, vm2.cluster_id AS cluster2
-            """,
-            rel_id=rel["id"] if "id" in rel else None,
+        assert rel["cluster1"] == rel["cluster2"], (
+            f"NETWORK_ADJACENT relationship crosses cluster boundary: "
+            f"{rel['cluster1']} -> {rel['cluster2']}"
         )
-        record = result.single()
-        if record:
-            assert record["cluster1"] == record["cluster2"], (
-                f"NETWORK_ADJACENT relationship crosses cluster boundary: "
-                f"{record['cluster1']} -> {record['cluster2']}"
-            )
