@@ -468,7 +468,7 @@ class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "name": PropertyRef("bridge"),
-            "node_name": PropertyRef("node_name"),
+            "node_id": PropertyRef("node_name"),
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
