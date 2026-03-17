@@ -211,8 +211,9 @@ def sync(
                 }
 
                 if member.get("type") in ("qemu", "lxc"):
-                    # For VMs/containers, use integer VMID (MatchLink matches on vmid property)
+                    # For VMs/containers, use integer VMID and cluster_id (MatchLink matches on both)
                     member_data["vmid"] = member.get("vmid")
+                    member_data["cluster_id"] = cluster_id
                 elif member.get("type") == "storage":
                     # For storage, build full storage ID using new pattern
                     # MatchLink will match on the full storage ID

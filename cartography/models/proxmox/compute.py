@@ -271,13 +271,14 @@ class ProxmoxDiskToVMRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxVM)-[:HAS_DISK]->(:ProxmoxDisk)
 
-    VMs have attached disks. Use vmid to match.
+    VMs have attached disks. Use vmid + cluster_id to match.
     """
 
     target_node_label: str = "ProxmoxVM"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),
+            "cluster_id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
@@ -425,13 +426,14 @@ class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxVM)-[:HAS_NETWORK_INTERFACE]->(:ProxmoxNetworkInterface)
 
-    VMs have network interfaces. Use vmid to match.
+    VMs have network interfaces. Use vmid + cluster_id to match.
     """
 
     target_node_label: str = "ProxmoxVM"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),
+            "cluster_id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD

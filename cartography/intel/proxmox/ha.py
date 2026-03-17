@@ -218,6 +218,7 @@ def load_ha_resource_vm_relationships(
                     {
                         "sid": sid,
                         "vmid": int(parts[1]),
+                        "cluster_id": cluster_id,
                     }
                 )
 
