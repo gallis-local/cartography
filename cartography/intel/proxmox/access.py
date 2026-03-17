@@ -545,6 +545,7 @@ def load_acl_resource_relationships(
 def load_effective_permissions(
     neo4j_session: neo4j.Session,
     update_tag: int,
+    cluster_id: str,
 ) -> None:
     """
     Create derived relationships showing effective permissions.
@@ -554,6 +555,7 @@ def load_effective_permissions(
 
     :param neo4j_session: Neo4j session
     :param update_tag: Sync timestamp
+    :param cluster_id: Cluster ID to scope cleanup (prevents cross-cluster edge deletion)
     """
     from cartography.client.core.tx import run_write_query
 
@@ -611,13 +613,19 @@ def load_effective_permissions(
     """
     run_write_query(neo4j_session, query, UpdateTag=update_tag)
 
-    # Clean up stale HAS_PERMISSION relationships not updated in this sync
+    # Clean up stale HAS_PERMISSION relationships for this cluster only.
+    # Scoped to users/groups belonging to this cluster to avoid clobbering
+    # HAS_PERMISSION edges that belong to other clusters in a multi-cluster setup.
     cleanup_query = """
-    MATCH ()-[r:HAS_PERMISSION]->()
-    WHERE r.lastupdated <> $UpdateTag
+    MATCH (:ProxmoxUser {cluster_id: $ClusterId})-[r:HAS_PERMISSION]->()
+    WHERE r.lastupdated < $UpdateTag
+    DELETE r
+    UNION
+    MATCH (:ProxmoxGroup {cluster_id: $ClusterId})-[r:HAS_PERMISSION]->()
+    WHERE r.lastupdated < $UpdateTag
     DELETE r
     """
-    run_write_query(neo4j_session, cleanup_query, UpdateTag=update_tag)
+    run_write_query(neo4j_session, cleanup_query, UpdateTag=update_tag, ClusterId=cluster_id)
 
 
 # ============================================================================
@@ -682,7 +690,7 @@ def sync(
 
     # Create derived effective permission relationships
     # This makes it easy to query "what can this user access?"
-    load_effective_permissions(neo4j_session, update_tag)
+    load_effective_permissions(neo4j_session, update_tag, cluster_id)
 
     logger.info(
         f"Synced {len(transformed_users)} users, {len(transformed_groups)} groups, "
