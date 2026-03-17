@@ -206,7 +206,8 @@ def sync(
         if "members" in details:
             for member in details["members"]:
                 member_data = {
-                    "pool_id": poolid,  # Pool ID (bare poolid, used by MatchLink to find pool)
+                    "pool_id": poolid,  # Bare pool ID retained for reference
+                    "pool_full_id": f"{cluster_id}/pool/{poolid}",  # Full cluster-scoped ID for MatchLink source matching
                     "type": member.get("type"),
                 }
 
