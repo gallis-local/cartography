@@ -226,7 +226,7 @@ def sync(
                 for vmid in vmids:
                     job_vms.append(
                         {
-                            "job_id": job_id,
+                            "backup_job_id": f"{cluster_id}/backup/{job_id}",
                             "vmid": vmid,
                             "cluster_id": cluster_id,
                         }

@@ -170,7 +170,7 @@ class ProxmoxBackupJobToVMMatchLink(CartographyRelSchema):
     source_node_label: str = "ProxmoxBackupJob"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "id": PropertyRef("job_id"),
+            "id": PropertyRef("backup_job_id"),
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
