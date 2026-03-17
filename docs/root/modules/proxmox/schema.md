@@ -135,7 +135,7 @@ Representation of a QEMU virtual machine or LXC container.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique identifier in format "node/type/vmid" (e.g., "node1/qemu/100") |
+| **id** | Unique identifier in format "cluster_id/vm/vmid" (e.g., "mycluster/vm/100") |
 | vmid | Numeric VM/container ID |
 | name | VM or container name |
 | node | Name of the host node |
@@ -168,6 +168,12 @@ Representation of a QEMU virtual machine or LXC container.
 
     ```
     (ProxmoxVM)-[HAS_NETWORK_INTERFACE]->(ProxmoxNetworkInterface)
+    ```
+
+- ProxmoxVM has ProxmoxSnapshots.
+
+    ```
+    (ProxmoxSnapshot)-[SNAPSHOT_OF]->(ProxmoxVM)
     ```
 
 ### ProxmoxDisk
@@ -561,6 +567,7 @@ Representation of a user account in Proxmox VE.
 | **id** | User identifier (format: user@realm) |
 | userid | Full user ID |
 | cluster_id | ID of the parent ProxmoxCluster |
+| realm | Authentication realm name (e.g., pam, ldap, pve) |
 | enable | Boolean indicating if account is enabled |
 | expire | Account expiration timestamp (0 = never expires) |
 | firstname | User's first name |
@@ -568,7 +575,6 @@ Representation of a user account in Proxmox VE.
 | email | User's email address |
 | comment | User description or notes |
 | groups | Array of group memberships |
-| tokens | Array of API tokens |
 
 #### Relationships
 
@@ -576,6 +582,12 @@ Representation of a user account in Proxmox VE.
 
     ```
     (ProxmoxUser)-[MEMBER_OF_GROUP]->(ProxmoxGroup)
+    ```
+
+- ProxmoxUser authenticates via ProxmoxAuthRealm.
+
+    ```
+    (ProxmoxUser)-[AUTHENTICATES_VIA]->(ProxmoxAuthRealm)
     ```
 
 - ProxmoxACL grants permissions to ProxmoxUsers.
@@ -705,17 +717,19 @@ Representation of a firewall rule at cluster, node, or VM level.
 
 #### Relationships
 
-- ProxmoxFirewallRule applies to ProxmoxNodes.
+- Node-scoped ProxmoxFirewallRules apply to ProxmoxNodes.
 
     ```
     (ProxmoxFirewallRule)-[APPLIES_TO_NODE]->(ProxmoxNode)
     ```
 
-- ProxmoxFirewallRule applies to ProxmoxVMs.
+- ProxmoxFirewallRule references ProxmoxFirewallIPSets.
 
     ```
-    (ProxmoxFirewallRule)-[APPLIES_TO_VM]->(ProxmoxVM)
+    (ProxmoxFirewallRule)-[USES_IPSET {in_source, in_dest}]->(ProxmoxFirewallIPSet)
     ```
+
+> **Note**: VM-level firewall rules are not currently synced. Only cluster-level and node-level rules are collected.
 
 ### ProxmoxFirewallIPSet
 
@@ -732,6 +746,287 @@ Representation of an IP set (address group) for firewall rules.
 | scope_id | Scope identifier (node name or vmid) |
 | comment | IP set description or notes |
 | cidrs | Array of CIDR entries in this IP set |
+
+### ProxmoxSnapshot
+
+Representation of a VM or container snapshot.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/vm/vmid/snapshot/name) |
+| name | Snapshot name |
+| cluster_id | ID of the parent ProxmoxCluster |
+| vmid | ID of the snapshotted VM/container |
+| vm_type | Type of guest (qemu or lxc) |
+| node | Name of the node where the VM resides |
+| description | Snapshot description |
+| snaptime | Timestamp when the snapshot was taken |
+| vmstate | Boolean indicating if RAM state was included |
+| parent | Name of the parent snapshot (if any) |
+
+#### Relationships
+
+- ProxmoxSnapshot is a snapshot of a ProxmoxVM.
+
+    ```
+    (ProxmoxSnapshot)-[SNAPSHOT_OF]->(ProxmoxVM)
+    ```
+
+### ProxmoxReplicationJob
+
+Representation of a VM/container replication job for disaster recovery.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/replication/job_id) |
+| job_id | Replication job ID |
+| cluster_id | ID of the parent ProxmoxCluster |
+| guest | VMID being replicated |
+| target | Target node name |
+| source | Source node name (optional) |
+| type | Replication type (local, remote) |
+| schedule | Replication schedule (cron-style) |
+| rate | Rate limit in MB/s |
+| disable | Boolean indicating if the job is disabled |
+| comment | Job description or notes |
+
+#### Relationships
+
+- ProxmoxReplicationJob replicates a ProxmoxVM.
+
+    ```
+    (ProxmoxReplicationJob)-[REPLICATES]->(ProxmoxVM)
+    ```
+
+- ProxmoxReplicationJob replicates to a target ProxmoxNode.
+
+    ```
+    (ProxmoxReplicationJob)-[REPLICATES_TO]->(ProxmoxNode)
+    ```
+
+- ProxmoxReplicationJob replicates from a source ProxmoxNode.
+
+    ```
+    (ProxmoxReplicationJob)-[REPLICATES_FROM]->(ProxmoxNode)
+    ```
+
+### ProxmoxAuthRealm
+
+Representation of an authentication realm in Proxmox VE.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/realm/name) |
+| realm | Realm name (e.g., pam, ldap, pve) |
+| cluster_id | ID of the parent ProxmoxCluster |
+| type | Authentication type (pam, ldap, ad, pve, openid) |
+| comment | Realm description or notes |
+| default | Boolean indicating if this is the default realm |
+| tfa | Two-factor authentication type (oath, yubico, etc.) |
+
+#### Relationships
+
+- ProxmoxUsers authenticate via ProxmoxAuthRealm.
+
+    ```
+    (ProxmoxUser)-[AUTHENTICATES_VIA]->(ProxmoxAuthRealm)
+    ```
+
+### ProxmoxAPIToken
+
+Representation of an API token for Proxmox VE authentication.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/user/userid/token/tokenid) |
+| tokenid | Token name/identifier |
+| cluster_id | ID of the parent ProxmoxCluster |
+| userid | Parent user ID |
+| expire | Expiration timestamp (0 = never expires) |
+| privsep | Boolean indicating if privilege separation is enabled |
+| comment | Token description or notes |
+
+#### Relationships
+
+- ProxmoxAPIToken belongs to a ProxmoxUser.
+
+    ```
+    (ProxmoxAPIToken)-[BELONGS_TO]->(ProxmoxUser)
+    ```
+
+### ProxmoxFirewallOptions
+
+Representation of firewall global configuration at cluster or node level.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/firewall/options for cluster, cluster_id/node/name/firewall/options for node) |
+| cluster_id | ID of the parent ProxmoxCluster |
+| scope | Options scope (cluster or node) |
+| scope_id | Node name for node-level options |
+| node_id | Full node ID for node-level options |
+| enable | Boolean indicating if the firewall is enabled |
+| policy_in | Default incoming policy (ACCEPT, REJECT, DROP) |
+| policy_out | Default outgoing policy (ACCEPT, REJECT, DROP) |
+| log_level_in | Log level for incoming traffic |
+| log_level_out | Log level for outgoing traffic |
+| nf_conntrack_max | Maximum connection tracking entries |
+| nf_conntrack_tcp_timeout_established | TCP established connection timeout |
+
+#### Relationships
+
+- Node-level ProxmoxFirewallOptions applies to a ProxmoxNode.
+
+    ```
+    (ProxmoxFirewallOptions)-[APPLIES_TO_NODE]->(ProxmoxNode)
+    ```
+
+### ProxmoxSDNZone
+
+Representation of a Software-Defined Networking zone in Proxmox VE.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/sdn/zone/zone_id) |
+| zone | Zone ID/name |
+| type | Zone type (simple, vlan, qinq, vxlan, evpn) |
+| cluster_id | ID of the parent ProxmoxCluster |
+| bridge | Underlying bridge device (e.g., vmbr0) |
+| nodes | Node restrictions (comma-separated) |
+| mtu | MTU size |
+| tag | VLAN tag or VXLAN ID |
+| peers | Peer addresses for VXLAN/EVPN (comma-separated) |
+| controller | EVPN controller ID |
+| ipam | IPAM plugin ID |
+| dns | DNS plugin ID |
+| reversedns | Reverse DNS plugin ID |
+| dnszone | DNS zone name |
+| vrf_vxlan | VRF VXLAN ID (EVPN) |
+| vxlan_port | VXLAN UDP port |
+| mac | MAC address for VRF |
+| service_vlan | Service VLAN for QinQ |
+
+#### Relationships
+
+- ProxmoxSDNZone belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxSDNZone)-[RESOURCE]->(ProxmoxCluster)
+    ```
+
+### ProxmoxSDNVNet
+
+Representation of a Virtual Network in a Proxmox SDN zone.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/sdn/vnet/vnet_id) |
+| vnet | VNet ID/name |
+| zone | Parent zone ID |
+| cluster_id | ID of the parent ProxmoxCluster |
+| tag | VLAN tag |
+| alias | Friendly name/description |
+| vlanaware | VLAN awareness enabled |
+| mac | MAC address |
+
+#### Relationships
+
+- ProxmoxSDNVNet belongs to a ProxmoxSDNZone.
+
+    ```
+    (ProxmoxSDNVNet)-[BELONGS_TO]->(ProxmoxSDNZone)
+    ```
+
+### ProxmoxSDNSubnet
+
+Representation of an IP subnet within a Proxmox SDN VNet.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/sdn/vnet/vnet_id/subnet/cidr) |
+| subnet | CIDR notation (e.g., 10.0.1.0/24) |
+| vnet | Parent VNet ID |
+| cluster_id | ID of the parent ProxmoxCluster |
+| gateway | Gateway IP address |
+| snat | Source NAT enabled |
+| dhcp_range | DHCP address range |
+| dnszoneprefix | DNS zone prefix |
+
+#### Relationships
+
+- ProxmoxSDNSubnet belongs to a ProxmoxSDNVNet.
+
+    ```
+    (ProxmoxSDNSubnet)-[BELONGS_TO]->(ProxmoxSDNVNet)
+    ```
+
+### ProxmoxSDNController
+
+Representation of an SDN controller (e.g., EVPN/BGP) in Proxmox VE.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/sdn/controller/controller_id) |
+| controller | Controller ID |
+| type | Controller type (evpn, bgp, faucet) |
+| cluster_id | ID of the parent ProxmoxCluster |
+| asn | Autonomous System Number |
+| peers | BGP peer IPs (comma-separated) |
+| node | Node where the controller runs |
+| ebgp | eBGP mode enabled |
+| loopback | Loopback IP address |
+| bgp_multipath_as_path_relax | BGP multipath AS path relaxation |
+
+#### Relationships
+
+- ProxmoxSDNController belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxSDNController)-[RESOURCE]->(ProxmoxCluster)
+    ```
+
+### ProxmoxSDNIPAM
+
+Representation of an IPAM (IP Address Management) plugin in Proxmox VE.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Unique identifier (format: cluster_id/sdn/ipam/ipam_id) |
+| ipam | IPAM ID |
+| type | IPAM type (pve, netbox, phpipam) |
+| cluster_id | ID of the parent ProxmoxCluster |
+| url | API URL for external IPAM plugins |
+| section | Section/tenant ID (for NetBox/phpIPAM) |
+
+> **Note**: IPAM API tokens are intentionally not stored in the graph. Use external secret management for credential storage.
+
+#### Relationships
+
+- ProxmoxSDNIPAM belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxSDNIPAM)-[RESOURCE]->(ProxmoxCluster)
+    ```
 
 ### ProxmoxCertificate
 
