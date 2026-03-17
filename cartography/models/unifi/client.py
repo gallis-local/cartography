@@ -33,6 +33,7 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     vlan: PropertyRef = PropertyRef("vlan")
     sw_mac: PropertyRef = PropertyRef("sw_mac")
     sw_port: PropertyRef = PropertyRef("sw_port")
+    ap_switch_mac: PropertyRef = PropertyRef("ap_switch_mac")
 
 
 @dataclass(frozen=True)
@@ -87,6 +88,23 @@ class UnifiClientToSwitchRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiClientToAPSwitchRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiDevice)<-[:CONNECTED_TO_SWITCH]-(:UnifiClient)  -- wireless clients (via AP uplink switch)
+class UnifiClientToAPSwitchRel(CartographyRelSchema):
+    target_node_label: str = "UnifiDevice"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("ap_switch_mac")},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "CONNECTED_TO_SWITCH"
+    properties: UnifiClientToAPSwitchRelProperties = UnifiClientToAPSwitchRelProperties()
+
+
+@dataclass(frozen=True)
 class UnifiClientToWlanRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
@@ -132,6 +150,7 @@ class UnifiClientSchema(CartographyNodeSchema):
         [
             UnifiClientToAPRel(),
             UnifiClientToSwitchRel(),
+            UnifiClientToAPSwitchRel(),
             UnifiClientToWlanRel(),
             UnifiClientToPortRel(),
         ],
