@@ -60,7 +60,7 @@ class UnifiDeviceToUplinkRel(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("uplink_mac")},
     )
-    direction: LinkDirection = LinkDirection.INWARD
+    direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "UPLINK_TO"
     properties: UnifiDeviceToUplinkRelProperties = UnifiDeviceToUplinkRelProperties()
 
