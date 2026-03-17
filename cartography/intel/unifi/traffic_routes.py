@@ -45,6 +45,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
 def load_traffic_routes(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
+    site_id: str,
     update_tag: int,
 ) -> None:
     """
@@ -52,6 +53,7 @@ def load_traffic_routes(
 
     :param neo4j_session: Neo4j session
     :param data: List of traffic route data
+    :param site_id: Site ID for the traffic routes
     :param update_tag: Update tag for the sync
     """
     logger.info("Loading %d UniFi traffic routes into Neo4j.", len(data))
@@ -60,6 +62,7 @@ def load_traffic_routes(
         UnifiTrafficRouteSchema(),
         data,
         lastupdated=update_tag,
+        site_id=site_id,
     )
 
 
@@ -96,7 +99,8 @@ async def sync(
     """
     traffic_routes = await get(controller, site_id)
     load_traffic_routes(
-        neo4j_session, traffic_routes, common_job_parameters["UPDATE_TAG"]
+        neo4j_session, traffic_routes, site_id, common_job_parameters["UPDATE_TAG"]
     )
-    cleanup(neo4j_session, common_job_parameters)
+    cleanup_params = {**common_job_parameters, "site_id": site_id}
+    cleanup(neo4j_session, cleanup_params)
     return traffic_routes

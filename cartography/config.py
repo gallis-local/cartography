@@ -249,7 +249,7 @@ class Config:
     :type unifi_site: str
     :param unifi_site: UniFi site name (default is 'default'). Optional.
     :type unifi_port: int
-    :param unifi_port: UniFi controller port (default is 8443). Optional.
+    :param unifi_port: UniFi controller port (default is 443 for cloud/hosted; use 8443 for self-hosted). Optional.
     :type unifi_verify_ssl: bool
     :param unifi_verify_ssl: Whether to verify SSL certificates when connecting to UniFi controller (default is False). Optional.
     :type slack_token: str
@@ -399,7 +399,7 @@ class Config:
         unifi_user=None,
         unifi_password=None,
         unifi_site="default",
-        unifi_port=8443,
+        unifi_port=443,
         unifi_verify_ssl=False,
         slack_token=None,
         slack_teams=None,

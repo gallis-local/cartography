@@ -2,6 +2,7 @@ import getpass
 import logging
 import os
 import sys
+import warnings
 from typing import TYPE_CHECKING
 
 import typer
@@ -1540,6 +1541,15 @@ class CLI:
                     hidden=PANEL_UNIFI not in visible_panels,
                 ),
             ] = None,
+            unifi_user_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-user-env-var",
+                    help="Environment variable name containing the UniFi controller username.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
             unifi_password_env_var: Annotated[
                 str | None,
                 typer.Option(
@@ -1562,11 +1572,11 @@ class CLI:
                 int,
                 typer.Option(
                     "--unifi-port",
-                    help="UniFi controller port.",
+                    help="UniFi controller port (default is 443 for cloud/hosted controllers; use 8443 for self-hosted).",
                     rich_help_panel=PANEL_UNIFI,
                     hidden=PANEL_UNIFI not in visible_panels,
                 ),
-            ] = 8443,
+            ] = 443,
             unifi_verify_ssl: Annotated[
                 bool,
                 typer.Option(
@@ -2152,7 +2162,13 @@ class CLI:
                 )
                 keycloak_client_secret = os.environ.get(keycloak_client_secret_env_var)
 
-            # Read UniFi password
+            # Read UniFi credentials
+            if unifi_user_env_var:
+                logger.debug(
+                    "Reading UniFi username from environment variable %s",
+                    unifi_user_env_var,
+                )
+                unifi_user = os.environ.get(unifi_user_env_var)
             unifi_password = None
             if unifi_host and unifi_user and unifi_password_env_var:
                 logger.debug(
@@ -2369,6 +2385,9 @@ def main(argv=None):
         Does not return - calls sys.exit() with the appropriate exit code.
         Exit code 0 indicates successful execution, non-zero indicates errors.
     """
+    # Suppress SyntaxWarnings from third-party packages (e.g. azure-synapse-artifacts,
+    # azure-mgmt-sql) that use invalid escape sequences in docstrings.
+    warnings.filterwarnings("ignore", category=SyntaxWarning, module="azure")
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("googleapiclient").setLevel(logging.WARNING)

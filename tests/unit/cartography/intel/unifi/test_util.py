@@ -82,7 +82,8 @@ async def test_close_controller():
 
     mock_controller = MagicMock()
     mock_controller.connectivity = MagicMock()
-    mock_controller.connectivity.session = mock_session
+    mock_controller.connectivity.config = MagicMock()
+    mock_controller.connectivity.config.session = mock_session
 
     # Act
     await close_controller(mock_controller)

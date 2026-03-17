@@ -157,12 +157,17 @@ async def test_unifi_traffic_route_cleanup(mock_get, neo4j_session):
     """
     Ensure that stale UniFi traffic routes are cleaned up after sync.
     """
-    # Arrange - Load a stale route with old update tag
+    # Arrange - Load a site and a stale route connected to it with old update tag
     neo4j_session.run(
         """
+        MERGE (s:UnifiSite {id: $site_id})
+        SET s.lastupdated = $update_tag
         MERGE (r:UnifiTrafficRoute {id: 'stale_route'})
         SET r.lastupdated = $old_tag
+        MERGE (r)<-[:RESOURCE]-(s)
         """,
+        site_id="default",
+        update_tag=TEST_UPDATE_TAG,
         old_tag=TEST_UPDATE_TAG - 1,
     )
 
