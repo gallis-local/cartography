@@ -68,4 +68,4 @@ async def sync(
     """
     vouchers = await get(controller, site_id)
     load_vouchers(neo4j_session, vouchers, site_id, update_tag)
-    cleanup(neo4j_session, common_job_parameters)
+    cleanup(neo4j_session, {**common_job_parameters, "SITE_ID": site_id})

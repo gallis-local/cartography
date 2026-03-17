@@ -15,7 +15,7 @@ async def create_unifi_controller(
     username: str,
     password: str,
     site: str = "default",
-    port: int = 8443,
+    port: int = 443,
     verify_ssl: bool = False,
 ) -> Controller:
     """
@@ -63,5 +63,5 @@ async def close_controller(controller: Controller) -> None:
 
     :param controller: Controller instance to close
     """
-    if controller and controller.connectivity.session:
-        await controller.connectivity.session.close()
+    if controller and controller.connectivity.config.session:
+        await controller.connectivity.config.session.close()

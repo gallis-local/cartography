@@ -21,31 +21,33 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     :return: Tuple of (List of port data, site_id)
     """
     logger.info("Fetching UniFi ports")
-    await controller.ports.update()
+    # Ports are populated via device subscription when controller.devices.update()
+    # is called — no separate API request needed for ports.
 
     # Get site_id from controller
-    site_id = controller.connectivity.site_id
+    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Port objects to dictionaries
+    # Ports are keyed as "{device_id}_{port_idx}" in controller.ports
     ports = []
-    for port in controller.ports.values():
-        # Create unique ID from device_mac and port_idx
-        port_id = f"{port.device_mac}:{port.port_idx}"
+    for obj_id, port in controller.ports.items():
+        # Extract device_mac from the key (format: "{device_mac}_{port_idx}")
+        device_mac = obj_id.rsplit("_", 1)[0]
 
         ports.append(
             {
-                "id": port_id,
+                "id": obj_id,
                 "port_idx": port.port_idx,
-                "name": getattr(port, "name", f"Port {port.port_idx}"),
-                "port_poe": getattr(port, "port_poe", False),
-                "poe_enable": getattr(port, "poe_enable", False),
-                "poe_mode": getattr(port, "poe_mode", None),
-                "poe_voltage": getattr(port, "poe_voltage", None),
-                "portconf_id": getattr(port, "portconf_id", None),
-                "up": getattr(port, "up", False),
-                "speed": getattr(port, "speed", 0),
-                "full_duplex": getattr(port, "full_duplex", False),
-                "device_mac": port.device_mac,
+                "name": port.name,
+                "port_poe": port.port_poe,
+                "poe_enable": port.poe_enable,
+                "poe_mode": port.poe_mode,
+                "poe_voltage": port.poe_voltage,
+                "portconf_id": port.portconf_id,
+                "up": port.up,
+                "speed": port.raw.get("speed", 0),
+                "full_duplex": port.raw.get("full_duplex", False),
+                "device_mac": device_mac,
                 "site_id": site_id,
             }
         )
