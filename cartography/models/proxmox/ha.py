@@ -226,7 +226,7 @@ class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
     source_node_label: str = "ProxmoxHAResource"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "sid": PropertyRef("sid"),
+            "id": PropertyRef("ha_resource_id"),  # Full cluster-scoped ID (cluster_id/ha/resource/sid)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
