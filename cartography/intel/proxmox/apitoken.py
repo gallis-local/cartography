@@ -178,9 +178,6 @@ def sync(
     # LOAD - ingest to Neo4j
     load_tokens(neo4j_session, transformed_tokens, cluster_id, update_tag)
 
-    # CLEANUP - remove stale tokens
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(f"Synced {len(transformed_tokens)} API tokens")
 
 

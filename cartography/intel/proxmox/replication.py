@@ -151,9 +151,6 @@ def sync(
     # LOAD - ingest to Neo4j
     load_replication_jobs(neo4j_session, transformed_jobs, cluster_id, update_tag)
 
-    # CLEANUP - remove stale jobs
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(f"Synced {len(transformed_jobs)} replication jobs")
 
 
