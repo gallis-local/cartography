@@ -325,12 +325,13 @@ def load_firewall_scope_relationships(
 
     # Create relationships to VMs
     if vm_rules:
-        # Convert scope_id to int for VM matching
+        # scope_id for VM rules is the full VM path (e.g. "cluster1/vm/100").
+        # Extract the integer VMID from the trailing segment.
         for rule in vm_rules:
             if rule["scope_id"]:
                 try:
-                    rule["vmid_int"] = int(rule["scope_id"])
-                except ValueError:
+                    rule["vmid_int"] = int(rule["scope_id"].split("/")[-1])
+                except (ValueError, IndexError):
                     pass
 
         load_matchlinks(

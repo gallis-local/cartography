@@ -32,7 +32,7 @@ class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    node_name: PropertyRef = PropertyRef("node_name")
+    node_id: PropertyRef = PropertyRef("node_id")
     filename: PropertyRef = PropertyRef("filename", extra_index=True)
     fingerprint: PropertyRef = PropertyRef("fingerprint", extra_index=True)
     issuer: PropertyRef = PropertyRef("issuer")
@@ -105,7 +105,7 @@ class ProxmoxCertificateToNodeRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxNode"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("node_name"),
+            "id": PropertyRef("node_id"),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
