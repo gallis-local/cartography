@@ -134,14 +134,6 @@ def test_sync_vm_disks(
         "CLUSTER_ID": TEST_CLUSTER_ID,
     }
 
-    proxmox = MagicMock()
-    proxmox.nodes.get.return_value = MOCK_NODES
-
-    common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
-        "CLUSTER_ID": TEST_CLUSTER_ID,
-    }
-
     def get_vms_side_effect(proxmox_client, node_name):
         vms = MOCK_VM_DATA.get(node_name, [])
         return [vm for vm in vms if vm.get("type") == "qemu"]
@@ -1008,9 +1000,10 @@ def test_nic_bridge_relationship(
     neo4j_session.run(
         """
         MERGE (bridge:ProxmoxNodeNetworkInterface {id: $bridge_id})
-        SET bridge.name = 'vmbr0', bridge.node_name = 'node1', bridge.type = 'bridge'
+        SET bridge.name = 'vmbr0', bridge.node_id = $node_id, bridge.type = 'bridge'
         """,
         bridge_id=f"{TEST_CLUSTER_ID}/node/node1/net/vmbr0",
+        node_id=f"{TEST_CLUSTER_ID}/node/node1",
     )
 
     proxmox = MagicMock()

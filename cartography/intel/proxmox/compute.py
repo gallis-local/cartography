@@ -828,7 +828,7 @@ def sync(
 
             # Set node_name on network interfaces (needed for bridge relationships)
             # Node is mutable state, not part of identity, so we set it after extraction
-            # Use full node ID to match ProxmoxNodeNetworkInterface.node_name property
+            # Use full node ID to match ProxmoxNodeNetworkInterface.node_id property
             for interface in interfaces:
                 interface["node_name"] = f"{cluster_id}/node/{node_name}"
 
