@@ -157,7 +157,7 @@ class ProxmoxVMToNodeRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxNode"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("node"),
+            "id": PropertyRef("node_id"),  # Full node ID (cluster_id/node/name)
         }
     )
     direction: LinkDirection = LinkDirection.INWARD

@@ -17,6 +17,10 @@ from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 # ============================================================================
+# ProxmoxReplicationJob Node Relationships to Nodes
+# ============================================================================
+
+# ============================================================================
 # ProxmoxReplicationJob Node Schema
 # ============================================================================
 
@@ -101,6 +105,62 @@ class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProxmoxReplicationJobToTargetNodeRelProperties(CartographyRelProperties):
+    """
+    Properties for relationship from ProxmoxReplicationJob to target ProxmoxNode.
+    """
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxReplicationJob)-[:REPLICATES_TO]->(:ProxmoxNode)
+
+    Replication jobs replicate data to a target node (DR destination).
+    """
+
+    target_node_label: str = "ProxmoxNode"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("target_node_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "REPLICATES_TO"
+    properties: ProxmoxReplicationJobToTargetNodeRelProperties = ProxmoxReplicationJobToTargetNodeRelProperties()
+
+
+@dataclass(frozen=True)
+class ProxmoxReplicationJobToSourceNodeRelProperties(CartographyRelProperties):
+    """
+    Properties for relationship from ProxmoxReplicationJob to source ProxmoxNode.
+    """
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxReplicationJob)-[:REPLICATES_FROM]->(:ProxmoxNode)
+
+    Replication jobs originate from a source node (optional, for cross-node jobs).
+    """
+
+    target_node_label: str = "ProxmoxNode"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("source_node_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "REPLICATES_FROM"
+    properties: ProxmoxReplicationJobToSourceNodeRelProperties = ProxmoxReplicationJobToSourceNodeRelProperties()
+
+
+@dataclass(frozen=True)
 class ProxmoxReplicationJobSchema(CartographyNodeSchema):
     """
     Schema for ProxmoxReplicationJob.
@@ -114,5 +174,7 @@ class ProxmoxReplicationJobSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxReplicationJobToVMRel(),
+            ProxmoxReplicationJobToTargetNodeRel(),
+            ProxmoxReplicationJobToSourceNodeRel(),
         ]
     )

@@ -135,6 +135,9 @@ def transform_user_data(
         # Required field - use direct access
         userid = user["userid"]
 
+        # Extract realm from userid (format: user@realm or user@realm!token)
+        realm = userid.split("@")[1].split("!")[0] if "@" in userid else None
+
         # Parse groups if they exist (Proxmox returns comma-separated string)
         groups = []
         groups_str = user.get("groups", "")
@@ -161,6 +164,7 @@ def transform_user_data(
             {
                 "id": f"{cluster_id}/user/{userid}",
                 "userid": userid,
+                "realm": realm,
                 "cluster_id": cluster_id,
                 "enable": bool(user.get("enable", True)),
                 "expire": user.get("expire", 0),
@@ -606,6 +610,14 @@ def load_effective_permissions(
         r.propagate = gp.propagate
     """
     run_write_query(neo4j_session, query, UpdateTag=update_tag)
+
+    # Clean up stale HAS_PERMISSION relationships not updated in this sync
+    cleanup_query = """
+    MATCH ()-[r:HAS_PERMISSION]->()
+    WHERE r.lastupdated <> $UpdateTag
+    DELETE r
+    """
+    run_write_query(neo4j_session, cleanup_query, UpdateTag=update_tag)
 
 
 # ============================================================================

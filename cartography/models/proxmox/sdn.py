@@ -399,7 +399,8 @@ class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
 
     # External IPAM configuration
     url: PropertyRef = PropertyRef("url")  # API URL (for external IPAMs)
-    token: PropertyRef = PropertyRef("token")  # API token (masked in queries)
+    # Note: token field intentionally omitted - storing IPAM API credentials in the graph
+    # is a security risk. Use external secret management for credential storage.
     section: PropertyRef = PropertyRef("section")  # Section/tenant ID (NetBox/phpIPAM)
 
 

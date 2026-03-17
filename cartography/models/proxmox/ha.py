@@ -159,6 +159,7 @@ class ProxmoxHAResourceToHAGroupRel(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "group": PropertyRef("group"),
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
