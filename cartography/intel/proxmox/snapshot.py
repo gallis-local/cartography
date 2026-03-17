@@ -11,6 +11,7 @@ from typing import List
 
 import neo4j
 
+from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.snapshot import ProxmoxSnapshotSchema
 from cartography.util import timeit
@@ -160,8 +161,6 @@ def load_snapshots(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load
-
     load(
         neo4j_session,
         ProxmoxSnapshotSchema(),
