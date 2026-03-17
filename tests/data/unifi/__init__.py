@@ -307,7 +307,6 @@ UNIFI_DPI_APPS = [
         "enabled": True,
         "log": True,
         "site_id": "default",
-        "dpi_group_ids": ["dpi_group_001"],
     },
     {
         "id": "dpi_app_002",
@@ -315,7 +314,6 @@ UNIFI_DPI_APPS = [
         "enabled": True,
         "log": False,
         "site_id": "default",
-        "dpi_group_ids": None,
     },
 ]
 
