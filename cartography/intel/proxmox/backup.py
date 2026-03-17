@@ -228,6 +228,7 @@ def sync(
                         {
                             "job_id": job_id,
                             "vmid": vmid,
+                            "cluster_id": cluster_id,
                         }
                     )
 

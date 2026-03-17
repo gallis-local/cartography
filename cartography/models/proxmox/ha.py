@@ -220,6 +220,7 @@ class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),  # Integer VMID
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     source_node_label: str = "ProxmoxHAResource"
