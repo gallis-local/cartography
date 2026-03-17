@@ -24,7 +24,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     await controller.clients.update()
 
     # Get site_id from controller
-    site_id = controller.connectivity.site_id
+    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Client objects to dictionaries
     clients = []
@@ -38,9 +38,9 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "ip": getattr(client, "ip", None),
                 "is_guest": getattr(client, "is_guest", False),
                 "oui": getattr(client, "oui", None),
-                "satisfaction": getattr(client, "satisfaction", None),
-                "channel": getattr(client, "channel", None),
-                "radio": getattr(client, "radio", None),
+                "satisfaction": client.raw.get("satisfaction"),
+                "channel": client.raw.get("channel"),
+                "radio": client.raw.get("radio"),
                 "is_wired": getattr(client, "is_wired", False),
                 "qos_policy_applied": getattr(client, "qos_policy_applied", False),
                 "ap_mac": ap_mac,

@@ -19,7 +19,20 @@ async def get(controller: Any) -> list[dict[str, Any]]:
     await controller.system_information.update()
     system_info = []
     for info in controller.system_information.values():
-        system_info.append(info.raw)
+        system_info.append(
+            {
+                "id": info.anonymous_controller_id,
+                "anonymous_controller_id": info.anonymous_controller_id,
+                "hostname": info.hostname,
+                "name": info.name,
+                "version": info.version,
+                "previous_version": info.previous_version,
+                "update_available": info.update_available,
+                "ip_addrs": info.ip_address,
+                "is_cloud_console": info.is_cloud_console,
+                "ubnt_device_type": info.device_type,
+            }
+        )
     return system_info
 
 
@@ -67,4 +80,4 @@ async def sync(
     """
     system_info = await get(controller)
     load_system_info(neo4j_session, system_info, site_id, update_tag)
-    cleanup(neo4j_session, common_job_parameters)
+    cleanup(neo4j_session, {**common_job_parameters, "SITE_ID": site_id})

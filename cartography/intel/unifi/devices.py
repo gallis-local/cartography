@@ -24,7 +24,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     await controller.devices.update()
 
     # Get site_id from controller
-    site_id = controller.connectivity.site_id
+    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Device objects to dictionaries
     devices = []
@@ -32,7 +32,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
         devices.append(
             {
                 "mac": device.mac,
-                "adopted": device.adopted,
+                "adopted": device.raw.get("adopted", False),
                 "type": device.type,
                 "model": device.model,
                 "name": device.name or device.mac,  # Fallback to MAC if no name

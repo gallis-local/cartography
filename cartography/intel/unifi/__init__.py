@@ -64,10 +64,9 @@ async def _sync_unifi(
             "UPDATE_TAG": update_tag,
         }
 
-        # Get the site ID from the controller
+        # Get the site ID from the controller config
         await controller.sites.update()
-        # The site_id is available from controller config after connection
-        site_id = controller.connectivity.site_id
+        site_id = controller.connectivity.config.site
 
         # Sync in hierarchical order:
         # 1. Sites (top level organization)
