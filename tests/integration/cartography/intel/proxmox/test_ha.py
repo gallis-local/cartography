@@ -42,15 +42,18 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
         update_tag=TEST_UPDATE_TAG,
     )
 
-    # Create VMs for relationship tests
+    # Create VMs for relationship tests using new-style cluster-scoped IDs
     neo4j_session.run(
         """
-        MERGE (v1:ProxmoxVM {vmid: 100})
-        SET v1.id = 'node1:100', v1.name = 'test-vm-1', v1.lastupdated = $update_tag
-        MERGE (v2:ProxmoxVM {vmid: 101})
-        SET v2.id = 'node1:101', v2.name = 'test-vm-2', v2.lastupdated = $update_tag
-        MERGE (v3:ProxmoxVM {vmid: 200})
-        SET v3.id = 'node2:200', v3.name = 'test-container-1', v3.lastupdated = $update_tag
+        MERGE (v1:ProxmoxVM {id: 'test-cluster/vm/100'})
+        SET v1.vmid = 100, v1.name = 'test-vm-1', v1.cluster_id = 'test-cluster',
+            v1.lastupdated = $update_tag
+        MERGE (v2:ProxmoxVM {id: 'test-cluster/vm/101'})
+        SET v2.vmid = 101, v2.name = 'test-vm-2', v2.cluster_id = 'test-cluster',
+            v2.lastupdated = $update_tag
+        MERGE (v3:ProxmoxVM {id: 'test-cluster/vm/200'})
+        SET v3.vmid = 200, v3.name = 'test-container-1', v3.cluster_id = 'test-cluster',
+            v3.lastupdated = $update_tag
         """,
         update_tag=TEST_UPDATE_TAG,
     )

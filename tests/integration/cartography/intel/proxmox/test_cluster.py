@@ -252,9 +252,9 @@ def test_network_interface_properties(
     )
 
     # Assert - Check specific properties of the bridge interface
-    # Note: The mock data has two entries for vmbr0 (IPv4 and IPv6), and the transform function
-    # processes them sequentially with the same ID, so the last one wins.
-    # In this case, the IPv6 entry is last, so those properties will be stored.
+    # The mock data has two entries for vmbr0 (IPv4 and IPv6 dual-stack).
+    # The transform function merges them: IPv4 data comes from the first entry,
+    # IPv6-specific fields (address6, gateway6, netmask6) are filled from the second.
     result = neo4j_session.run(
         """
         MATCH (n:ProxmoxNodeNetworkInterface {id: 'test-cluster/node/node1/net/vmbr0'})
@@ -263,8 +263,11 @@ def test_network_interface_properties(
     )
     data = result.single()
     assert data is not None
-    # The last entry in mock data for vmbr0 is the IPv6 one, so it overwrites the IPv4 data
-    assert data["n.address"] == "2001:db8::10"  # From second vmbr0 entry
+    # IPv4 data preserved from the first entry
+    assert data["n.address"] == "192.168.1.10"
+    assert data["n.gateway"] == "192.168.1.1"
+    assert data["n.netmask"] == "255.255.255.0"
+    # IPv6 data merged from the second entry
     assert data["n.address6"] == "2001:db8::10"
     assert data["n.gateway6"] == "2001:db8::1"
     assert data["n.netmask6"] == 64

@@ -325,12 +325,21 @@ def transform_node_network_data(
     """
     Transform node network interface data into standard format.
 
+    Proxmox returns two entries for the same interface when both IPv4 and IPv6
+    are configured (dual-stack). This function merges those entries so no data
+    is lost: the first entry wins for shared fields; IPv6-specific fields
+    (address6, netmask6, gateway6, cidr6, method6) are filled in from
+    subsequent entries when not already set.
+
     :param network_interfaces: Raw network interface data from API
     :param node_name: Node name
     :param cluster_id: Parent cluster ID
-    :return: List of transformed network interface dicts
+    :return: List of transformed network interface dicts (one per iface name)
     """
-    transformed_interfaces = []
+    # Ordered dict keyed by iface_id to deduplicate and merge dual-stack entries
+    merged: Dict[str, Dict[str, Any]] = {}
+
+    full_node_id = f"{cluster_id}/node/{node_name}"
 
     for iface in network_interfaces:
         # Required field
@@ -340,11 +349,8 @@ def transform_node_network_data(
         # NEW: f"{cluster_id}/node/{node_name}/net/{iface_name}"
         iface_id = f"{cluster_id}/node/{node_name}/net/{iface_name}"
 
-        # Full node ID (cluster_id/node/name) for relationship matching
-        full_node_id = f"{cluster_id}/node/{node_name}"
-
-        transformed_interfaces.append(
-            {
+        if iface_id not in merged:
+            merged[iface_id] = {
                 "id": iface_id,
                 "name": iface_name,
                 "node_id": full_node_id,  # Full node ID (cluster_id/node/name) for relationship matching
@@ -370,9 +376,15 @@ def transform_node_network_data(
                 "method6": iface.get("method6"),
                 "comments": iface.get("comments"),
             }
-        )
+        else:
+            # Merge IPv6-specific fields from subsequent entries (dual-stack interfaces)
+            # without overwriting IPv4 data already captured from the first entry.
+            existing = merged[iface_id]
+            for field in ("address6", "netmask6", "gateway6", "cidr6", "method6"):
+                if existing[field] is None and iface.get(field) is not None:
+                    existing[field] = iface[field]
 
-    return transformed_interfaces
+    return list(merged.values())
 
 
 # ============================================================================
