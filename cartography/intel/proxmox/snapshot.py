@@ -13,7 +13,6 @@ import neo4j
 
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.snapshot import ProxmoxSnapshotSchema
-from cartography.util import merge_module_sync_metadata
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -61,14 +60,12 @@ def get_snapshots_for_vm(
 
 def get_all_snapshots(
     proxmox_client: Any,
-    nodes: List[str],
     vms: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
     Get all snapshots across all VMs and containers.
 
     :param proxmox_client: Proxmox API client
-    :param nodes: List of node names
     :param vms: List of VM/container dicts (must have 'node', 'vmid', 'type' fields)
     :return: List of snapshot dicts with node and VM metadata
     """
@@ -201,8 +198,7 @@ def sync(
     logger.info("Syncing Proxmox snapshots")
 
     # GET - retrieve data from API
-    nodes = list({vm["node"] for vm in vms})
-    raw_snapshots = get_all_snapshots(proxmox_client, nodes, vms)
+    raw_snapshots = get_all_snapshots(proxmox_client, vms)
 
     # TRANSFORM - convert to standard format
     transformed_snapshots = transform_snapshot_data(raw_snapshots, cluster_id)

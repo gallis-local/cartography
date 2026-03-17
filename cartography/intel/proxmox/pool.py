@@ -10,6 +10,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.pool import ProxmoxPoolSchema
 from cartography.util import timeit
 
@@ -227,6 +228,21 @@ def sync(
     load_pools(neo4j_session, transformed_pools, cluster_id, update_tag)
     load_pool_member_relationships(neo4j_session, pool_members, cluster_id, update_tag)
 
+    # CLEANUP - remove stale pools
+    cleanup(neo4j_session, common_job_parameters)
+
     logger.info(
         f"Synced {len(transformed_pools)} resource pools with {len(pool_members)} members"
+    )
+
+
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+    """
+    Remove stale pool data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxPoolSchema(), common_job_parameters).run(
+        neo4j_session
     )

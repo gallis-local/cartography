@@ -96,6 +96,7 @@ def transform_firewall_options_data(
         "cluster_id": cluster_id,
         "scope": scope,
         "scope_id": scope_id,
+        "node_id": f"{cluster_id}/node/{scope_id}" if scope == "node" and scope_id else None,
         "enable": options.get("enable", 0) == 1,  # Convert to boolean
         "policy_in": options.get("policy_in"),  # ACCEPT, REJECT, DROP
         "policy_out": options.get("policy_out"),
