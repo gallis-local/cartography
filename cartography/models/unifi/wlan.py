@@ -12,9 +12,9 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class UnifiWlanNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("_id")
+    id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
+    name: PropertyRef = PropertyRef("name", extra_index=True)
     enabled: PropertyRef = PropertyRef("enabled")
     is_guest: PropertyRef = PropertyRef("is_guest")
     security: PropertyRef = PropertyRef("security")

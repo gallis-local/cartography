@@ -29,7 +29,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     for wlan in controller.wlans.values():
         wlans.append(
             {
-                "_id": wlan.id,
+                "id": wlan.id,
                 "name": wlan.name,
                 "enabled": wlan.enabled,
                 "is_guest": wlan.is_guest,

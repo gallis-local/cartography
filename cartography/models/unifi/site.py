@@ -7,7 +7,7 @@ from cartography.models.core.nodes import CartographyNodeSchema
 
 @dataclass(frozen=True)
 class UnifiSiteNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("_id")
+    id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     name: PropertyRef = PropertyRef("name")
     desc: PropertyRef = PropertyRef("desc")

@@ -28,7 +28,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     for site in controller.sites.values():
         sites.append(
             {
-                "_id": site.site_id,
+                "id": site.site_id,
                 "name": site.name,
                 "desc": site.description,
                 "role": getattr(site, "role", "admin"),
