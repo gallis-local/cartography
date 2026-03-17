@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 import cartography.intel.unifi.firewall_policies
+import cartography.intel.unifi.firewall_zones
 import tests.data.unifi
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
@@ -146,3 +147,71 @@ async def test_unifi_firewall_policy_properties(mock_get, neo4j_session):
     assert record["enabled"] is True
     assert record["logging"] is True
     assert record["predefined"] is False
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.firewall_policies,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_FIREWALL_POLICIES,
+)
+async def test_unifi_firewall_policy_zone_relationships(mock_get, neo4j_session):
+    """
+    Ensure that firewall policies are linked to their source/destination zones.
+    """
+    # Load zones first
+    neo4j_session.run(
+        """
+        MERGE (s:UnifiSite {id: 'default'})
+        SET s.lastupdated = $update_tag
+        """,
+        update_tag=TEST_UPDATE_TAG,
+    )
+    cartography.intel.unifi.firewall_zones.load_firewall_zones(
+        neo4j_session, tests.data.unifi.UNIFI_FIREWALL_ZONES, "default", TEST_UPDATE_TAG
+    )
+
+    mock_controller = MagicMock()
+    site_id = "default"
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+
+    await cartography.intel.unifi.firewall_policies.sync(
+        neo4j_session, mock_controller, site_id, common_job_parameters
+    )
+
+    # FROM_ZONE relationships
+    expected_from = {
+        ("fw_policy_001", "fw_zone_001"),  # Allow LAN->WAN, from LAN
+        ("fw_policy_002", "fw_zone_002"),  # Block Guest->LAN, from WAN
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiFirewallPolicy",
+            "id",
+            "UnifiFirewallZone",
+            "id",
+            "FROM_ZONE",
+            rel_direction_right=True,
+        )
+        == expected_from
+    )
+
+    # TO_ZONE relationships
+    expected_to = {
+        ("fw_policy_001", "fw_zone_002"),  # Allow LAN->WAN, to WAN
+        ("fw_policy_002", "fw_zone_001"),  # Block Guest->LAN, to LAN
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiFirewallPolicy",
+            "id",
+            "UnifiFirewallZone",
+            "id",
+            "TO_ZONE",
+            rel_direction_right=True,
+        )
+        == expected_to
+    )

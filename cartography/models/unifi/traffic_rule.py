@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -22,6 +23,12 @@ class UnifiTrafficRuleNodeProperties(CartographyNodeProperties):
     bandwidth_limit_enabled: PropertyRef = PropertyRef("bandwidth_limit_enabled")
     download_limit_kbps: PropertyRef = PropertyRef("download_limit_kbps")
     upload_limit_kbps: PropertyRef = PropertyRef("upload_limit_kbps")
+    # Matching criteria
+    app_ids: PropertyRef = PropertyRef("app_ids")
+    app_category_ids: PropertyRef = PropertyRef("app_category_ids")
+    network_ids: PropertyRef = PropertyRef("network_ids")
+    domains: PropertyRef = PropertyRef("domains")
+    target_client_macs: PropertyRef = PropertyRef("target_client_macs")
 
 
 @dataclass(frozen=True)
@@ -44,7 +51,51 @@ class UnifiTrafficRuleToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiTrafficRuleToDPIAppRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiTrafficRule)-[:APPLIES_TO_APP]->(:UnifiDPIApp)
+class UnifiTrafficRuleToDPIAppRel(CartographyRelSchema):
+    target_node_label: str = "UnifiDPIApp"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("app_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_APP"
+    properties: UnifiTrafficRuleToDPIAppRelProperties = (
+        UnifiTrafficRuleToDPIAppRelProperties()
+    )
+
+
+@dataclass(frozen=True)
+class UnifiTrafficRuleToClientRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiTrafficRule)-[:APPLIES_TO_CLIENT]->(:UnifiClient)
+class UnifiTrafficRuleToClientRel(CartographyRelSchema):
+    target_node_label: str = "UnifiClient"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("target_client_macs", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_CLIENT"
+    properties: UnifiTrafficRuleToClientRelProperties = (
+        UnifiTrafficRuleToClientRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiTrafficRuleSchema(CartographyNodeSchema):
     label: str = "UnifiTrafficRule"
     properties: UnifiTrafficRuleNodeProperties = UnifiTrafficRuleNodeProperties()
     sub_resource_relationship: UnifiTrafficRuleToSiteRel = UnifiTrafficRuleToSiteRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiTrafficRuleToDPIAppRel(),
+            UnifiTrafficRuleToClientRel(),
+        ],
+    )

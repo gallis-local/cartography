@@ -29,8 +29,13 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     # Convert aiounifi Client objects to dictionaries
     clients = []
     for client in controller.clients.values():
-        # Get the AP MAC address from the client's device association
-        ap_mac = getattr(client, "ap_mac", None) or getattr(client, "sw_mac", None)
+        # ap_mac is set for wireless clients only; sw_mac for wired clients only
+        ap_mac = getattr(client, "ap_mac", None) or None
+
+        # Build port_id for wired clients: "{sw_mac}_{sw_port}"
+        sw_mac = client.switch_mac or None
+        sw_port = client.switch_port
+        port_id = f"{sw_mac}_{sw_port}" if sw_mac and sw_port is not None else None
 
         clients.append(
             {
@@ -44,6 +49,16 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "is_wired": getattr(client, "is_wired", False),
                 "qos_policy_applied": getattr(client, "qos_policy_applied", False),
                 "ap_mac": ap_mac,
+                "hostname": client.hostname or None,
+                "name": client.name or None,
+                "essid": client.essid or None,
+                "blocked": client.blocked,
+                "uptime": client.uptime,
+                "last_seen": client.last_seen,
+                "vlan": client.raw.get("vlan"),
+                "sw_mac": sw_mac,
+                "sw_port": sw_port,
+                "port_id": port_id,
                 "site_id": site_id,
             }
         )
