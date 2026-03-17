@@ -1,7 +1,7 @@
 # Test data for UniFi sites
 UNIFI_SITES = [
     {
-        "_id": "default",
+        "id": "default",
         "name": "Default",
         "desc": "Default Site",
         "role": "admin",
@@ -49,7 +49,7 @@ UNIFI_DEVICES = [
 # Test data for UniFi WLANs
 UNIFI_WLANS = [
     {
-        "_id": "wlan_001",
+        "id": "wlan_001",
         "name": "Corporate WiFi",
         "enabled": True,
         "is_guest": False,
@@ -68,7 +68,7 @@ UNIFI_WLANS = [
         "site_id": "default",
     },
     {
-        "_id": "wlan_002",
+        "id": "wlan_002",
         "name": "Guest WiFi",
         "enabled": True,
         "is_guest": True,
