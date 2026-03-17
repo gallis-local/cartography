@@ -186,6 +186,7 @@ def transform_vm_data(
                 "vmid": vm["vmid"],
                 "name": vm.get("name", ""),
                 "node": vm["node"],
+                "node_id": f"{cluster_id}/node/{vm['node']}",  # Full node ID for relationship matching
                 "cluster_id": cluster_id,
                 "type": vm["type"],
                 "status": vm.get("status"),
@@ -814,8 +815,9 @@ def sync(
 
             # Set node_name on network interfaces (needed for bridge relationships)
             # Node is mutable state, not part of identity, so we set it after extraction
+            # Use full node ID to match ProxmoxNodeNetworkInterface.node_name property
             for interface in interfaces:
-                interface["node_name"] = node_name
+                interface["node_name"] = f"{cluster_id}/node/{node_name}"
 
             # Get guest agent data if enabled and VM is QEMU
             if enable_guest_agent and vm["type"] == "qemu":
