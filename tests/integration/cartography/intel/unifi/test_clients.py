@@ -108,11 +108,8 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
         == expected_wireless_rels
     )
 
-    # Assert - All clients reach the switch via CONNECTED_TO_SWITCH:
-    # wired client directly, wireless clients via their AP's uplink
-    expected_switch_rels = {
-        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),  # iPhone via AP uplink
-        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),  # Samsung via AP uplink
+    # Assert - Wired client connected directly to switch via CONNECTED_TO_SWITCH
+    expected_wired_switch_rels = {
         ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF"),  # Dell wired directly
     }
     assert (
@@ -125,7 +122,25 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
             "CONNECTED_TO_SWITCH",
             rel_direction_right=False,
         )
-        == expected_switch_rels
+        == expected_wired_switch_rels
+    )
+
+    # Assert - Wireless clients linked to switch via UPLINKED_TO_SWITCH (AP's uplink switch)
+    expected_uplinked_switch_rels = {
+        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),  # iPhone via AP uplink
+        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),  # Samsung via AP uplink
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiClient",
+            "id",
+            "UnifiDevice",
+            "id",
+            "UPLINKED_TO_SWITCH",
+            rel_direction_right=False,
+        )
+        == expected_uplinked_switch_rels
     )
 
 
@@ -368,8 +383,7 @@ async def test_unifi_client_new_properties(mock_get, neo4j_session):
 async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_session):
     """
     Ensure that wireless clients are linked to the switch their AP uplinks through
-    via CONNECTED_TO_SWITCH, the same relationship used by wired clients.
-    This allows querying all clients on a switch with a single relationship type.
+    via UPLINKED_TO_SWITCH (distinct from CONNECTED_TO_SWITCH used by wired clients).
     """
     _ensure_local_neo4j_has_test_sites(neo4j_session)
     _ensure_local_neo4j_has_test_devices(neo4j_session)
@@ -380,11 +394,27 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
         neo4j_session, mock_controller, common_job_parameters
     )
 
-    # Both wireless clients reach the switch via their AP's uplink
-    expected_rels = {
+    # Wireless clients linked to switch via UPLINKED_TO_SWITCH (AP's uplink)
+    expected_uplinked_rels = {
         ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),  # iPhone -> switch (via AP)
         ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),  # Samsung -> switch (via AP)
-        ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF"),  # Dell -> switch (direct, wired)
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiClient",
+            "id",
+            "UnifiDevice",
+            "id",
+            "UPLINKED_TO_SWITCH",
+            rel_direction_right=False,
+        )
+        == expected_uplinked_rels
+    )
+
+    # Wired client connected directly via CONNECTED_TO_SWITCH
+    expected_wired_rels = {
+        ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF"),  # Dell -> switch (direct)
     }
     assert (
         check_rels(
@@ -396,7 +426,7 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
             "CONNECTED_TO_SWITCH",
             rel_direction_right=False,
         )
-        == expected_rels
+        == expected_wired_rels
     )
 
 

@@ -38,7 +38,7 @@ class UnifiWlanToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiWlan)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiWlan)
 class UnifiWlanToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

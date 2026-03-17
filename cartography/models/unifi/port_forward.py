@@ -30,7 +30,7 @@ class UnifiPortForwardToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiPortForward)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiPortForward)
 class UnifiPortForwardToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

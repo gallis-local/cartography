@@ -7,7 +7,6 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
-from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -18,7 +17,6 @@ class UnifiDPIAppNodeProperties(CartographyNodeProperties):
     blocked: PropertyRef = PropertyRef("blocked")
     enabled: PropertyRef = PropertyRef("enabled")
     log: PropertyRef = PropertyRef("log")
-    dpi_group_ids: PropertyRef = PropertyRef("dpi_group_ids")
 
 
 @dataclass(frozen=True)
@@ -27,7 +25,7 @@ class UnifiDPIAppToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiDPIApp)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiDPIApp)
 class UnifiDPIAppToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -39,31 +37,7 @@ class UnifiDPIAppToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
-class UnifiDPIAppToDPIGroupRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
-
-@dataclass(frozen=True)
-# (:UnifiDPIGroup)<-[:MEMBER_OF]-(:UnifiDPIApp)
-class UnifiDPIAppToDPIGroupRel(CartographyRelSchema):
-    target_node_label: str = "UnifiDPIGroup"
-    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("dpi_group_ids", one_to_many=True)},
-    )
-    direction: LinkDirection = LinkDirection.OUTWARD
-    rel_label: str = "MEMBER_OF"
-    properties: UnifiDPIAppToDPIGroupRelProperties = (
-        UnifiDPIAppToDPIGroupRelProperties()
-    )
-
-
-@dataclass(frozen=True)
 class UnifiDPIAppSchema(CartographyNodeSchema):
     label: str = "UnifiDPIApp"
     properties: UnifiDPIAppNodeProperties = UnifiDPIAppNodeProperties()
     sub_resource_relationship: UnifiDPIAppToSiteRel = UnifiDPIAppToSiteRel()
-    other_relationships: OtherRelationships = OtherRelationships(
-        [
-            UnifiDPIAppToDPIGroupRel(),
-        ],
-    )

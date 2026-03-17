@@ -33,7 +33,7 @@ class UnifiPortToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiPort)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiPort)
 class UnifiPortToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -50,7 +50,7 @@ class UnifiPortToDeviceRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:HAS_PORT]-(:UnifiPort)
+# (:UnifiDevice)-[:HAS_PORT]->(:UnifiPort)
 class UnifiPortToDeviceRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

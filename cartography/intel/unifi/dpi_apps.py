@@ -27,12 +27,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     # Convert aiounifi DPIRestrictionApp objects to dictionaries
     dpi_apps = []
     for app in controller.dpi_apps.values():
-        # Get the dpiapp_ids from DPI groups that reference this app
-        dpi_group_ids = []
-        for group in controller.dpi_groups.values():
-            if group.dpiapp_ids and app.id in group.dpiapp_ids:
-                dpi_group_ids.append(group.id)
-
         dpi_apps.append(
             {
                 "id": app.id,
@@ -40,7 +34,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "enabled": app.enabled,
                 "log": app.log,
                 "site_id": site_id,
-                "dpi_group_ids": dpi_group_ids if dpi_group_ids else None,
             }
         )
     return dpi_apps

@@ -146,20 +146,20 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 8. Firewall policies
-        await cartography.intel.unifi.firewall_policies.sync(
-            neo4j_session,
-            controller,
-            site_id,
-            common_job_parameters,
-        )
-
-        # 9. Firewall zones
+        # 8. Firewall zones (must come before policies; policies reference zone IDs)
         await cartography.intel.unifi.firewall_zones.sync(
             neo4j_session,
             controller,
             site_id,
             update_tag,
+            common_job_parameters,
+        )
+
+        # 9. Firewall policies (depend on firewall zones existing)
+        await cartography.intel.unifi.firewall_policies.sync(
+            neo4j_session,
+            controller,
+            site_id,
             common_job_parameters,
         )
 

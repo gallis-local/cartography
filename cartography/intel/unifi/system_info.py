@@ -51,7 +51,7 @@ def load_system_info(
         UnifiSystemInfoSchema(),
         data,
         lastupdated=update_tag,
-        SITE_ID=site_id,
+        site_id=site_id,
     )
 
 
@@ -80,4 +80,4 @@ async def sync(
     """
     system_info = await get(controller)
     load_system_info(neo4j_session, system_info, site_id, update_tag)
-    cleanup(neo4j_session, {**common_job_parameters, "SITE_ID": site_id})
+    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})

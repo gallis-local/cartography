@@ -30,7 +30,7 @@ class UnifiVoucherNodeProperties(CartographyNodeProperties):
     admin_name: PropertyRef = PropertyRef("admin_name")
     status: PropertyRef = PropertyRef("status")
     status_expires: PropertyRef = PropertyRef("status_expires")
-    site_id: PropertyRef = PropertyRef("SITE_ID", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
@@ -39,10 +39,11 @@ class UnifiVoucherToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiVoucher)
 class UnifiVoucherToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("SITE_ID", set_in_kwargs=True)},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"

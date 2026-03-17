@@ -42,7 +42,7 @@ class UnifiClientToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiClient)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiClient)
 class UnifiClientToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -59,7 +59,7 @@ class UnifiClientToAPRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:CONNECTED_TO_AP]-(:UnifiClient)  -- wireless clients only
+# (:UnifiDevice)-[:CONNECTED_TO_AP]->(:UnifiClient)  -- wireless clients only
 class UnifiClientToAPRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -76,7 +76,7 @@ class UnifiClientToSwitchRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:CONNECTED_TO_SWITCH]-(:UnifiClient)  -- wired clients only
+# (:UnifiDevice)-[:CONNECTED_TO_SWITCH]->(:UnifiClient)  -- wired clients only
 class UnifiClientToSwitchRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -93,14 +93,14 @@ class UnifiClientToAPSwitchRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:CONNECTED_TO_SWITCH]-(:UnifiClient)  -- wireless clients (via AP uplink switch)
+# (:UnifiDevice)-[:UPLINKED_TO_SWITCH]->(:UnifiClient)  -- wireless clients (AP uplinks to this switch)
 class UnifiClientToAPSwitchRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ap_switch_mac")},
     )
     direction: LinkDirection = LinkDirection.INWARD
-    rel_label: str = "CONNECTED_TO_SWITCH"
+    rel_label: str = "UPLINKED_TO_SWITCH"
     properties: UnifiClientToAPSwitchRelProperties = UnifiClientToAPSwitchRelProperties()
 
 
@@ -110,7 +110,7 @@ class UnifiClientToWlanRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiWlan)<-[:CONNECTED_TO_WLAN]-(:UnifiClient)
+# (:UnifiWlan)-[:CONNECTED_TO_WLAN]->(:UnifiClient)
 class UnifiClientToWlanRel(CartographyRelSchema):
     target_node_label: str = "UnifiWlan"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -130,7 +130,7 @@ class UnifiClientToPortRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiPort)<-[:CONNECTED_VIA]-(:UnifiClient)  -- wired clients only
+# (:UnifiPort)-[:CONNECTED_VIA]->(:UnifiClient)  -- wired clients only
 class UnifiClientToPortRel(CartographyRelSchema):
     target_node_label: str = "UnifiPort"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

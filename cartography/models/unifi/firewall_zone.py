@@ -19,7 +19,7 @@ class UnifiFirewallZoneNodeProperties(CartographyNodeProperties):
     default_zone: PropertyRef = PropertyRef("default_zone")
     zone_key: PropertyRef = PropertyRef("zone_key")
     network_ids: PropertyRef = PropertyRef("network_ids")
-    site_id: PropertyRef = PropertyRef("SITE_ID", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
@@ -28,10 +28,11 @@ class UnifiFirewallZoneToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiFirewallZone)
 class UnifiFirewallZoneToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("SITE_ID", set_in_kwargs=True)},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"

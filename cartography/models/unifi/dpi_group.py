@@ -27,7 +27,7 @@ class UnifiDPIGroupToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiDPIGroup)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiDPIGroup)
 class UnifiDPIGroupToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
