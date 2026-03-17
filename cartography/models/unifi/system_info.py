@@ -25,7 +25,7 @@ class UnifiSystemInfoNodeProperties(CartographyNodeProperties):
     ip_addrs: PropertyRef = PropertyRef("ip_addrs")
     is_cloud_console: PropertyRef = PropertyRef("is_cloud_console")
     ubnt_device_type: PropertyRef = PropertyRef("ubnt_device_type")
-    site_id: PropertyRef = PropertyRef("SITE_ID", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
@@ -34,10 +34,11 @@ class UnifiSystemInfoToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiSystemInfo)
 class UnifiSystemInfoToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("SITE_ID", set_in_kwargs=True)},
+        {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
