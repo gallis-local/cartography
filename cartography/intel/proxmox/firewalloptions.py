@@ -188,9 +188,6 @@ def sync(
     # LOAD - ingest to Neo4j
     load_firewall_options(neo4j_session, all_options, cluster_id, update_tag)
 
-    # CLEANUP - remove stale options
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(f"Synced {len(all_options)} firewall options configurations")
 
 

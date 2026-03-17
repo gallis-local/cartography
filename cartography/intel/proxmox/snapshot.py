@@ -206,9 +206,6 @@ def sync(
     # LOAD - ingest to Neo4j
     load_snapshots(neo4j_session, transformed_snapshots, cluster_id, update_tag)
 
-    # CLEANUP - remove stale snapshots
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(f"Synced {len(transformed_snapshots)} snapshots")
 
 

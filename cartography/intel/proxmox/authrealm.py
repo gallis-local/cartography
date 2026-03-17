@@ -142,9 +142,6 @@ def sync(
     # LOAD - ingest to Neo4j
     load_auth_realms(neo4j_session, transformed_realms, cluster_id, update_tag)
 
-    # CLEANUP - remove stale realms
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(f"Synced {len(transformed_realms)} authentication realms")
 
 

@@ -229,9 +229,6 @@ def sync(
     load_pools(neo4j_session, transformed_pools, cluster_id, update_tag)
     load_pool_member_relationships(neo4j_session, pool_members, cluster_id, update_tag)
 
-    # CLEANUP - remove stale pools
-    cleanup(neo4j_session, common_job_parameters)
-
     logger.info(
         f"Synced {len(transformed_pools)} resource pools with {len(pool_members)} members"
     )
