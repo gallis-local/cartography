@@ -115,10 +115,7 @@ class UnifiClientToWlanRelProperties(CartographyRelProperties):
 class UnifiClientToWlanRel(CartographyRelSchema):
     target_node_label: str = "UnifiWlan"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {
-            "name": PropertyRef("essid"),
-            "site_id": PropertyRef("site_id", set_in_kwargs=True),
-        },
+        {"id": PropertyRef("wlanconf_id")},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "CONNECTED_TO_WLAN"
