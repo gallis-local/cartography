@@ -659,6 +659,20 @@ kubernetes_mapping = OntologyMapping(
         ),
     ],
 )
+unifi_mapping = OntologyMapping(
+    module_name="unifi",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="UnifiAdmin",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="name"),
+            ],
+        ),
+    ],
+)
 
 salesforce_mapping = OntologyMapping(
     module_name="salesforce",
@@ -938,6 +952,7 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "sentry": sentry_mapping,
     "subimage": subimage_mapping,
     "kubernetes": kubernetes_mapping,
+    "unifi": unifi_mapping,
     "jumpcloud": jumpcloud_mapping,
     "vercel": vercel_mapping,
     "railway": railway_mapping,
