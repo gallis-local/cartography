@@ -27,11 +27,11 @@ async def test_sync_system_info(mock_get, neo4j_session):
     """
     # Arrange
     controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "SITE_ID": TEST_SITE_ID}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
+        neo4j_session, controller, common_job_parameters
     )
 
     # Assert
@@ -68,11 +68,11 @@ async def test_sync_system_info_relationships(mock_get, neo4j_session):
     )
 
     controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "SITE_ID": TEST_SITE_ID}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
+        neo4j_session, controller, common_job_parameters
     )
 
     # Assert - Check RESOURCE relationships
