@@ -82,7 +82,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.admins.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -97,7 +96,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.wlans.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -120,7 +118,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.port_forwards.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -128,7 +125,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.traffic_rules.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -136,7 +132,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.traffic_routes.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -147,14 +142,12 @@ async def _sync_unifi(
         await cartography.intel.unifi.dpi_apps.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
         await cartography.intel.unifi.dpi_groups.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -162,7 +155,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.firewall_zones.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -170,7 +162,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.firewall_policies.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -178,7 +169,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.system_info.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 
@@ -186,7 +176,6 @@ async def _sync_unifi(
         await cartography.intel.unifi.vouchers.sync(
             neo4j_session,
             controller,
-            site_id,
             common_job_parameters,
         )
 

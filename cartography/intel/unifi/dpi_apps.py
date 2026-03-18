@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi DPI apps from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID for the DPI apps
     :return: List of DPI app data
     """
     logger.debug("Fetching UniFi DPI apps")
@@ -80,7 +79,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
@@ -88,11 +86,11 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the DPI apps
     :param common_job_parameters: Common job parameters
     :return: List of DPI app data
     """
-    dpi_apps = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    dpi_apps = await get(controller)
     load_dpi_apps(neo4j_session, dpi_apps, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
     return dpi_apps
