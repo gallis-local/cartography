@@ -103,7 +103,7 @@ class ProxmoxBackupJobToStorageRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxStorage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("storage"),
+            "id": PropertyRef("storage_id"),  # Full storage ID (cluster_id/storage/name)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
@@ -164,12 +164,13 @@ class ProxmoxBackupJobToVMMatchLink(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),  # Integer VMID
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     source_node_label: str = "ProxmoxBackupJob"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "id": PropertyRef("job_id"),
+            "id": PropertyRef("backup_job_id"),
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD

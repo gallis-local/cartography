@@ -50,22 +50,6 @@ def get_node_firewall_rules(
 
 
 @timeit
-def get_vm_firewall_rules(
-    proxmox_client: Any, node_name: str, vmid: int
-) -> list[dict[str, Any]]:
-    """
-    Get VM-level firewall rules.
-
-    :param proxmox_client: Proxmox API client
-    :param node_name: Node name
-    :param vmid: VM ID
-    :return: List of firewall rule dicts
-    :raises: Exception if API call fails
-    """
-    return proxmox_client.nodes(node_name).qemu(vmid).firewall.rules.get()
-
-
-@timeit
 def get_cluster_ipsets(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get cluster-level IP sets.
@@ -341,12 +325,13 @@ def load_firewall_scope_relationships(
 
     # Create relationships to VMs
     if vm_rules:
-        # Convert scope_id to int for VM matching
+        # scope_id for VM rules is the full VM path (e.g. "cluster1/vm/100").
+        # Extract the integer VMID from the trailing segment.
         for rule in vm_rules:
             if rule["scope_id"]:
                 try:
-                    rule["vmid_int"] = int(rule["scope_id"])
-                except ValueError:
+                    rule["vmid_int"] = int(rule["scope_id"].split("/")[-1])
+                except (ValueError, IndexError):
                     pass
 
         load_matchlinks(
@@ -394,7 +379,7 @@ def load_firewall_ipset_relationships(
             ipset_relationships.append(
                 {
                     "id": rule["id"],
-                    "scope": rule["scope"],
+                    "cluster_id": rule["cluster_id"],
                     "ipset_name": ipset_name,
                     "in_source": ipset_name in source_ipsets,
                     "in_dest": ipset_name in dest_ipsets,

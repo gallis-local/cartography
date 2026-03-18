@@ -168,7 +168,7 @@ def test_full_proxmox_sync(
     disk_count = result.single()["count"]
     assert (
         disk_count == 5
-    )  # VM 100: scsi0+ide2, VM 101: scsi0+efidisk0+tpmstate0, Container 200: rootfs = 5 total
+    )  # VM 100: scsi0 (ide2 is CD-ROM, filtered), VM 101: scsi0+efidisk0+tpmstate0, Container 200: rootfs = 5 total
 
     # 6. Network interfaces exist and connect to VMs
     result = neo4j_session.run(

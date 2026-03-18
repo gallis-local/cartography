@@ -38,50 +38,6 @@ MOCK_LXC_SNAPSHOTS = [
     },
 ]
 
-# Expected transformed snapshots for QEMU VM on cluster1, node pve1
-MOCK_QEMU_SNAPSHOTS_TRANSFORMED = [
-    {
-        "id": "cluster1:pve1/qemu/100:snapshot1",
-        "name": "snapshot1",
-        "cluster_id": "cluster1",
-        "vmid": 100,
-        "vm_type": "qemu",
-        "node": "pve1",
-        "description": "Before system update",
-        "snaptime": 1704067200,
-        "vmstate": True,
-        "parent": "",
-    },
-    {
-        "id": "cluster1:pve1/qemu/100:snapshot2",
-        "name": "snapshot2",
-        "cluster_id": "cluster1",
-        "vmid": 100,
-        "vm_type": "qemu",
-        "node": "pve1",
-        "description": "After system update",
-        "snaptime": 1704153600,
-        "vmstate": False,
-        "parent": "snapshot1",
-    },
-]
-
-# Expected transformed snapshots for LXC container on cluster1, node pve1
-MOCK_LXC_SNAPSHOTS_TRANSFORMED = [
-    {
-        "id": "cluster1:pve1/lxc/101:backup-daily",
-        "name": "backup-daily",
-        "cluster_id": "cluster1",
-        "vmid": 101,
-        "vm_type": "lxc",
-        "node": "pve1",
-        "description": "Daily backup",
-        "snaptime": 1704067200,
-        "vmstate": False,
-        "parent": "",
-    },
-]
-
 # Mock VM list for snapshot sync
 MOCK_VMS_FOR_SNAPSHOT = [
     {

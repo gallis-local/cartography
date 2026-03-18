@@ -66,19 +66,24 @@ def transform_replication_job_data(
         # NEW: f"{cluster_id}/replication/{job_id}"
         replication_job_id = f"{cluster_id}/replication/{job_id}"
 
+        target = job.get("target")
+        source = job.get("source")
+
         transformed_jobs.append(
             {
                 "id": replication_job_id,
                 "job_id": job_id,
                 "cluster_id": cluster_id,
                 "guest": job.get("guest"),  # VM ID
-                "target": job.get("target"),  # Target node
+                "target": target,  # Target node name
+                "target_node_id": f"{cluster_id}/node/{target}" if target else None,
                 "type": job.get("type"),  # local or remote
                 "schedule": job.get("schedule"),  # e.g., "*/15" for every 15 min
                 "rate": job.get("rate"),  # Rate limit in MB/s
                 "disable": job.get("disable", 0) == 1,  # Convert to boolean
                 "comment": job.get("comment"),
-                "source": job.get("source"),  # Source node (optional)
+                "source": source,  # Source node name (optional)
+                "source_node_id": f"{cluster_id}/node/{source}" if source else None,
             }
         )
 
@@ -145,9 +150,6 @@ def sync(
 
     # LOAD - ingest to Neo4j
     load_replication_jobs(neo4j_session, transformed_jobs, cluster_id, update_tag)
-
-    # CLEANUP - remove stale jobs
-    cleanup(neo4j_session, common_job_parameters)
 
     logger.info(f"Synced {len(transformed_jobs)} replication jobs")
 

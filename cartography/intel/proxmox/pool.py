@@ -10,6 +10,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.pool import ProxmoxPoolSchema
 from cartography.util import timeit
 
@@ -205,13 +206,15 @@ def sync(
         if "members" in details:
             for member in details["members"]:
                 member_data = {
-                    "pool_id": poolid,  # Pool ID (bare poolid, used by MatchLink to find pool)
+                    "pool_id": poolid,  # Bare pool ID retained for reference
+                    "pool_full_id": f"{cluster_id}/pool/{poolid}",  # Full cluster-scoped ID for MatchLink source matching
                     "type": member.get("type"),
                 }
 
                 if member.get("type") in ("qemu", "lxc"):
-                    # For VMs/containers, use integer VMID (MatchLink matches on vmid property)
+                    # For VMs/containers, use integer VMID and cluster_id (MatchLink matches on both)
                     member_data["vmid"] = member.get("vmid")
+                    member_data["cluster_id"] = cluster_id
                 elif member.get("type") == "storage":
                     # For storage, build full storage ID using new pattern
                     # MatchLink will match on the full storage ID
@@ -229,4 +232,16 @@ def sync(
 
     logger.info(
         f"Synced {len(transformed_pools)} resource pools with {len(pool_members)} members"
+    )
+
+
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+    """
+    Remove stale pool data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxPoolSchema(), common_job_parameters).run(
+        neo4j_session
     )

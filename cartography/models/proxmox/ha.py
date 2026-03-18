@@ -159,6 +159,7 @@ class ProxmoxHAResourceToHAGroupRel(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "group": PropertyRef("group"),
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
@@ -219,12 +220,13 @@ class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),  # Integer VMID
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     source_node_label: str = "ProxmoxHAResource"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "sid": PropertyRef("sid"),
+            "id": PropertyRef("ha_resource_id"),  # Full cluster-scoped ID (cluster_id/ha/resource/sid)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD

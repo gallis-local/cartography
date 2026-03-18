@@ -90,6 +90,7 @@ def transform_backup_job_data(
                 "cluster_id": cluster_id,
                 "schedule": job.get("schedule"),
                 "storage": job.get("storage"),
+                "storage_id": f"{cluster_id}/storage/{job['storage']}" if job.get("storage") else None,
                 "enabled": job.get("enabled", True),
                 "mode": job.get("mode", "snapshot"),
                 "compression": job.get("compress"),
@@ -225,8 +226,9 @@ def sync(
                 for vmid in vmids:
                     job_vms.append(
                         {
-                            "job_id": job_id,
+                            "backup_job_id": f"{cluster_id}/backup/{job_id}",
                             "vmid": vmid,
+                            "cluster_id": cluster_id,
                         }
                     )
 

@@ -109,12 +109,13 @@ class ProxmoxPoolToVMMatchLink(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),  # Integer VMID
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
         }
     )
     source_node_label: str = "ProxmoxPool"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "poolid": PropertyRef("pool_id"),
+            "id": PropertyRef("pool_full_id"),  # Full cluster-scoped ID (cluster_id/pool/poolid)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
@@ -155,7 +156,7 @@ class ProxmoxPoolToStorageMatchLink(CartographyRelSchema):
     source_node_label: str = "ProxmoxPool"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "poolid": PropertyRef("pool_id"),
+            "id": PropertyRef("pool_full_id"),  # Full cluster-scoped ID (cluster_id/pool/poolid)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD

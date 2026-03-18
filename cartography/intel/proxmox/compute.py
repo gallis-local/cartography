@@ -186,6 +186,7 @@ def transform_vm_data(
                 "vmid": vm["vmid"],
                 "name": vm.get("name", ""),
                 "node": vm["node"],
+                "node_id": f"{cluster_id}/node/{vm['node']}",  # Full node ID for relationship matching
                 "cluster_id": cluster_id,
                 "type": vm["type"],
                 "status": vm.get("status"),
@@ -257,7 +258,7 @@ def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, An
     Extract disk configurations from VM config.
 
     :param vm_config: VM configuration dict
-    :param vmid: Full VM ID (node/type/vmid format, e.g. "node1/qemu/100")
+    :param vmid: Full VM ID (cluster_id/vm/vmid format, e.g. "cluster1/vm/100")
     :return: List of disk dicts
     """
     disks = []
@@ -425,7 +426,7 @@ def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str,
     Extract network interface configurations from VM config.
 
     :param vm_config: VM configuration dict
-    :param vmid: Full VM ID (node/type/vmid format, e.g. "node1/qemu/100")
+    :param vmid: Full VM ID (cluster_id/vm/vmid format, e.g. "cluster1/vm/100")
     :return: List of network interface dicts
     """
     interfaces = []
@@ -703,6 +704,19 @@ def create_vm_network_adjacency(
         UpdateTag=update_tag,
     )
 
+    # Remove stale NETWORK_ADJACENT edges (VMs that no longer share a bridge/VLAN)
+    cleanup_query = """
+    MATCH (:ProxmoxVM {cluster_id: $ClusterId})-[r:NETWORK_ADJACENT]-()
+    WHERE r.lastupdated < $UpdateTag
+    DELETE r
+    """
+    run_write_query(
+        neo4j_session,
+        cleanup_query,
+        ClusterId=cluster_id,
+        UpdateTag=update_tag,
+    )
+
 
 # ============================================================================
 # SYNC function
@@ -814,8 +828,9 @@ def sync(
 
             # Set node_name on network interfaces (needed for bridge relationships)
             # Node is mutable state, not part of identity, so we set it after extraction
+            # Use full node ID to match ProxmoxNodeNetworkInterface.node_id property
             for interface in interfaces:
-                interface["node_name"] = node_name
+                interface["node_name"] = f"{cluster_id}/node/{node_name}"
 
             # Get guest agent data if enabled and VM is QEMU
             if enable_guest_agent and vm["type"] == "qemu":

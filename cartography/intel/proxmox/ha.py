@@ -217,7 +217,9 @@ def load_ha_resource_vm_relationships(
                 vm_mappings.append(
                     {
                         "sid": sid,
+                        "ha_resource_id": f"{cluster_id}/ha/resource/{sid}",  # Full cluster-scoped ID for MatchLink source matching
                         "vmid": int(parts[1]),
+                        "cluster_id": cluster_id,
                     }
                 )
 

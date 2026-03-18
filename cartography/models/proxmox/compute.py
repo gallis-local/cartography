@@ -157,7 +157,7 @@ class ProxmoxVMToNodeRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxNode"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("node"),
+            "id": PropertyRef("node_id"),  # Full node ID (cluster_id/node/name)
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
@@ -271,13 +271,14 @@ class ProxmoxDiskToVMRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxVM)-[:HAS_DISK]->(:ProxmoxDisk)
 
-    VMs have attached disks. Use vmid to match.
+    VMs have attached disks. Use vmid + cluster_id to match.
     """
 
     target_node_label: str = "ProxmoxVM"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),
+            "cluster_id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
@@ -425,13 +426,14 @@ class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxVM)-[:HAS_NETWORK_INTERFACE]->(:ProxmoxNetworkInterface)
 
-    VMs have network interfaces. Use vmid to match.
+    VMs have network interfaces. Use vmid + cluster_id to match.
     """
 
     target_node_label: str = "ProxmoxVM"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "vmid": PropertyRef("vmid"),
+            "cluster_id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
     direction: LinkDirection = LinkDirection.INWARD
@@ -466,7 +468,7 @@ class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "name": PropertyRef("bridge"),
-            "node_name": PropertyRef("node_name"),
+            "node_id": PropertyRef("node_name"),
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD

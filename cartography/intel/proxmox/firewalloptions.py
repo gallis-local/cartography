@@ -96,6 +96,7 @@ def transform_firewall_options_data(
         "cluster_id": cluster_id,
         "scope": scope,
         "scope_id": scope_id,
+        "node_id": f"{cluster_id}/node/{scope_id}" if scope == "node" and scope_id else None,
         "enable": options.get("enable", 0) == 1,  # Convert to boolean
         "policy_in": options.get("policy_in"),  # ACCEPT, REJECT, DROP
         "policy_out": options.get("policy_out"),
@@ -186,9 +187,6 @@ def sync(
 
     # LOAD - ingest to Neo4j
     load_firewall_options(neo4j_session, all_options, cluster_id, update_tag)
-
-    # CLEANUP - remove stale options
-    cleanup(neo4j_session, common_job_parameters)
 
     logger.info(f"Synced {len(all_options)} firewall options configurations")
 
