@@ -69,7 +69,6 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "sw_port": sw_port,
                 "port_id": port_id,
                 "ap_switch_mac": ap_switch_mac,
-                "site_id": site_id,
             }
         )
     return clients, site_id

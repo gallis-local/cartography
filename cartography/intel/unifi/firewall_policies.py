@@ -44,7 +44,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "logging": policy.raw.get("logging", False),
                 "source_zone_id": source.get("zone_id"),
                 "destination_zone_id": destination.get("zone_id"),
-                "site_id": site_id,
             }
         )
     return firewall_policies

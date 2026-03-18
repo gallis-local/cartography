@@ -19,6 +19,7 @@ class UnifiDPIGroupNodeProperties(CartographyNodeProperties):
     attr_no_delete: PropertyRef = PropertyRef("attr_no_delete")
     attr_hidden_id: PropertyRef = PropertyRef("attr_hidden_id")
     dpiapp_ids: PropertyRef = PropertyRef("dpiapp_ids")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
