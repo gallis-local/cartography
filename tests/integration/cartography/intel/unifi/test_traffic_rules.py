@@ -32,16 +32,15 @@ async def test_load_unifi_traffic_rules(mock_get, neo4j_session):
     """
     # Arrange
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.traffic_rules.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -82,16 +81,15 @@ async def test_unifi_traffic_rule_to_site_relationship(mock_get, neo4j_session):
     )
 
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.traffic_rules.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -131,7 +129,7 @@ async def test_unifi_traffic_rule_to_dpi_app_relationship(mock_get, neo4j_sessio
     )
     mock_controller = MagicMock()
     site_id = "default"
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     # Load DPI groups and apps via load functions directly
     cartography.intel.unifi.dpi_groups.load_dpi_groups(
@@ -141,7 +139,7 @@ async def test_unifi_traffic_rule_to_dpi_app_relationship(mock_get, neo4j_sessio
         neo4j_session, tests.data.unifi.UNIFI_DPI_APPS, site_id, TEST_UPDATE_TAG
     )
     await cartography.intel.unifi.traffic_rules.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
 
     # tr_001 has app_ids: ["dpi_app_001"]
@@ -180,14 +178,14 @@ async def test_unifi_traffic_rule_to_client_relationship(mock_get, neo4j_session
     _ensure_local_neo4j_has_test_devices(neo4j_session)
     mock_controller = MagicMock()
     site_id = "default"
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     # Load clients first
     cartography.intel.unifi.clients.load_clients(
         neo4j_session, tests.data.unifi.UNIFI_CLIENTS, site_id, TEST_UPDATE_TAG
     )
     await cartography.intel.unifi.traffic_rules.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
 
     # tr_001 targets client 11:22:33:44:55:66
