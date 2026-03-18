@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the DPI apps
     :return: List of DPI app data
     """
-    logger.info("Fetching UniFi DPI apps")
+    logger.debug("Fetching UniFi DPI apps")
     await controller.dpi_apps.update()
 
     # Convert aiounifi DPIRestrictionApp objects to dictionaries
@@ -53,7 +53,6 @@ def load_dpi_apps(
     :param data: List of DPI app data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi DPI apps into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiDPIAppSchema(),

@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -12,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     """
     Get vouchers from UniFi controller
     """
+    logger.debug("Fetching UniFi vouchers")
     await controller.vouchers.update()
     vouchers = []
     for voucher in controller.vouchers.values():
@@ -79,7 +81,7 @@ def cleanup(
 @timeit
 async def sync(
     neo4j_session: neo4j.Session,
-    controller: Any,
+    controller: Controller,
     site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> None:

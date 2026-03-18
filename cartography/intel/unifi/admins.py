@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID to associate admins with
     :return: List of admin data
     """
-    logger.info("Fetching UniFi admins")
+    logger.debug("Fetching UniFi admins")
     await controller.admins.update()
 
     admins = []
@@ -29,9 +29,9 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
         admins.append(
             {
                 "id": admin.raw["_id"],
-                "name": admin.raw.get("name", ""),
+                "name": admin.raw.get("name"),
                 "email": admin.raw.get("email") or None,
-                "role": admin.raw.get("role", ""),
+                "role": admin.raw.get("role"),
                 "is_super_admin": admin.raw.get("is_super_admin", False),
                 "last_site_name": admin.raw.get("last_site_name"),
             }
@@ -54,7 +54,6 @@ def load_admins(
     :param site_id: Site ID for the admins
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi admins into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiAdminSchema(),
