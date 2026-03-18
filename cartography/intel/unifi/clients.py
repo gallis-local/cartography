@@ -13,18 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi clients from the controller.
 
     :param controller: Controller instance
-    :return: Tuple of (List of client data, site_id)
+    :return: List of client data
     """
     logger.debug("Fetching UniFi clients")
     await controller.clients.update()
-
-    # Get site_id from controller
-    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Client objects to dictionaries
     clients = []
@@ -71,7 +68,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "ap_switch_mac": ap_switch_mac,
             }
         )
-    return clients, site_id
+    return clients
 
 
 @timeit
@@ -127,7 +124,8 @@ async def sync(
     :param common_job_parameters: Common job parameters
     :return: List of client data
     """
-    clients, site_id = await get(controller)
+    site_id = common_job_parameters["site_id"]
+    clients = await get(controller)
     load_clients(neo4j_session, clients, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
     return clients

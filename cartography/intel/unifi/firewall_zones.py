@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Get firewall zones from UniFi controller
     """
@@ -70,12 +70,12 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync firewall zones from UniFi controller to Neo4j
     """
-    zones = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    zones = await get(controller)
     load_firewall_zones(neo4j_session, zones, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)

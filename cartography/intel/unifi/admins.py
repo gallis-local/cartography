@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi admins from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID to associate admins with
     :return: List of admin data
     """
     logger.debug("Fetching UniFi admins")
@@ -83,7 +82,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
@@ -91,9 +89,9 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the admins
     :param common_job_parameters: Common job parameters
     """
-    admins = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    admins = await get(controller)
     load_admins(neo4j_session, admins, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)

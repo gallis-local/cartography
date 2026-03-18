@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi traffic routes from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID for the traffic routes
     :return: List of traffic route data
     """
     logger.debug("Fetching UniFi traffic routes")
@@ -96,7 +95,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
@@ -104,11 +102,11 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the traffic routes
     :param common_job_parameters: Common job parameters
     :return: List of traffic route data
     """
-    traffic_routes = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    traffic_routes = await get(controller)
     load_traffic_routes(
         neo4j_session, traffic_routes, site_id, common_job_parameters["UPDATE_TAG"]
     )
