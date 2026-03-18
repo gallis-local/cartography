@@ -3,6 +3,7 @@ import logging
 
 import neo4j
 
+import cartography.intel.unifi.admins
 import cartography.intel.unifi.clients
 import cartography.intel.unifi.devices
 import cartography.intel.unifi.dpi_apps
@@ -76,14 +77,22 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 2. Devices (belong to sites)
+        # 2. Admins (site administrators)
+        await cartography.intel.unifi.admins.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 3. Devices (belong to sites)
         await cartography.intel.unifi.devices.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 3. WLANs (belong to sites, broadcast by devices)
+        # 4. WLANs (belong to sites, broadcast by devices)
         await cartography.intel.unifi.wlans.sync(
             neo4j_session,
             controller,
@@ -91,21 +100,21 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 4. Ports (belong to devices)
+        # 5. Ports (belong to devices)
         await cartography.intel.unifi.ports.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 5. Clients (connect to devices and WLANs)
+        # 6. Clients (connect to devices and WLANs)
         await cartography.intel.unifi.clients.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 6. Network configuration objects
+        # 7. Network configuration objects
         # Port forwards
         await cartography.intel.unifi.port_forwards.sync(
             neo4j_session,
@@ -130,15 +139,10 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 7. DPI (Deep Packet Inspection) objects
-        # DPI groups first, then apps
-        await cartography.intel.unifi.dpi_groups.sync(
-            neo4j_session,
-            controller,
-            site_id,
-            common_job_parameters,
-        )
-
+        # 8. DPI (Deep Packet Inspection) objects
+        # Apps must come before groups: UnifiDPIGroupSchema creates CONTAINS_APP
+        # edges via OPTIONAL MATCH on UnifiDPIApp nodes, so app nodes must already
+        # exist when groups are loaded or the relationship silently does not form.
         await cartography.intel.unifi.dpi_apps.sync(
             neo4j_session,
             controller,
@@ -146,7 +150,22 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 8. Firewall policies
+        await cartography.intel.unifi.dpi_groups.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 9. Firewall zones (must come before policies; policies reference zone IDs)
+        await cartography.intel.unifi.firewall_zones.sync(
+            neo4j_session,
+            controller,
+            site_id,
+            common_job_parameters,
+        )
+
+        # 10. Firewall policies (depend on firewall zones existing)
         await cartography.intel.unifi.firewall_policies.sync(
             neo4j_session,
             controller,
@@ -154,30 +173,19 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 9. Firewall zones
-        await cartography.intel.unifi.firewall_zones.sync(
-            neo4j_session,
-            controller,
-            site_id,
-            update_tag,
-            common_job_parameters,
-        )
-
-        # 10. System information (controller metadata)
+        # 11. System information (controller metadata)
         await cartography.intel.unifi.system_info.sync(
             neo4j_session,
             controller,
             site_id,
-            update_tag,
             common_job_parameters,
         )
 
-        # 11. Vouchers (guest network access codes)
+        # 12. Vouchers (guest network access codes)
         await cartography.intel.unifi.vouchers.sync(
             neo4j_session,
             controller,
             site_id,
-            update_tag,
             common_job_parameters,
         )
 

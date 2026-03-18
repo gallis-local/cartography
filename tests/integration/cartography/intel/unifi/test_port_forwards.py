@@ -132,13 +132,12 @@ async def test_unifi_port_forward_cleanup(mock_get, neo4j_session):
             "id": "old_pf",
             "name": None,
             "enabled": True,
-            "src": "any",
-            "dst_port": "8080",
-            "fwd": "192.168.1.100",
-            "fwd_port": "80",
+            "source": "any",
+            "destination_port": "8080",
+            "forward_ip": "192.168.1.100",
+            "forward_port": "80",
             "protocol": "tcp_udp",
-            "log": False,
-            "site_id": "default",
+            "interface": "wan",
         }
     ]
     cartography.intel.unifi.port_forwards.load_port_forwards(

@@ -35,7 +35,7 @@ class UnifiFirewallPolicyToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiFirewallPolicy)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiFirewallPolicy)
 class UnifiFirewallPolicyToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

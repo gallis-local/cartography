@@ -37,7 +37,7 @@ class UnifiDeviceToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)<-[:RESOURCE]-(:UnifiDevice)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiDevice)
 class UnifiDeviceToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -54,13 +54,13 @@ class UnifiDeviceToUplinkRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiDevice)<-[:UPLINK_TO]-(:UnifiDevice)
+# (:UnifiDevice)-[:UPLINK_TO]->(:UnifiDevice)
 class UnifiDeviceToUplinkRel(CartographyRelSchema):
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("uplink_mac")},
     )
-    direction: LinkDirection = LinkDirection.INWARD
+    direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "UPLINK_TO"
     properties: UnifiDeviceToUplinkRelProperties = UnifiDeviceToUplinkRelProperties()
 

@@ -6,6 +6,7 @@ import pytest
 
 import cartography.intel.unifi.dpi_apps
 import cartography.intel.unifi.dpi_groups
+import cartography.intel.unifi.sites
 import tests.data.unifi
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
@@ -97,59 +98,43 @@ async def test_load_unifi_dpi_apps(mock_get, neo4j_session):
 
 @pytest.mark.asyncio
 @patch.object(
-    cartography.intel.unifi.dpi_groups,
-    "get",
-    new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_DPI_GROUPS,
-)
-@patch.object(
     cartography.intel.unifi.dpi_apps,
     "get",
     new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_DPI_APPS,
 )
-async def test_unifi_dpi_app_to_group_relationship(
-    mock_apps, mock_groups, neo4j_session
-):
+async def test_unifi_dpi_app_to_site_relationship(mock_apps, neo4j_session):
     """
-    Ensure that DPI apps are connected to DPI groups.
+    Ensure that DPI apps are connected to their site via the RESOURCE relationship.
+    MEMBER_OF (app→group) was removed; the canonical direction is
+    Group-[:CONTAINS_APP]->App, tested in test_unifi_dpi_group_contains_app_relationship.
     """
-    # Arrange - Load groups first
+    # Site must exist before loading apps so the RESOURCE relationship can be created
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session, tests.data.unifi.UNIFI_SITES, TEST_UPDATE_TAG
+    )
     mock_controller = MagicMock()
     site_id = "default"
-    common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
-    }
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
 
-    # Load groups first
-    await cartography.intel.unifi.dpi_groups.sync(
-        neo4j_session,
-        mock_controller,
-        site_id,
-        common_job_parameters,
-    )
-
-    # Act - Load apps
     await cartography.intel.unifi.dpi_apps.sync(
-        neo4j_session,
-        mock_controller,
-        site_id,
-        common_job_parameters,
+        neo4j_session, mock_controller, site_id, common_job_parameters
     )
 
-    # Assert - Check relationship exists
+    # Both apps belong to the default site
     expected_rels = {
-        ("dpi_app_001", "dpi_group_001"),
+        ("dpi_app_001", "default"),
+        ("dpi_app_002", "default"),
     }
     assert (
         check_rels(
             neo4j_session,
             "UnifiDPIApp",
             "id",
-            "UnifiDPIGroup",
+            "UnifiSite",
             "id",
-            "MEMBER_OF",
-            rel_direction_right=True,
+            "RESOURCE",
+            rel_direction_right=False,
         )
         == expected_rels
     )

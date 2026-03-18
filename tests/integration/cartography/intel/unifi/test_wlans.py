@@ -122,6 +122,12 @@ async def test_cleanup_unifi_wlans(mock_get, neo4j_session):
     """
     Test that stale UniFi WLANs are cleaned up.
     """
+    # Site must exist so that the scoped cleanup query
+    # MATCH (n:UnifiWlan)<-[:RESOURCE]-(:UnifiSite{id:$site_id}) can find nodes to delete.
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session, tests.data.unifi.UNIFI_SITES, 123456789
+    )
+
     # First sync
     common_job_parameters = {"UPDATE_TAG": 123456789}
     await cartography.intel.unifi.wlans.sync(

@@ -1,7 +1,7 @@
 # Test data for UniFi sites
 UNIFI_SITES = [
     {
-        "_id": "default",
+        "id": "default",
         "name": "Default",
         "desc": "Default Site",
         "role": "admin",
@@ -49,7 +49,7 @@ UNIFI_DEVICES = [
 # Test data for UniFi WLANs
 UNIFI_WLANS = [
     {
-        "_id": "wlan_001",
+        "id": "wlan_001",
         "name": "Corporate WiFi",
         "enabled": True,
         "is_guest": False,
@@ -68,7 +68,7 @@ UNIFI_WLANS = [
         "site_id": "default",
     },
     {
-        "_id": "wlan_002",
+        "id": "wlan_002",
         "name": "Guest WiFi",
         "enabled": True,
         "is_guest": True,
@@ -307,7 +307,6 @@ UNIFI_DPI_APPS = [
         "enabled": True,
         "log": True,
         "site_id": "default",
-        "dpi_group_ids": ["dpi_group_001"],
     },
     {
         "id": "dpi_app_002",
@@ -315,7 +314,6 @@ UNIFI_DPI_APPS = [
         "enabled": True,
         "log": False,
         "site_id": "default",
-        "dpi_group_ids": None,
     },
 ]
 
@@ -418,6 +416,26 @@ UNIFI_VOUCHERS = [
         "status": "USED_MULTIPLE",
         "status_expires": None,
         "site_id": "default",
+    },
+]
+
+# Test data for UniFi admins
+UNIFI_ADMINS = [
+    {
+        "id": "admin_001",
+        "name": "alice",
+        "email": "alice@example.com",
+        "role": "admin",
+        "is_super_admin": True,
+        "last_site_name": "Default",
+    },
+    {
+        "id": "admin_002",
+        "name": "bob",
+        "email": "bob@example.com",
+        "role": "readonly",
+        "is_super_admin": False,
+        "last_site_name": "Default",
     },
 ]
 

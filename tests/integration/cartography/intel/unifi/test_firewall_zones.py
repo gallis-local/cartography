@@ -33,7 +33,7 @@ async def test_sync_firewall_zones(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert
@@ -75,7 +75,7 @@ async def test_sync_firewall_zones_relationships(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert - Check RESOURCE relationships
@@ -140,7 +140,7 @@ async def test_sync_firewall_zones_cleanup(mock_get, neo4j_session):
 
     # Act
     await sync(
-        neo4j_session, controller, TEST_SITE_ID, TEST_UPDATE_TAG, common_job_parameters
+        neo4j_session, controller, TEST_SITE_ID, common_job_parameters
     )
 
     # Assert - Stale zone should be removed
