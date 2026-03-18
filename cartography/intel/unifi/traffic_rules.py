@@ -51,7 +51,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "network_ids": rule.raw.get("network_ids") or None,
                 "domains": rule.raw.get("domains") or None,
                 "target_client_macs": target_client_macs or None,
-                "site_id": site_id,
             }
         )
     return traffic_rules

@@ -22,6 +22,7 @@ class UnifiPortForwardNodeProperties(CartographyNodeProperties):
     protocol: PropertyRef = PropertyRef("protocol")
     interface: PropertyRef = PropertyRef("interface")
     source: PropertyRef = PropertyRef("source")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

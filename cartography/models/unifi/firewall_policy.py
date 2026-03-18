@@ -27,6 +27,7 @@ class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
     logging: PropertyRef = PropertyRef("logging")
     source_zone_id: PropertyRef = PropertyRef("source_zone_id")
     destination_zone_id: PropertyRef = PropertyRef("destination_zone_id")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

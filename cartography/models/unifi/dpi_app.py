@@ -17,6 +17,7 @@ class UnifiDPIAppNodeProperties(CartographyNodeProperties):
     blocked: PropertyRef = PropertyRef("blocked")
     enabled: PropertyRef = PropertyRef("enabled")
     log: PropertyRef = PropertyRef("log")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
