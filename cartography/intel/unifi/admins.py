@@ -96,4 +96,4 @@ async def sync(
     """
     admins = await get(controller, site_id)
     load_admins(neo4j_session, admins, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
+    cleanup(neo4j_session, common_job_parameters)

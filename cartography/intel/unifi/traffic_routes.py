@@ -113,6 +113,5 @@ async def sync(
     load_traffic_routes(
         neo4j_session, traffic_routes, site_id, common_job_parameters["UPDATE_TAG"]
     )
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return traffic_routes

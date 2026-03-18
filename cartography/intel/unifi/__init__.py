@@ -61,13 +61,14 @@ async def _sync_unifi(
             verify_ssl=verify_ssl,
         )
 
-        common_job_parameters = {
-            "UPDATE_TAG": update_tag,
-        }
-
         # Get the site ID from the controller config
         await controller.sites.update()
         site_id = controller.connectivity.config.site
+
+        common_job_parameters = {
+            "UPDATE_TAG": update_tag,
+            "site_id": site_id,
+        }
 
         # Sync in hierarchical order:
         # 1. Sites (top level organization)
