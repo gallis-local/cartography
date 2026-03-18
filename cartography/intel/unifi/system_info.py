@@ -82,4 +82,4 @@ async def sync(
     """
     system_info = await get(controller)
     load_system_info(neo4j_session, system_info, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
+    cleanup(neo4j_session, common_job_parameters)
