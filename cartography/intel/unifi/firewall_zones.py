@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -12,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     """
     Get firewall zones from UniFi controller
     """
+    logger.debug("Fetching UniFi firewall zones")
     await controller.firewall_zones.update()
     zones = []
     for zone in controller.firewall_zones.values():
@@ -25,8 +27,8 @@ async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
                 "name": zone.name,
                 "attr_no_edit": zone.raw.get("attr_no_edit", False),
                 "default_zone": zone.raw.get("default_zone", False),
-                "zone_key": zone.raw.get("zone_key", ""),
-                "network_ids": zone.raw.get("network_ids", []),
+                "zone_key": zone.raw.get("zone_key"),
+                "network_ids": zone.raw.get("network_ids"),
             }
         )
     return zones
@@ -67,7 +69,7 @@ def cleanup(
 @timeit
 async def sync(
     neo4j_session: neo4j.Session,
-    controller: Any,
+    controller: Controller,
     site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> None:

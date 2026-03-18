@@ -20,7 +20,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     :param controller: Controller instance
     :return: Tuple of (List of client data, site_id)
     """
-    logger.info("Fetching UniFi clients")
+    logger.debug("Fetching UniFi clients")
     await controller.clients.update()
 
     # Get site_id from controller
@@ -90,7 +90,6 @@ def load_clients(
     :param site_id: Site ID for the clients
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi clients into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiClientSchema(),

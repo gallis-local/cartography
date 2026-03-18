@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the traffic rules
     :return: List of traffic rule data
     """
-    logger.info("Fetching UniFi traffic rules")
+    logger.debug("Fetching UniFi traffic rules")
     await controller.traffic_rules.update()
 
     # Convert aiounifi TrafficRule objects to dictionaries
@@ -71,7 +71,6 @@ def load_traffic_rules(
     :param data: List of traffic rule data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi traffic rules into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiTrafficRuleSchema(),

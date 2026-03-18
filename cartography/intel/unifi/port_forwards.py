@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the port forwards
     :return: List of port forward data
     """
-    logger.info("Fetching UniFi port forwards")
+    logger.debug("Fetching UniFi port forwards")
     await controller.port_forwarding.update()
 
     # Convert aiounifi PortForward objects to dictionaries
@@ -58,7 +58,6 @@ def load_port_forwards(
     :param data: List of port forward data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi port forwards into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiPortForwardSchema(),

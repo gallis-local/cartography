@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the WLANs
     :return: List of WLAN data
     """
-    logger.info("Fetching UniFi WLANs")
+    logger.debug("Fetching UniFi WLANs")
     await controller.wlans.update()
 
     # Convert aiounifi WLAN objects to dictionaries
@@ -44,7 +44,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "no2ghz_oui": wlan.raw.get("no2ghz_oui"),
                 "name_combine_enabled": wlan.name_combine_enabled,
                 "wlangroup_id": wlan.raw.get("wlangroup_id"),
-                "schedule": wlan.raw.get("schedule", []),
+                "schedule": wlan.raw.get("schedule"),
                 "site_id": site_id,
             }
         )
@@ -65,7 +65,6 @@ def load_wlans(
     :param data: List of WLAN data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi WLANs into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiWlanSchema(),

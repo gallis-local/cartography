@@ -20,7 +20,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     :param controller: Controller instance
     :return: Tuple of (List of port data, site_id)
     """
-    logger.info("Fetching UniFi ports")
+    logger.debug("Fetching UniFi ports")
     # Ports are populated via device subscription when controller.devices.update()
     # is called — no separate API request needed for ports.
 
@@ -69,7 +69,6 @@ def load_ports(
     :param site_id: Site ID for the ports
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi ports into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiPortSchema(),
