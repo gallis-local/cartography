@@ -38,7 +38,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "protocol": pf.protocol,
                 "interface": pf.port_forward_interface,
                 "source": pf.source,
-                "site_id": site_id,
             }
         )
     return port_forwards

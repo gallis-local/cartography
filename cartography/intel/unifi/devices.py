@@ -65,7 +65,6 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                     else None
                 ),
                 "wlan_ids": list(wlan_id_set) or None,
-                "site_id": site_id,
             }
         )
     return devices, site_id

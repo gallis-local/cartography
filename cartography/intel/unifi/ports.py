@@ -48,7 +48,6 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "speed": port.raw.get("speed", 0),
                 "full_duplex": port.raw.get("full_duplex", False),
                 "device_mac": device_mac,
-                "site_id": site_id,
             }
         )
     return ports, site_id

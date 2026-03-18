@@ -20,6 +20,7 @@ class UnifiAdminNodeProperties(CartographyNodeProperties):
     role: PropertyRef = PropertyRef("role")
     is_super_admin: PropertyRef = PropertyRef("is_super_admin")
     last_site_name: PropertyRef = PropertyRef("last_site_name")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

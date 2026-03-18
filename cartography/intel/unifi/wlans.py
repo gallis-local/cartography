@@ -45,7 +45,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "name_combine_enabled": wlan.name_combine_enabled,
                 "wlangroup_id": wlan.raw.get("wlangroup_id"),
                 "schedule": wlan.raw.get("schedule"),
-                "site_id": site_id,
             }
         )
     return wlans

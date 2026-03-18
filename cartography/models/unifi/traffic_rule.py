@@ -29,6 +29,7 @@ class UnifiTrafficRuleNodeProperties(CartographyNodeProperties):
     network_ids: PropertyRef = PropertyRef("network_ids")
     domains: PropertyRef = PropertyRef("domains")
     target_client_macs: PropertyRef = PropertyRef("target_client_macs")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

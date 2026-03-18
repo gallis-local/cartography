@@ -33,7 +33,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "blocked": app.blocked,
                 "enabled": app.enabled,
                 "log": app.log,
-                "site_id": site_id,
             }
         )
     return dpi_apps

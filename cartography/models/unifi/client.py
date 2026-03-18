@@ -34,6 +34,7 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     sw_mac: PropertyRef = PropertyRef("sw_mac")
     sw_port: PropertyRef = PropertyRef("sw_port")
     ap_switch_mac: PropertyRef = PropertyRef("ap_switch_mac")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

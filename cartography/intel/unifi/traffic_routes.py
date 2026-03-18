@@ -48,7 +48,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "regions": route.raw.get("regions") or None,
                 "domains": domain_names or None,
                 "target_client_macs": target_client_macs or None,
-                "site_id": site_id,
             }
         )
     return traffic_routes
