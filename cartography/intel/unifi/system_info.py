@@ -55,6 +55,7 @@ def load_system_info(
     )
 
 
+@timeit
 def cleanup(
     neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
 ) -> None:

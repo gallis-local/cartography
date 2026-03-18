@@ -270,6 +270,17 @@ class DeviceToJamfMobileDeviceBySerialRel(CartographyRelSchema):
     properties: DeviceToNodeRelProperties = DeviceToNodeRelProperties()
 
 
+# (:Device)-[:OBSERVED_AS]->(:UnifiDevice)
+class DeviceToUnifiDeviceRel(CartographyRelSchema):
+    target_node_label: str = "UnifiDevice"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"name": PropertyRef("hostname")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "OBSERVED_AS"
+    properties: DeviceToNodeRelProperties = DeviceToNodeRelProperties()
+
+
 @dataclass(frozen=True)
 class DeviceSchema(CartographyNodeSchema):
     """A canonical physical or virtual device aggregated across providers."""
@@ -297,6 +308,7 @@ class DeviceSchema(CartographyNodeSchema):
             DeviceToJamfComputerBySerialRel(),
             DeviceToJamfMobileDeviceBySerialRel(),
             DeviceToMiradoreDeviceBySerialRel(),
+            DeviceToUnifiDeviceRel(),
         ],
     )
 
