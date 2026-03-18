@@ -95,6 +95,5 @@ async def sync(
     """
     dpi_apps = await get(controller, site_id)
     load_dpi_apps(neo4j_session, dpi_apps, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return dpi_apps

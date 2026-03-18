@@ -102,6 +102,5 @@ async def sync(
     load_port_forwards(
         neo4j_session, port_forwards, site_id, common_job_parameters["UPDATE_TAG"]
     )
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return port_forwards
