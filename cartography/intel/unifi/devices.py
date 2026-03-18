@@ -21,7 +21,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
     :param controller: Controller instance
     :return: Tuple of (List of device data, site_id)
     """
-    logger.info("Fetching UniFi devices")
+    logger.debug("Fetching UniFi devices")
     await controller.devices.update()
 
     # Get site_id from controller
@@ -86,7 +86,6 @@ def load_devices(
     :param site_id: Site ID for the devices
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi devices into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiDeviceSchema(),

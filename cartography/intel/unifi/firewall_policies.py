@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the firewall policies
     :return: List of firewall policy data
     """
-    logger.info("Fetching UniFi firewall policies")
+    logger.debug("Fetching UniFi firewall policies")
     await controller.firewall_policies.update()
 
     # Convert aiounifi FirewallPolicy objects to dictionaries
@@ -64,7 +64,6 @@ def load_firewall_policies(
     :param data: List of firewall policy data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi firewall policies into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiFirewallPolicySchema(),

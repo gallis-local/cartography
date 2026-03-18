@@ -21,7 +21,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     :param site_id: Site ID for the DPI groups
     :return: List of DPI group data
     """
-    logger.info("Fetching UniFi DPI groups")
+    logger.debug("Fetching UniFi DPI groups")
     await controller.dpi_groups.update()
 
     # Convert aiounifi DPIRestrictionGroup objects to dictionaries
@@ -32,7 +32,7 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "id": group.id,
                 "name": group.name,
                 "attr_no_delete": group.attr_no_delete or False,
-                "attr_hidden_id": group.attr_hidden_id or "",
+                "attr_hidden_id": group.attr_hidden_id or None,
                 "dpiapp_ids": group.dpiapp_ids or None,
                 "site_id": site_id,
             }
@@ -55,7 +55,6 @@ def load_dpi_groups(
     :param site_id: Site ID for the DPI groups
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi DPI groups into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiDPIGroupSchema(),
