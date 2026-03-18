@@ -58,6 +58,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "hostname": client.hostname or None,
                 "name": client.name or None,
                 "essid": client.essid or None,
+                "wlanconf_id": client.raw.get("wlanconf_id"),
                 "blocked": client.blocked,
                 "uptime": client.uptime,
                 "last_seen": client.last_seen,
