@@ -419,6 +419,26 @@ UNIFI_VOUCHERS = [
     },
 ]
 
+# Test data for UniFi admins
+UNIFI_ADMINS = [
+    {
+        "id": "admin_001",
+        "name": "alice",
+        "email": "alice@example.com",
+        "role": "admin",
+        "is_super_admin": True,
+        "last_site_name": "Default",
+    },
+    {
+        "id": "admin_002",
+        "name": "bob",
+        "email": "bob@example.com",
+        "role": "readonly",
+        "is_super_admin": False,
+        "last_site_name": "Default",
+    },
+]
+
 # Test data for UniFi system information
 UNIFI_SYSTEM_INFO = [
     {
