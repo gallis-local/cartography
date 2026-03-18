@@ -24,10 +24,10 @@ TEST_SITE_ID = "default"
 )
 async def test_load_unifi_admins(mock_get, neo4j_session):
     """Test that UniFi admins are loaded correctly."""
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     await cartography.intel.unifi.admins.sync(
-        neo4j_session, MagicMock(), TEST_SITE_ID, common_job_parameters
+        neo4j_session, MagicMock(), common_job_parameters
     )
 
     expected_nodes = {
@@ -49,10 +49,10 @@ async def test_load_unifi_admins(mock_get, neo4j_session):
 )
 async def test_unifi_admin_has_useraccount_label(mock_get, neo4j_session):
     """Test that UnifiAdmin nodes receive the UserAccount semantic label."""
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     await cartography.intel.unifi.admins.sync(
-        neo4j_session, MagicMock(), TEST_SITE_ID, common_job_parameters
+        neo4j_session, MagicMock(), common_job_parameters
     )
 
     result = neo4j_session.run(
@@ -75,10 +75,10 @@ async def test_unifi_admin_to_site_relationship(mock_get, neo4j_session):
     cartography.intel.unifi.sites.load_sites(
         neo4j_session, UNIFI_SITES, TEST_UPDATE_TAG
     )
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     await cartography.intel.unifi.admins.sync(
-        neo4j_session, MagicMock(), TEST_SITE_ID, common_job_parameters
+        neo4j_session, MagicMock(), common_job_parameters
     )
 
     expected_rels = {
@@ -129,9 +129,9 @@ async def test_cleanup_unifi_admins(mock_get, neo4j_session):
         TEST_UPDATE_TAG - 1,
     )
 
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
     await cartography.intel.unifi.admins.sync(
-        neo4j_session, MagicMock(), TEST_SITE_ID, common_job_parameters
+        neo4j_session, MagicMock(), common_job_parameters
     )
 
     nodes = check_nodes(neo4j_session, "UnifiAdmin", ["id"])

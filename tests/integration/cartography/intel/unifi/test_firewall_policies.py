@@ -26,16 +26,15 @@ async def test_load_unifi_firewall_policies(mock_get, neo4j_session):
     """
     # Arrange
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.firewall_policies.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -76,16 +75,15 @@ async def test_unifi_firewall_policy_to_site_relationship(mock_get, neo4j_sessio
     )
 
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.firewall_policies.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -121,16 +119,15 @@ async def test_unifi_firewall_policy_properties(mock_get, neo4j_session):
     """
     # Arrange
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.firewall_policies.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -173,11 +170,10 @@ async def test_unifi_firewall_policy_zone_relationships(mock_get, neo4j_session)
     )
 
     mock_controller = MagicMock()
-    site_id = "default"
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     await cartography.intel.unifi.firewall_policies.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
 
     # FROM_ZONE relationships

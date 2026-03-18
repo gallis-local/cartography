@@ -14,7 +14,7 @@ import tests.data.unifi
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
+    return_value=tests.data.unifi.UNIFI_PORTS,
 )
 async def test_load_unifi_ports(mock_get, neo4j_session):
     """
@@ -28,7 +28,7 @@ async def test_load_unifi_ports(mock_get, neo4j_session):
         """
     )
 
-    common_job_parameters = {"UPDATE_TAG": 123456789}
+    common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the ports were loaded
@@ -58,7 +58,7 @@ async def test_load_unifi_ports(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
+    return_value=tests.data.unifi.UNIFI_PORTS,
 )
 async def test_port_poe_properties(mock_get, neo4j_session):
     """
@@ -72,7 +72,7 @@ async def test_port_poe_properties(mock_get, neo4j_session):
         """
     )
 
-    common_job_parameters = {"UPDATE_TAG": 123456789}
+    common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Check Port 1 PoE properties
@@ -105,7 +105,7 @@ async def test_port_poe_properties(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
+    return_value=tests.data.unifi.UNIFI_PORTS,
 )
 async def test_port_connectivity_properties(mock_get, neo4j_session):
     """
@@ -119,7 +119,7 @@ async def test_port_connectivity_properties(mock_get, neo4j_session):
         """
     )
 
-    common_job_parameters = {"UPDATE_TAG": 123456789}
+    common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Check Port 1 connectivity (up and running)
@@ -151,7 +151,7 @@ async def test_port_connectivity_properties(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
+    return_value=tests.data.unifi.UNIFI_PORTS,
 )
 async def test_port_to_device_relationship(mock_get, neo4j_session):
     """
@@ -170,7 +170,7 @@ async def test_port_to_device_relationship(mock_get, neo4j_session):
         123456789,
     )
 
-    common_job_parameters = {"UPDATE_TAG": 123456789}
+    common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the relationship
@@ -188,7 +188,7 @@ async def test_port_to_device_relationship(mock_get, neo4j_session):
     cartography.intel.unifi.ports,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_PORTS, "default"),
+    return_value=tests.data.unifi.UNIFI_PORTS,
 )
 async def test_cleanup_unifi_ports(mock_get, neo4j_session):
     """
@@ -203,7 +203,7 @@ async def test_cleanup_unifi_ports(mock_get, neo4j_session):
     )
 
     # First sync
-    common_job_parameters = {"UPDATE_TAG": 123456789}
+    common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify ports exist
@@ -216,8 +216,8 @@ async def test_cleanup_unifi_ports(mock_get, neo4j_session):
     assert result.single()["count"] == 2
 
     # Second sync with a new update tag (simulating port removal)
-    mock_get.return_value = ([], "default")
-    common_job_parameters = {"UPDATE_TAG": 987654321}
+    mock_get.return_value = []
+    common_job_parameters = {"UPDATE_TAG": 987654321, "site_id": "default"}
     await cartography.intel.unifi.ports.sync(neo4j_session, None, common_job_parameters)
 
     # Verify ports were cleaned up

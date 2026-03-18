@@ -30,13 +30,13 @@ async def test_load_unifi_dpi_groups(mock_get, neo4j_session):
     site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": site_id,
     }
 
     # Act
     await cartography.intel.unifi.dpi_groups.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -71,13 +71,13 @@ async def test_load_unifi_dpi_apps(mock_get, neo4j_session):
     site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": site_id,
     }
 
     # Act
     await cartography.intel.unifi.dpi_apps.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -115,10 +115,10 @@ async def test_unifi_dpi_app_to_site_relationship(mock_apps, neo4j_session):
     )
     mock_controller = MagicMock()
     site_id = "default"
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": site_id}
 
     await cartography.intel.unifi.dpi_apps.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
 
     # Both apps belong to the default site
@@ -161,14 +161,14 @@ async def test_unifi_dpi_group_contains_app_relationship(
     """
     mock_controller = MagicMock()
     site_id = "default"
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": site_id}
 
     # Load apps first so group→app relationship can be resolved
     await cartography.intel.unifi.dpi_apps.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
     await cartography.intel.unifi.dpi_groups.sync(
-        neo4j_session, mock_controller, site_id, common_job_parameters
+        neo4j_session, mock_controller, common_job_parameters
     )
 
     # dpi_group_001 contains dpi_app_001

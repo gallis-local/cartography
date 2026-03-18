@@ -26,16 +26,15 @@ async def test_load_unifi_port_forwards(mock_get, neo4j_session):
     """
     # Arrange
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.port_forwards.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -76,16 +75,15 @@ async def test_unifi_port_forward_to_site_relationship(mock_get, neo4j_session):
     )
 
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.port_forwards.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 
@@ -148,16 +146,15 @@ async def test_unifi_port_forward_cleanup(mock_get, neo4j_session):
     )
 
     mock_controller = MagicMock()
-    site_id = "default"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
     await cartography.intel.unifi.port_forwards.sync(
         neo4j_session,
         mock_controller,
-        site_id,
         common_job_parameters,
     )
 

@@ -30,7 +30,7 @@ def _ensure_local_neo4j_has_test_devices(neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_load_unifi_devices(mock_get, neo4j_session):
     """
@@ -40,6 +40,7 @@ async def test_load_unifi_devices(mock_get, neo4j_session):
     mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
@@ -65,7 +66,7 @@ async def test_load_unifi_devices(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     """
@@ -75,6 +76,7 @@ async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
 
     # Act
@@ -103,7 +105,7 @@ async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     """
@@ -156,6 +158,7 @@ async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     mock_controller = MagicMock()
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
     }
     await cartography.intel.unifi.devices.sync(
         neo4j_session,
@@ -189,14 +192,14 @@ async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_device_new_properties(mock_get, neo4j_session):
     """
     Ensure that new device properties (ip, version, state, uptime, etc.) are stored.
     """
     mock_controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     await cartography.intel.unifi.devices.sync(
         neo4j_session, mock_controller, common_job_parameters
@@ -224,7 +227,7 @@ async def test_unifi_device_new_properties(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
     """
@@ -235,7 +238,7 @@ async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
         neo4j_session, tests.data.unifi.UNIFI_SITES, TEST_UPDATE_TAG
     )
     mock_controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     await cartography.intel.unifi.devices.sync(
         neo4j_session, mock_controller, common_job_parameters
@@ -264,7 +267,7 @@ async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_device_broadcasts_wlan(mock_get, neo4j_session):
     """
@@ -278,7 +281,7 @@ async def test_unifi_device_broadcasts_wlan(mock_get, neo4j_session):
         neo4j_session, tests.data.unifi.UNIFI_WLANS, "default", TEST_UPDATE_TAG
     )
     mock_controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     await cartography.intel.unifi.devices.sync(
         neo4j_session, mock_controller, common_job_parameters
@@ -308,7 +311,7 @@ async def test_unifi_device_broadcasts_wlan(mock_get, neo4j_session):
     cartography.intel.unifi.devices,
     "get",
     new_callable=AsyncMock,
-    return_value=(tests.data.unifi.UNIFI_DEVICES, "default"),
+    return_value=tests.data.unifi.UNIFI_DEVICES,
 )
 async def test_unifi_device_uplink_via_port(mock_get, neo4j_session):
     """
@@ -324,7 +327,7 @@ async def test_unifi_device_uplink_via_port(mock_get, neo4j_session):
         neo4j_session, tests.data.unifi.UNIFI_PORTS, "default", TEST_UPDATE_TAG
     )
     mock_controller = MagicMock()
-    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG}
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
 
     await cartography.intel.unifi.devices.sync(
         neo4j_session, mock_controller, common_job_parameters
