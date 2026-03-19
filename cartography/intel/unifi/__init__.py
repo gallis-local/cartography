@@ -61,9 +61,17 @@ async def _sync_unifi(
             verify_ssl=verify_ssl,
         )
 
-        # Get the site ID from the controller config
+        # Get the site ID from the controller config.
+        # config.site is the URL path slug (e.g. "default"), but site nodes are
+        # stored with site.site_id which is the MongoDB _id (a UUID).  We must
+        # look up the matching site object so that RESOURCE relationships to
+        # UnifiSite nodes use the same ID value as the stored nodes.
         await controller.sites.update()
-        site_id = controller.connectivity.config.site
+        config_site_name = controller.connectivity.config.site
+        site_id = next(
+            (s.site_id for s in controller.sites.values() if s.name == config_site_name),
+            config_site_name,  # fallback: use slug if no match (should not happen)
+        )
 
         common_job_parameters = {
             "UPDATE_TAG": update_tag,
