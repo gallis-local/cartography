@@ -26,8 +26,8 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     # Convert aiounifi Client objects to dictionaries
     clients = []
     for client in controller.clients.values():
-        # ap_mac is set for wireless clients only; sw_mac for wired clients only
-        ap_mac = getattr(client, "ap_mac", None) or None
+        # access_point_mac is set for wireless clients only; sw_mac for wired clients only
+        ap_mac = client.access_point_mac or None
 
         # For wireless clients, find the switch the AP uplinks to.
         # Devices are synced before clients so controller.devices is populated.
