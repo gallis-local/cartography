@@ -13,18 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi clients from the controller.
 
     :param controller: Controller instance
-    :return: Tuple of (List of client data, site_id)
+    :return: List of client data
     """
-    logger.info("Fetching UniFi clients")
+    logger.debug("Fetching UniFi clients")
     await controller.clients.update()
-
-    # Get site_id from controller
-    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Client objects to dictionaries
     clients = []
@@ -61,6 +58,7 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "hostname": client.hostname or None,
                 "name": client.name or None,
                 "essid": client.essid or None,
+                "wlanconf_id": client.raw.get("wlanconf_id"),
                 "blocked": client.blocked,
                 "uptime": client.uptime,
                 "last_seen": client.last_seen,
@@ -69,10 +67,9 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "sw_port": sw_port,
                 "port_id": port_id,
                 "ap_switch_mac": ap_switch_mac,
-                "site_id": site_id,
             }
         )
-    return clients, site_id
+    return clients
 
 
 @timeit
@@ -90,7 +87,6 @@ def load_clients(
     :param site_id: Site ID for the clients
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi clients into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiClientSchema(),
@@ -129,8 +125,8 @@ async def sync(
     :param common_job_parameters: Common job parameters
     :return: List of client data
     """
-    clients, site_id = await get(controller)
+    site_id = common_job_parameters["site_id"]
+    clients = await get(controller)
     load_clients(neo4j_session, clients, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return clients

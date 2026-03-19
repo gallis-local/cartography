@@ -25,6 +25,7 @@ class UnifiPortNodeProperties(CartographyNodeProperties):
     up: PropertyRef = PropertyRef("up")
     speed: PropertyRef = PropertyRef("speed")
     full_duplex: PropertyRef = PropertyRef("full_duplex")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

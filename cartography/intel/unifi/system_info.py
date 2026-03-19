@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -12,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Any) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Get system information from UniFi controller
     """
+    logger.debug("Fetching UniFi system information")
     await controller.system_information.update()
     system_info = []
     for info in controller.system_information.values():
@@ -71,13 +73,13 @@ def cleanup(
 @timeit
 async def sync(
     neo4j_session: neo4j.Session,
-    controller: Any,
-    site_id: str,
+    controller: Controller,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync system information from UniFi controller to Neo4j
     """
+    site_id = common_job_parameters["site_id"]
     system_info = await get(controller)
     load_system_info(neo4j_session, system_info, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
+    cleanup(neo4j_session, common_job_parameters)

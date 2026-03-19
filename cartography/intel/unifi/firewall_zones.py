@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import neo4j
+from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -12,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Get firewall zones from UniFi controller
     """
+    logger.debug("Fetching UniFi firewall zones")
     await controller.firewall_zones.update()
     zones = []
     for zone in controller.firewall_zones.values():
@@ -25,8 +27,8 @@ async def get(controller: Any, site_id: str) -> list[dict[str, Any]]:
                 "name": zone.name,
                 "attr_no_edit": zone.raw.get("attr_no_edit", False),
                 "default_zone": zone.raw.get("default_zone", False),
-                "zone_key": zone.raw.get("zone_key", ""),
-                "network_ids": zone.raw.get("network_ids", []),
+                "zone_key": zone.raw.get("zone_key"),
+                "network_ids": zone.raw.get("network_ids"),
             }
         )
     return zones
@@ -67,13 +69,13 @@ def cleanup(
 @timeit
 async def sync(
     neo4j_session: neo4j.Session,
-    controller: Any,
-    site_id: str,
+    controller: Controller,
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync firewall zones from UniFi controller to Neo4j
     """
-    zones = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    zones = await get(controller)
     load_firewall_zones(neo4j_session, zones, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup(neo4j_session, {**common_job_parameters, "site_id": site_id})
+    cleanup(neo4j_session, common_job_parameters)

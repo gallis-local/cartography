@@ -13,15 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi DPI groups from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID for the DPI groups
     :return: List of DPI group data
     """
-    logger.info("Fetching UniFi DPI groups")
+    logger.debug("Fetching UniFi DPI groups")
     await controller.dpi_groups.update()
 
     # Convert aiounifi DPIRestrictionGroup objects to dictionaries
@@ -32,9 +31,8 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "id": group.id,
                 "name": group.name,
                 "attr_no_delete": group.attr_no_delete or False,
-                "attr_hidden_id": group.attr_hidden_id or "",
+                "attr_hidden_id": group.attr_hidden_id or None,
                 "dpiapp_ids": group.dpiapp_ids or None,
-                "site_id": site_id,
             }
         )
     return dpi_groups
@@ -55,7 +53,6 @@ def load_dpi_groups(
     :param site_id: Site ID for the DPI groups
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi DPI groups into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiDPIGroupSchema(),
@@ -84,7 +81,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
@@ -92,14 +88,13 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the DPI groups
     :param common_job_parameters: Common job parameters
     :return: List of DPI group data
     """
-    dpi_groups = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    dpi_groups = await get(controller)
     load_dpi_groups(
         neo4j_session, dpi_groups, site_id, common_job_parameters["UPDATE_TAG"]
     )
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return dpi_groups

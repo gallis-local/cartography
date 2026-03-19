@@ -13,15 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi firewall policies from the controller.
 
     :param controller: Controller instance
-    :param site_id: Site ID for the firewall policies
     :return: List of firewall policy data
     """
-    logger.info("Fetching UniFi firewall policies")
+    logger.debug("Fetching UniFi firewall policies")
     await controller.firewall_policies.update()
 
     # Convert aiounifi FirewallPolicy objects to dictionaries
@@ -44,7 +43,6 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
                 "logging": policy.raw.get("logging", False),
                 "source_zone_id": source.get("zone_id"),
                 "destination_zone_id": destination.get("zone_id"),
-                "site_id": site_id,
             }
         )
     return firewall_policies
@@ -64,7 +62,6 @@ def load_firewall_policies(
     :param data: List of firewall policy data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi firewall policies into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiFirewallPolicySchema(),
@@ -93,7 +90,6 @@ def cleanup(
 async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
-    site_id: str,
     common_job_parameters: dict[str, Any],
 ) -> list[dict]:
     """
@@ -101,14 +97,13 @@ async def sync(
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
-    :param site_id: Site ID for the firewall policies
     :param common_job_parameters: Common job parameters
     :return: List of firewall policy data
     """
-    firewall_policies = await get(controller, site_id)
+    site_id = common_job_parameters["site_id"]
+    firewall_policies = await get(controller)
     load_firewall_policies(
         neo4j_session, firewall_policies, site_id, common_job_parameters["UPDATE_TAG"]
     )
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return firewall_policies

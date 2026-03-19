@@ -20,7 +20,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     :param controller: Controller instance
     :return: List of site data
     """
-    logger.info("Fetching UniFi sites")
+    logger.debug("Fetching UniFi sites")
     await controller.sites.update()
 
     # Convert aiounifi Site objects to dictionaries
@@ -50,7 +50,6 @@ def load_sites(
     :param data: List of site data
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi sites into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiSiteSchema(),

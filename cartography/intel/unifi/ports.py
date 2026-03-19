@@ -13,19 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi ports from the controller.
 
     :param controller: Controller instance
-    :return: Tuple of (List of port data, site_id)
+    :return: List of port data
     """
-    logger.info("Fetching UniFi ports")
+    logger.debug("Fetching UniFi ports")
     # Ports are populated via device subscription when controller.devices.update()
     # is called — no separate API request needed for ports.
-
-    # Get site_id from controller
-    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Port objects to dictionaries
     # Ports are keyed as "{device_id}_{port_idx}" in controller.ports
@@ -48,10 +45,9 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                 "speed": port.raw.get("speed", 0),
                 "full_duplex": port.raw.get("full_duplex", False),
                 "device_mac": device_mac,
-                "site_id": site_id,
             }
         )
-    return ports, site_id
+    return ports
 
 
 @timeit
@@ -69,7 +65,6 @@ def load_ports(
     :param site_id: Site ID for the ports
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi ports into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiPortSchema(),
@@ -108,8 +103,8 @@ async def sync(
     :param common_job_parameters: Common job parameters
     :return: List of port data
     """
-    ports, site_id = await get(controller)
+    site_id = common_job_parameters["site_id"]
+    ports = await get(controller)
     load_ports(neo4j_session, ports, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return ports

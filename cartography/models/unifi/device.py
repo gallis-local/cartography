@@ -29,6 +29,7 @@ class UnifiDeviceNodeProperties(CartographyNodeProperties):
     uplink_mac: PropertyRef = PropertyRef("uplink_mac")
     uplink_port_id: PropertyRef = PropertyRef("uplink_port_id")
     wlan_ids: PropertyRef = PropertyRef("wlan_ids")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)

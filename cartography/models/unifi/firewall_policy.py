@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -27,6 +28,7 @@ class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
     logging: PropertyRef = PropertyRef("logging")
     source_zone_id: PropertyRef = PropertyRef("source_zone_id")
     destination_zone_id: PropertyRef = PropertyRef("destination_zone_id")
+    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,7 @@ class UnifiFirewallPolicyToDestZoneRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiFirewallPolicySchema(CartographyNodeSchema):
     label: str = "UnifiFirewallPolicy"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkAccessControl"])
     properties: UnifiFirewallPolicyNodeProperties = UnifiFirewallPolicyNodeProperties()
     sub_resource_relationship: UnifiFirewallPolicyToSiteRel = (
         UnifiFirewallPolicyToSiteRel()

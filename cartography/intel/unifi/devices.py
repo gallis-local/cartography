@@ -14,18 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi devices from the controller.
 
     :param controller: Controller instance
-    :return: Tuple of (List of device data, site_id)
+    :return: List of device data
     """
-    logger.info("Fetching UniFi devices")
+    logger.debug("Fetching UniFi devices")
     await controller.devices.update()
-
-    # Get site_id from controller
-    site_id = controller.connectivity.config.site
 
     # Convert aiounifi Device objects to dictionaries
     devices = []
@@ -65,10 +62,9 @@ async def get(controller: Controller) -> tuple[list[dict[str, Any]], str]:
                     else None
                 ),
                 "wlan_ids": list(wlan_id_set) or None,
-                "site_id": site_id,
             }
         )
-    return devices, site_id
+    return devices
 
 
 @timeit
@@ -86,7 +82,6 @@ def load_devices(
     :param site_id: Site ID for the devices
     :param update_tag: Update tag for the sync
     """
-    logger.info("Loading %d UniFi devices into Neo4j.", len(data))
     load(
         neo4j_session,
         UnifiDeviceSchema(),
@@ -125,8 +120,8 @@ async def sync(
     :param common_job_parameters: Common job parameters
     :return: List of device data
     """
-    devices, site_id = await get(controller)
+    site_id = common_job_parameters["site_id"]
+    devices = await get(controller)
     load_devices(neo4j_session, devices, site_id, common_job_parameters["UPDATE_TAG"])
-    cleanup_params = {**common_job_parameters, "site_id": site_id}
-    cleanup(neo4j_session, cleanup_params)
+    cleanup(neo4j_session, common_job_parameters)
     return devices
