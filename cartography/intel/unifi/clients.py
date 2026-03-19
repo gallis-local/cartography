@@ -53,7 +53,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "channel": client.raw.get("channel"),
                 "radio": client.raw.get("radio"),
                 "is_wired": getattr(client, "is_wired", False),
-                "qos_policy_applied": getattr(client, "qos_policy_applied", False),
+                "qos_policy_applied": client.raw.get("qos_policy_applied", False),
                 "ap_mac": ap_mac,
                 "hostname": client.hostname or None,
                 "name": client.name or None,
