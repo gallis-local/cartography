@@ -13,36 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Get vouchers from UniFi controller
     """
     logger.debug("Fetching UniFi vouchers")
     await controller.vouchers.update()
+    # controller.vouchers is already scoped to the configured site via
+    # /api/s/{site}/stat/voucher — no need to filter by site_id here.
     vouchers = []
     for voucher in controller.vouchers.values():
-        if voucher.site_id == site_id:
-            vouchers.append(
-                {
-                    "id": voucher.id,
-                    "code": voucher.code,
-                    "note": voucher.raw.get("note"),
-                    "quota": voucher.raw.get("quota"),
-                    "duration": voucher.raw.get("duration"),
-                    "qos_overwrite": voucher.raw.get("qos_overwrite", False),
-                    "qos_usage_quota": voucher.raw.get("qos_usage_quota"),
-                    "qos_rate_max_up": voucher.raw.get("qos_rate_max_up"),
-                    "qos_rate_max_down": voucher.raw.get("qos_rate_max_down"),
-                    "used": voucher.raw.get("used", 0),
-                    "create_time": voucher.raw.get("create_time"),
-                    "start_time": voucher.raw.get("start_time"),
-                    "end_time": voucher.raw.get("end_time"),
-                    "for_hotspot": voucher.raw.get("for_hotspot", False),
-                    "admin_name": voucher.raw.get("admin_name"),
-                    "status": voucher.raw.get("status"),
-                    "status_expires": voucher.raw.get("status_expires"),
-                }
-            )
+        vouchers.append(
+            {
+                "id": voucher.id,
+                "code": voucher.code,
+                "note": voucher.raw.get("note"),
+                "quota": voucher.raw.get("quota"),
+                "duration": voucher.raw.get("duration"),
+                "qos_overwrite": voucher.raw.get("qos_overwrite", False),
+                "qos_usage_quota": voucher.raw.get("qos_usage_quota"),
+                "qos_rate_max_up": voucher.raw.get("qos_rate_max_up"),
+                "qos_rate_max_down": voucher.raw.get("qos_rate_max_down"),
+                "used": voucher.raw.get("used", 0),
+                "create_time": voucher.raw.get("create_time"),
+                "start_time": voucher.raw.get("start_time"),
+                "end_time": voucher.raw.get("end_time"),
+                "for_hotspot": voucher.raw.get("for_hotspot", False),
+                "admin_name": voucher.raw.get("admin_name"),
+                "status": voucher.raw.get("status"),
+                "status_expires": voucher.raw.get("status_expires"),
+            }
+        )
     return vouchers
 
 
@@ -88,6 +89,6 @@ async def sync(
     Sync vouchers from UniFi controller to Neo4j
     """
     site_id = common_job_parameters["site_id"]
-    vouchers = await get(controller, site_id)
+    vouchers = await get(controller)
     load_vouchers(neo4j_session, vouchers, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
