@@ -52,7 +52,11 @@ async def create_unifi_controller(
 
     # Create and login to controller
     controller = Controller(config)
-    await controller.login()
+    try:
+        await controller.login()
+    except Exception:
+        await session.close()
+        raise
 
     return controller
 
