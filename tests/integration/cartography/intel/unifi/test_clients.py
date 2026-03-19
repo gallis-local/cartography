@@ -105,7 +105,7 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
             "UnifiDevice",
             "id",
             "CONNECTED_TO_AP",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_wireless_rels
     )
@@ -122,7 +122,7 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
             "UnifiDevice",
             "id",
             "CONNECTED_TO_SWITCH",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_wired_switch_rels
     )
@@ -140,7 +140,7 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
             "UnifiDevice",
             "id",
             "UPLINKED_TO_SWITCH",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_uplinked_switch_rels
     )
@@ -412,7 +412,7 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
             "UnifiDevice",
             "id",
             "UPLINKED_TO_SWITCH",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_uplinked_rels
     )
@@ -429,7 +429,7 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
             "UnifiDevice",
             "id",
             "CONNECTED_TO_SWITCH",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_wired_rels
     )
@@ -471,7 +471,7 @@ async def test_unifi_client_to_wlan_relationships(mock_get, neo4j_session):
             "UnifiWlan",
             "id",
             "CONNECTED_TO_WLAN",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_rels
     )
@@ -513,7 +513,7 @@ async def test_unifi_wired_client_to_port_relationships(mock_get, neo4j_session)
             "UnifiPort",
             "id",
             "CONNECTED_VIA",
-            rel_direction_right=False,
+            rel_direction_right=True,
         )
         == expected_rels
     )
