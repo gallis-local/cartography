@@ -1,8 +1,10 @@
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import neo4j
 from aiounifi.controller import Controller
+from aiounifi.models.api import ApiRequest
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -10,6 +12,16 @@ from cartography.models.unifi.admin import UnifiAdminSchema
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AdminListRequest(ApiRequest):
+    """Request object for admin list."""
+
+    @classmethod
+    def create(cls) -> "AdminListRequest":
+        """Create admin list request."""
+        return cls(method="get", path="/rest/admin")
 
 
 @timeit
@@ -21,18 +33,18 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     :return: List of admin data
     """
     logger.debug("Fetching UniFi admins")
-    await controller.admins.update()
+    response = await controller.request(AdminListRequest.create())
 
     admins = []
-    for admin in controller.admins.values():
+    for admin in response.get("data", []):
         admins.append(
             {
-                "id": admin.raw["_id"],
-                "name": admin.raw.get("name"),
-                "email": admin.raw.get("email") or None,
-                "role": admin.raw.get("role"),
-                "is_super_admin": admin.raw.get("is_super_admin", False),
-                "last_site_name": admin.raw.get("last_site_name"),
+                "id": admin["_id"],
+                "name": admin.get("name"),
+                "email": admin.get("email") or None,
+                "role": admin.get("role"),
+                "is_super_admin": admin.get("is_super_admin", False),
+                "last_site_name": admin.get("last_site_name"),
             }
         )
     return admins
