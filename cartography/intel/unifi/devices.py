@@ -51,7 +51,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "name": device.name or device.mac,  # Fallback to MAC if no name
                 "ip": device.ip,
                 "version": device.raw.get("version"),
-                "state": DeviceState(state_val).name if state_val is not None else None,
+                "state": DeviceState(state_val).name if state_val in DeviceState._value2member_map_ else (str(state_val) if state_val is not None else None),
                 "uptime": device.uptime,
                 "last_seen": device.last_seen,
                 "upgradable": device.upgradable,
