@@ -1,7 +1,5 @@
 """
 Sync Proxmox access control (users, groups, roles, ACLs).
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -10,6 +8,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.access import ProxmoxACLSchema
 from cartography.models.proxmox.access import ProxmoxACLToClusterMatchLink
@@ -25,11 +24,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 @timeit
 def get_users(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -41,7 +35,6 @@ def get_users(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.access.users.get()
 
-
 @timeit
 def get_groups(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -52,7 +45,6 @@ def get_groups(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.access.groups.get()
-
 
 @timeit
 def get_group_members(
@@ -87,7 +79,6 @@ def get_group_members(
 
     return group_members
 
-
 @timeit
 def get_roles(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -98,7 +89,6 @@ def get_roles(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.access.roles.get()
-
 
 @timeit
 def get_acls(proxmox_client: Any) -> list[dict[str, Any]]:
@@ -112,11 +102,6 @@ def get_acls(proxmox_client: Any) -> list[dict[str, Any]]:
     return proxmox_client.access.acl.get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
-
-
 def transform_user_data(
     users: list[dict[str, Any]],
     cluster_id: str,
@@ -124,10 +109,6 @@ def transform_user_data(
 ) -> list[dict[str, Any]]:
     """
     Transform user data into standard format.
-
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
 
     :param users: Raw user data from API
     :param cluster_id: Parent cluster ID
@@ -138,7 +119,6 @@ def transform_user_data(
     transformed_users = []
 
     for user in users:
-        # Required field - use direct access
         userid = user["userid"]
 
         # Extract realm from userid (format: user@realm or user@domain@realm for federated AD users)
@@ -163,10 +143,6 @@ def transform_user_data(
 
         # Parse tokens if they exist (tokens field contains list)
         tokens = user.get("tokens", [])
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{userid}"
-        # NEW: f"{cluster_id}/user/{userid}"
         transformed_users.append(
             {
                 "id": f"{cluster_id}/user/{userid}",
@@ -186,7 +162,6 @@ def transform_user_data(
 
     return transformed_users
 
-
 def transform_group_data(
     groups: list[dict[str, Any]],
     cluster_id: str,
@@ -201,12 +176,7 @@ def transform_group_data(
     transformed_groups = []
 
     for group in groups:
-        # Required field
         groupid = group["groupid"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{groupid}"
-        # NEW: f"{cluster_id}/group/{groupid}"
         transformed_groups.append(
             {
                 "id": f"{cluster_id}/group/{groupid}",
@@ -217,7 +187,6 @@ def transform_group_data(
         )
 
     return transformed_groups
-
 
 def transform_role_data(
     roles: list[dict[str, Any]],
@@ -233,7 +202,6 @@ def transform_role_data(
     transformed_roles = []
 
     for role in roles:
-        # Required field
         roleid = role["roleid"]
 
         # Parse privileges (Proxmox returns comma-separated string)
@@ -241,10 +209,6 @@ def transform_role_data(
         privs_str = role.get("privs", "")
         if privs_str:
             privs = [p.strip() for p in privs_str.split(",") if p.strip()]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{roleid}"
-        # NEW: f"{cluster_id}/role/{roleid}"
         transformed_roles.append(
             {
                 "id": f"{cluster_id}/role/{roleid}",
@@ -256,7 +220,6 @@ def transform_role_data(
         )
 
     return transformed_roles
-
 
 def _parse_acl_path(path: str) -> tuple[str, str | None]:
     """
@@ -289,7 +252,6 @@ def _parse_acl_path(path: str) -> tuple[str, str | None]:
         # Unknown path format
         return "unknown", None
 
-
 def transform_acl_data(
     acls: list[dict[str, Any]],
     cluster_id: str,
@@ -310,10 +272,6 @@ def transform_acl_data(
         path = acl["path"]
         roleid = acl["roleid"]
         ugid = acl["ugid"]  # User or group ID
-
-        # NEW UID PATTERN: Use path-like structure for consistency
-        # OLD: f"{cluster_id}:{path}:{ugid}:{roleid}"
-        # NEW: f"{cluster_id}/acl{path}/{ugid}/{roleid}"
         # Note: path already starts with '/' (e.g., "/vms/100"), so we don't add another slash
         acl_id = f"{cluster_id}/acl{path}/{ugid}/{roleid}"
 
@@ -351,11 +309,6 @@ def transform_acl_data(
     return transformed_acls
 
 
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
-
-
 def load_users(
     neo4j_session: neo4j.Session,
     users: list[dict[str, Any]],
@@ -377,7 +330,6 @@ def load_users(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 def load_groups(
     neo4j_session: neo4j.Session,
@@ -401,7 +353,6 @@ def load_groups(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_roles(
     neo4j_session: neo4j.Session,
     roles: list[dict[str, Any]],
@@ -423,7 +374,6 @@ def load_roles(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 def load_acls(
     neo4j_session: neo4j.Session,
@@ -450,7 +400,6 @@ def load_acls(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_acl_resource_relationships(
     neo4j_session: neo4j.Session,
     acls: list[dict[str, Any]],
@@ -467,13 +416,6 @@ def load_acl_resource_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.access import ProxmoxACLToClusterMatchLink
-    from cartography.models.proxmox.access import ProxmoxACLToNodeMatchLink
-    from cartography.models.proxmox.access import ProxmoxACLToPoolMatchLink
-    from cartography.models.proxmox.access import ProxmoxACLToStorageMatchLink
-    from cartography.models.proxmox.access import ProxmoxACLToVMMatchLink
-
     if not acls:
         return
 
@@ -552,11 +494,6 @@ def load_acl_resource_relationships(
         )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -568,8 +505,6 @@ def sync(
     """
     Sync access control configuration.
 
-    Follows Cartography's Get → Transform → Load pattern.
-
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
     :param cluster_id: Parent cluster ID
@@ -579,7 +514,6 @@ def sync(
     """
     logger.info("Syncing Proxmox access control (users, groups, roles, ACLs)")
 
-    # GET - retrieve data from API
     users = get_users(proxmox_client)
     groups = get_groups(proxmox_client)
     roles = get_roles(proxmox_client)
@@ -588,13 +522,11 @@ def sync(
     # Get group membership information (important for SSO users)
     group_members = get_group_members(proxmox_client, groups)
 
-    # TRANSFORM - manipulate data for ingestion
     transformed_users = transform_user_data(users, cluster_id, group_members)
     transformed_groups = transform_group_data(groups, cluster_id)
     transformed_roles = transform_role_data(roles, cluster_id)
     transformed_acls = transform_acl_data(acls, cluster_id)
 
-    # LOAD - ingest to Neo4j
     if transformed_groups:
         load_groups(neo4j_session, transformed_groups, cluster_id, update_tag)
 
@@ -621,7 +553,6 @@ def sync(
 
     # Return users for use by API token sync
     return users
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

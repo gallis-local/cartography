@@ -17,69 +17,40 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxCluster Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxClusterNodeProperties(CartographyNodeProperties):
-    """
-    Properties for a ProxmoxCluster node.
-
-    Per AGENTS.md:
-    - Use PropertyRef for all properties
-    - Required fields use direct key access in transform
-    - Optional fields use .get() in transform
-    """
-
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     name: PropertyRef = PropertyRef("name", extra_index=True)
     corosync_version: PropertyRef = PropertyRef("corosync_version")
     quorate: PropertyRef = PropertyRef("quorate")
     nodes_online: PropertyRef = PropertyRef("nodes_online")
-    nodes_total: PropertyRef = PropertyRef("nodes_total")  # Total nodes in cluster
-    cluster_id: PropertyRef = PropertyRef("cluster_id")  # Internal cluster ID from API
+    nodes_total: PropertyRef = PropertyRef("nodes_total")
+    cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # Cluster options/configuration
-    migration_type: PropertyRef = PropertyRef(
-        "migration_type"
-    )  # Migration type (secure, insecure)
-    migration_network: PropertyRef = PropertyRef(
-        "migration_network"
-    )  # Migration network CIDR
-    migration_bandwidth_limit: PropertyRef = PropertyRef(
-        "migration_bandwidth_limit"
-    )  # Migration bandwidth limit
-    console: PropertyRef = PropertyRef("console")  # Default console type
-    email_from: PropertyRef = PropertyRef("email_from")  # Email from address
-    http_proxy: PropertyRef = PropertyRef("http_proxy")  # HTTP proxy
-    keyboard: PropertyRef = PropertyRef("keyboard")  # Keyboard layout
-    language: PropertyRef = PropertyRef("language")  # Default language
-    mac_prefix: PropertyRef = PropertyRef("mac_prefix")  # MAC address prefix
-    max_workers: PropertyRef = PropertyRef("max_workers")  # Maximum workers
-    next_id_lower: PropertyRef = PropertyRef("next_id_lower")  # Next VMID lower bound
-    next_id_upper: PropertyRef = PropertyRef("next_id_upper")  # Next VMID upper bound
+    migration_type: PropertyRef = PropertyRef("migration_type")
+    migration_network: PropertyRef = PropertyRef("migration_network")
+    migration_bandwidth_limit: PropertyRef = PropertyRef("migration_bandwidth_limit")
+    console: PropertyRef = PropertyRef("console")
+    email_from: PropertyRef = PropertyRef("email_from")
+    http_proxy: PropertyRef = PropertyRef("http_proxy")
+    keyboard: PropertyRef = PropertyRef("keyboard")
+    language: PropertyRef = PropertyRef("language")
+    mac_prefix: PropertyRef = PropertyRef("mac_prefix")
+    max_workers: PropertyRef = PropertyRef("max_workers")
+    next_id_lower: PropertyRef = PropertyRef("next_id_lower")
+    next_id_upper: PropertyRef = PropertyRef("next_id_upper")
 
     # Corosync/Totem configuration
-    totem_interface: PropertyRef = PropertyRef(
-        "totem_interface"
-    )  # Totem interface configuration
-    totem_cluster_name: PropertyRef = PropertyRef(
-        "totem_cluster_name"
-    )  # Totem cluster name
-    totem_config_version: PropertyRef = PropertyRef(
-        "totem_config_version"
-    )  # Totem config version
-    totem_ip_version: PropertyRef = PropertyRef(
-        "totem_ip_version"
-    )  # IP version (ipv4/ipv6)
-    totem_secauth: PropertyRef = PropertyRef(
-        "totem_secauth"
-    )  # Security authentication enabled
-    totem_version: PropertyRef = PropertyRef("totem_version")  # Totem version
-
+    totem_interface: PropertyRef = PropertyRef("totem_interface")
+    totem_cluster_name: PropertyRef = PropertyRef("totem_cluster_name")
+    totem_config_version: PropertyRef = PropertyRef("totem_config_version")
+    totem_ip_version: PropertyRef = PropertyRef("totem_ip_version")
+    totem_secauth: PropertyRef = PropertyRef("totem_secauth")
+    totem_version: PropertyRef = PropertyRef("totem_version")
 
 @dataclass(frozen=True)
 class ProxmoxClusterSchema(CartographyNodeSchema):
@@ -96,11 +67,7 @@ class ProxmoxClusterSchema(CartographyNodeSchema):
     # No sub_resource_relationship - this is the tenant-like root entity
     sub_resource_relationship: None = None
 
-
-# ============================================================================
 # ProxmoxNode Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeNodeProperties(CartographyNodeProperties):
@@ -124,35 +91,26 @@ class ProxmoxNodeNodeProperties(CartographyNodeProperties):
     disk_used: PropertyRef = PropertyRef("disk_used")
     level: PropertyRef = PropertyRef("level")
     # Additional node information
-    kversion: PropertyRef = PropertyRef("kversion")  # Kernel version
-    loadavg: PropertyRef = PropertyRef("loadavg")  # Load average (comma-separated)
-    wait: PropertyRef = PropertyRef("wait")  # I/O wait time
+    kversion: PropertyRef = PropertyRef("kversion")
+    loadavg: PropertyRef = PropertyRef("loadavg")
+    wait: PropertyRef = PropertyRef("wait")
     # Swap information
-    swap_total: PropertyRef = PropertyRef("swap_total")  # Total swap space
-    swap_used: PropertyRef = PropertyRef("swap_used")  # Used swap space
-    swap_free: PropertyRef = PropertyRef("swap_free")  # Free swap space
+    swap_total: PropertyRef = PropertyRef("swap_total")
+    swap_used: PropertyRef = PropertyRef("swap_used")
+    swap_free: PropertyRef = PropertyRef("swap_free")
     # Additional system info
-    pveversion: PropertyRef = PropertyRef("pveversion")  # PVE version
-    cpuinfo: PropertyRef = PropertyRef("cpuinfo")  # CPU model info
-    idle: PropertyRef = PropertyRef("idle")  # Idle CPU percentage
-
+    pveversion: PropertyRef = PropertyRef("pveversion")
+    cpuinfo: PropertyRef = PropertyRef("cpuinfo")
+    idle: PropertyRef = PropertyRef("idle")
 
 @dataclass(frozen=True)
 class ProxmoxNodeToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNode to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeToClusterRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNode)
-
-    Per AGENTS.md: sub_resource_relationship should always point to tenant-like object.
-    ProxmoxCluster is the tenant-like entity for Proxmox resources.
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -164,7 +122,6 @@ class ProxmoxNodeToClusterRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxNodeToClusterRelProperties = ProxmoxNodeToClusterRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeSchema(CartographyNodeSchema):
@@ -178,11 +135,7 @@ class ProxmoxNodeSchema(CartographyNodeSchema):
     properties: ProxmoxNodeNodeProperties = ProxmoxNodeNodeProperties()
     sub_resource_relationship: ProxmoxNodeToClusterRel = ProxmoxNodeToClusterRel()
 
-
-# ============================================================================
 # ProxmoxNodeNetworkInterface Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
@@ -196,52 +149,37 @@ class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     name: PropertyRef = PropertyRef(
         "name", extra_index=True
-    )  # Interface name (e.g., vmbr0, eth0)
+    )
     node_id: PropertyRef = PropertyRef("node_id")
-    type: PropertyRef = PropertyRef("type")  # bridge, bond, eth, vlan, etc.
-    address: PropertyRef = PropertyRef("address")  # IPv4 address
-    netmask: PropertyRef = PropertyRef("netmask")  # Subnet mask
-    gateway: PropertyRef = PropertyRef("gateway")  # Default gateway
-    address6: PropertyRef = PropertyRef("address6")  # IPv6 address
-    netmask6: PropertyRef = PropertyRef("netmask6")  # IPv6 netmask
-    gateway6: PropertyRef = PropertyRef("gateway6")  # IPv6 gateway
-    bridge_ports: PropertyRef = PropertyRef("bridge_ports")  # Bridge member ports
-    bond_slaves: PropertyRef = PropertyRef("bond_slaves")  # Bond slave interfaces
-    active: PropertyRef = PropertyRef("active")  # Interface active status
-    autostart: PropertyRef = PropertyRef("autostart")  # Auto-start on boot
-    mtu: PropertyRef = PropertyRef("mtu")  # MTU size
+    type: PropertyRef = PropertyRef("type")
+    address: PropertyRef = PropertyRef("address")
+    netmask: PropertyRef = PropertyRef("netmask")
+    gateway: PropertyRef = PropertyRef("gateway")
+    address6: PropertyRef = PropertyRef("address6")
+    netmask6: PropertyRef = PropertyRef("netmask6")
+    gateway6: PropertyRef = PropertyRef("gateway6")
+    bridge_ports: PropertyRef = PropertyRef("bridge_ports")
+    bond_slaves: PropertyRef = PropertyRef("bond_slaves")
+    active: PropertyRef = PropertyRef("active")
+    autostart: PropertyRef = PropertyRef("autostart")
+    mtu: PropertyRef = PropertyRef("mtu")
     # Additional bond configuration
-    bond_mode: PropertyRef = PropertyRef(
-        "bond_mode"
-    )  # Bonding mode (balance-rr, active-backup, etc.)
-    bond_xmit_hash_policy: PropertyRef = PropertyRef(
-        "bond_xmit_hash_policy"
-    )  # Bond hashing policy
+    bond_mode: PropertyRef = PropertyRef("bond_mode")
+    bond_xmit_hash_policy: PropertyRef = PropertyRef("bond_xmit_hash_policy")
     # Additional network config
-    cidr: PropertyRef = PropertyRef("cidr")  # CIDR notation (IPv4)
-    cidr6: PropertyRef = PropertyRef("cidr6")  # CIDR notation (IPv6)
-    method: PropertyRef = PropertyRef(
-        "method"
-    )  # Configuration method (static, dhcp, manual)
-    method6: PropertyRef = PropertyRef("method6")  # IPv6 configuration method
-    comments: PropertyRef = PropertyRef("comments")  # Interface comments
-
+    cidr: PropertyRef = PropertyRef("cidr")
+    cidr6: PropertyRef = PropertyRef("cidr6")
+    method: PropertyRef = PropertyRef("method")
+    method6: PropertyRef = PropertyRef("method6")
+    comments: PropertyRef = PropertyRef("comments")
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNodeNetworkInterface to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNodeNetworkInterface)
 class ProxmoxNodeNetworkInterfaceToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNodeNetworkInterface)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -254,15 +192,9 @@ class ProxmoxNodeNetworkInterfaceToClusterRel(CartographyRelSchema):
         ProxmoxNodeNetworkInterfaceToClusterRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNode to ProxmoxNodeNetworkInterface.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
@@ -283,7 +215,6 @@ class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
     properties: ProxmoxNodeNetworkInterfaceToNodeRelProperties = (
         ProxmoxNodeNetworkInterfaceToNodeRelProperties()
     )
-
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceSchema(CartographyNodeSchema):

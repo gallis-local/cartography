@@ -16,10 +16,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxSDNZone Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneNodeProperties(CartographyNodeProperties):
@@ -32,45 +29,39 @@ class ProxmoxSDNZoneNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    zone: PropertyRef = PropertyRef("zone", extra_index=True)  # Zone ID/name
-    type: PropertyRef = PropertyRef("type")  # simple, vlan, qinq, vxlan, evpn
+    zone: PropertyRef = PropertyRef("zone", extra_index=True)
+    type: PropertyRef = PropertyRef("type")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # Zone configuration
-    bridge: PropertyRef = PropertyRef("bridge")  # Underlying bridge device (e.g., vmbr0)
-    nodes: PropertyRef = PropertyRef("nodes")  # Node restrictions (comma-separated)
-    mtu: PropertyRef = PropertyRef("mtu")  # MTU size
+    bridge: PropertyRef = PropertyRef("bridge")
+    nodes: PropertyRef = PropertyRef("nodes")
+    mtu: PropertyRef = PropertyRef("mtu")
 
     # VLAN/VXLAN specific
-    tag: PropertyRef = PropertyRef("tag")  # VLAN tag or VXLAN ID
+    tag: PropertyRef = PropertyRef("tag")
 
     # VXLAN/EVPN specific
-    peers: PropertyRef = PropertyRef("peers")  # Peer addresses (comma-separated)
-    controller: PropertyRef = PropertyRef("controller")  # Controller ID (for EVPN)
+    peers: PropertyRef = PropertyRef("peers")
+    controller: PropertyRef = PropertyRef("controller")
 
     # Additional configuration
-    ipam: PropertyRef = PropertyRef("ipam")  # IPAM plugin ID
-    dns: PropertyRef = PropertyRef("dns")  # DNS plugin ID
-    reversedns: PropertyRef = PropertyRef("reversedns")  # Reverse DNS plugin ID
-    dnszone: PropertyRef = PropertyRef("dnszone")  # DNS zone name
+    ipam: PropertyRef = PropertyRef("ipam")
+    dns: PropertyRef = PropertyRef("dns")
+    reversedns: PropertyRef = PropertyRef("reversedns")
+    dnszone: PropertyRef = PropertyRef("dnszone")
 
     # EVPN specific
-    vrf_vxlan: PropertyRef = PropertyRef("vrf_vxlan")  # VRF VXLAN ID
-    vxlan_port: PropertyRef = PropertyRef("vxlan_port")  # VXLAN UDP port
-    mac: PropertyRef = PropertyRef("mac")  # MAC address for VRF
+    vrf_vxlan: PropertyRef = PropertyRef("vrf_vxlan")
+    vxlan_port: PropertyRef = PropertyRef("vxlan_port")
+    mac: PropertyRef = PropertyRef("mac")
 
     # QinQ specific
-    service_vlan: PropertyRef = PropertyRef("service_vlan")  # Service VLAN (for QinQ)
-
+    service_vlan: PropertyRef = PropertyRef("service_vlan")
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNZone to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
@@ -90,7 +81,6 @@ class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNZoneToClusterRelProperties = ProxmoxSDNZoneToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxSDNZoneSchema(CartographyNodeSchema):
     """
@@ -103,11 +93,7 @@ class ProxmoxSDNZoneSchema(CartographyNodeSchema):
     properties: ProxmoxSDNZoneNodeProperties = ProxmoxSDNZoneNodeProperties()
     sub_resource_relationship: ProxmoxSDNZoneToClusterRel = ProxmoxSDNZoneToClusterRel()
 
-
-# ============================================================================
 # ProxmoxSDNVNet Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetNodeProperties(CartographyNodeProperties):
@@ -120,34 +106,25 @@ class ProxmoxSDNVNetNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    vnet: PropertyRef = PropertyRef("vnet", extra_index=True)  # VNet ID/name
-    zone: PropertyRef = PropertyRef("zone")  # Parent zone ID
+    vnet: PropertyRef = PropertyRef("vnet", extra_index=True)
+    zone: PropertyRef = PropertyRef("zone")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # VNet configuration
-    tag: PropertyRef = PropertyRef("tag")  # VLAN tag (if applicable)
-    alias: PropertyRef = PropertyRef("alias")  # Friendly name/description
-    vlanaware: PropertyRef = PropertyRef("vlanaware")  # VLAN awareness (0 or 1)
+    tag: PropertyRef = PropertyRef("tag")
+    alias: PropertyRef = PropertyRef("alias")
+    vlanaware: PropertyRef = PropertyRef("vlanaware")
 
     # Additional configuration
-    mac: PropertyRef = PropertyRef("mac")  # MAC address
-
+    mac: PropertyRef = PropertyRef("mac")
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNVNet to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNVNet)
 class ProxmoxSDNVNetToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNVNet)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -158,15 +135,9 @@ class ProxmoxSDNVNetToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNVNetToClusterRelProperties = ProxmoxSDNVNetToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToZoneRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNVNet to ProxmoxSDNZone.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToZoneRel(CartographyRelSchema):
@@ -187,7 +158,6 @@ class ProxmoxSDNVNetToZoneRel(CartographyRelSchema):
     rel_label: str = "BELONGS_TO"
     properties: ProxmoxSDNVNetToZoneRelProperties = ProxmoxSDNVNetToZoneRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxSDNVNetSchema(CartographyNodeSchema):
     """
@@ -205,11 +175,7 @@ class ProxmoxSDNVNetSchema(CartographyNodeSchema):
         ]
     )
 
-
-# ============================================================================
 # ProxmoxSDNSubnet Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
@@ -221,36 +187,27 @@ class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    subnet: PropertyRef = PropertyRef("subnet", extra_index=True)  # CIDR (10.0.1.0/24)
-    vnet: PropertyRef = PropertyRef("vnet")  # Parent VNet ID
+    subnet: PropertyRef = PropertyRef("subnet", extra_index=True)
+    vnet: PropertyRef = PropertyRef("vnet")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # Subnet configuration
-    gateway: PropertyRef = PropertyRef("gateway")  # Gateway IP
-    snat: PropertyRef = PropertyRef("snat")  # SNAT enabled (0 or 1)
+    gateway: PropertyRef = PropertyRef("gateway")
+    snat: PropertyRef = PropertyRef("snat")
 
     # DHCP configuration
-    dhcp_range: PropertyRef = PropertyRef("dhcp_range")  # DHCP range (start-end IPs)
+    dhcp_range: PropertyRef = PropertyRef("dhcp_range")
 
     # DNS configuration
-    dnszoneprefix: PropertyRef = PropertyRef("dnszoneprefix")  # DNS zone prefix
-
+    dnszoneprefix: PropertyRef = PropertyRef("dnszoneprefix")
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNSubnet to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNSubnet)
 class ProxmoxSDNSubnetToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNSubnet)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -261,15 +218,9 @@ class ProxmoxSDNSubnetToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNSubnetToClusterRelProperties = ProxmoxSDNSubnetToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToVNetRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNSubnet to ProxmoxSDNVNet.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToVNetRel(CartographyRelSchema):
@@ -290,7 +241,6 @@ class ProxmoxSDNSubnetToVNetRel(CartographyRelSchema):
     rel_label: str = "BELONGS_TO"
     properties: ProxmoxSDNSubnetToVNetRelProperties = ProxmoxSDNSubnetToVNetRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetSchema(CartographyNodeSchema):
     """
@@ -308,11 +258,7 @@ class ProxmoxSDNSubnetSchema(CartographyNodeSchema):
         ]
     )
 
-
-# ============================================================================
 # ProxmoxSDNController Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerNodeProperties(CartographyNodeProperties):
@@ -324,36 +270,27 @@ class ProxmoxSDNControllerNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    controller: PropertyRef = PropertyRef("controller", extra_index=True)  # Controller ID
-    type: PropertyRef = PropertyRef("type")  # evpn, bgp, faucet, etc.
+    controller: PropertyRef = PropertyRef("controller", extra_index=True)
+    type: PropertyRef = PropertyRef("type")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # BGP/EVPN configuration
-    asn: PropertyRef = PropertyRef("asn")  # Autonomous System Number
-    peers: PropertyRef = PropertyRef("peers")  # BGP peer IPs (comma-separated)
-    node: PropertyRef = PropertyRef("node")  # Node where controller runs
+    asn: PropertyRef = PropertyRef("asn")
+    peers: PropertyRef = PropertyRef("peers")
+    node: PropertyRef = PropertyRef("node")
 
     # Additional EVPN configuration
-    ebgp: PropertyRef = PropertyRef("ebgp")  # eBGP mode enabled (0 or 1)
-    loopback: PropertyRef = PropertyRef("loopback")  # Loopback IP address
+    ebgp: PropertyRef = PropertyRef("ebgp")
+    loopback: PropertyRef = PropertyRef("loopback")
     bgp_multipath_as_path_relax: PropertyRef = PropertyRef("bgp_multipath_as_path_relax")
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNController to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNController)
 class ProxmoxSDNControllerToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNController)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -363,7 +300,6 @@ class ProxmoxSDNControllerToClusterRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNControllerToClusterRelProperties = ProxmoxSDNControllerToClusterRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerSchema(CartographyNodeSchema):
@@ -377,11 +313,7 @@ class ProxmoxSDNControllerSchema(CartographyNodeSchema):
     properties: ProxmoxSDNControllerNodeProperties = ProxmoxSDNControllerNodeProperties()
     sub_resource_relationship: ProxmoxSDNControllerToClusterRel = ProxmoxSDNControllerToClusterRel()
 
-
-# ============================================================================
 # ProxmoxSDNIPAM Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
@@ -393,32 +325,23 @@ class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    ipam: PropertyRef = PropertyRef("ipam", extra_index=True)  # IPAM ID
-    type: PropertyRef = PropertyRef("type")  # pve, netbox, phpipam
+    ipam: PropertyRef = PropertyRef("ipam", extra_index=True)
+    type: PropertyRef = PropertyRef("type")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
     # External IPAM configuration
-    url: PropertyRef = PropertyRef("url")  # API URL (for external IPAMs)
+    url: PropertyRef = PropertyRef("url")
     # Token is masked to "configured" in transform to avoid storing raw credentials
     token: PropertyRef = PropertyRef("token")
-    section: PropertyRef = PropertyRef("section")  # Section/tenant ID (NetBox/phpIPAM)
-
+    section: PropertyRef = PropertyRef("section")
 
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxSDNIPAM to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNIPAM)
 class ProxmoxSDNIPAMToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNIPAM)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -428,7 +351,6 @@ class ProxmoxSDNIPAMToClusterRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNIPAMToClusterRelProperties = ProxmoxSDNIPAMToClusterRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMSchema(CartographyNodeSchema):

@@ -130,6 +130,7 @@ dev = [
     "azure-mgmt-network>=25.0.0",
     "azure-mgmt-security>=5.0.0",
     "azure-mgmt-monitor>=3.0.0",
+    "flake8>=7.3.0",
 ]
 doc = [
     "myst-parser[linkify]>=4.0.1",

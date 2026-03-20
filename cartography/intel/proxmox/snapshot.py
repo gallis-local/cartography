@@ -19,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 def get_snapshots_for_vm(
     proxmox_client: Any,
     node_name: str,
@@ -57,7 +52,6 @@ def get_snapshots_for_vm(
             f"Could not fetch snapshots for {vm_type} {vmid} on node {node_name}: {e}"
         )
         return []
-
 
 def get_all_snapshots(
     proxmox_client: Any,
@@ -94,11 +88,6 @@ def get_all_snapshots(
     return all_snapshots
 
 
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
-
-
 def transform_snapshot_data(
     snapshots: List[Dict[str, Any]],
     cluster_id: str,
@@ -118,10 +107,6 @@ def transform_snapshot_data(
         vmid = snapshot["vmid"]
         node = snapshot["node"]
         vm_type = snapshot["vm_type"]
-
-        # NEW UID PATTERN: Node-agnostic, hierarchical structure
-        # OLD: f"{cluster_id}:{node}/{vm_type}/{vmid}:{name}"  # Included node (mutable)
-        # NEW: f"{cluster_id}/vm/{vmid}/snapshot/{name}"  # Node-agnostic, clear hierarchy
         snapshot_id = f"{cluster_id}/vm/{vmid}/snapshot/{name}"
 
         transformed_snapshots.append(
@@ -140,11 +125,6 @@ def transform_snapshot_data(
         )
 
     return transformed_snapshots
-
-
-# ============================================================================
-# LOAD functions
-# ============================================================================
 
 
 def load_snapshots(
@@ -169,11 +149,7 @@ def load_snapshots(
         CLUSTER_ID=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -196,19 +172,15 @@ def sync(
     """
     logger.info("Syncing Proxmox snapshots")
 
-    # GET - retrieve data from API
     raw_snapshots = get_all_snapshots(proxmox_client, vms)
 
-    # TRANSFORM - convert to standard format
     transformed_snapshots = transform_snapshot_data(raw_snapshots, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_snapshots(neo4j_session, transformed_snapshots, cluster_id, update_tag)
 
     logger.info(f"Synced {len(transformed_snapshots)} snapshots")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

@@ -38,7 +38,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 stat_handler = get_stats_client(__name__)
 
-
 def _get_proxmox_client(config: Config) -> "ProxmoxAPI":
     """
     Create and return a Proxmox API client.
@@ -107,7 +106,6 @@ def _get_proxmox_client(config: Config) -> "ProxmoxAPI":
 
     else:
         raise ValueError("No Proxmox authentication method configured")
-
 
 @timeit
 def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:

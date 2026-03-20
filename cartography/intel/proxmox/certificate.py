@@ -1,7 +1,5 @@
 """
 Sync Proxmox SSL/TLS certificates.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -18,11 +16,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 @timeit
 def get_node_certificates(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
@@ -36,11 +29,6 @@ def get_node_certificates(proxmox_client: Any, node_name: str) -> list[dict[str,
     return proxmox_client.nodes(node_name).certificates.info.get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
-
-
 def transform_certificate_data(
     certificates: list[dict[str, Any]],
     node_name: str,
@@ -48,10 +36,6 @@ def transform_certificate_data(
 ) -> list[dict[str, Any]]:
     """
     Transform certificate data into standard format.
-
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
 
     :param certificates: Raw certificate data from API
     :param node_name: Node name
@@ -63,9 +47,6 @@ def transform_certificate_data(
     for cert in certificates:
         # Create unique ID from cluster, node and filename
         filename = cert.get("filename", "unknown")
-        # NEW UID PATTERN: Hierarchical structure showing cert belongs to node
-        # OLD: f"{cluster_id}:{node_name}:{filename}"
-        # NEW: f"{cluster_id}/node/{node_name}/cert/{filename}"
         cert_id = f"{cluster_id}/node/{node_name}/cert/{filename}"
 
         # Full node ID (cluster_id/node/name) for relationship matching
@@ -121,11 +102,6 @@ def transform_certificate_data(
     return transformed_certs
 
 
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
-
-
 def load_certificates(
     neo4j_session: neo4j.Session,
     certificates: list[dict[str, Any]],
@@ -152,11 +128,6 @@ def load_certificates(
     )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -168,8 +139,6 @@ def sync(
     """
     Sync SSL/TLS certificates.
 
-    Follows Cartography's Get → Transform → Load pattern.
-
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
     :param cluster_id: Parent cluster ID
@@ -180,7 +149,6 @@ def sync(
 
     all_certificates = []
 
-    # GET - certificates from each node
     nodes = proxmox_client.nodes.get()
     for node in nodes:
         node_name = node["node"]
@@ -190,13 +158,11 @@ def sync(
         transformed_certs = transform_certificate_data(certs, node_name, cluster_id)
         all_certificates.extend(transformed_certs)
 
-    # LOAD - ingest to Neo4j
     load_certificates(neo4j_session, all_certificates, cluster_id, update_tag)
 
     logger.info(f"Synced {len(all_certificates)} SSL/TLS certificates")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(
     neo4j_session: neo4j.Session,
