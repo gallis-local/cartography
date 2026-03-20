@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -31,9 +32,6 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     uptime: PropertyRef = PropertyRef("uptime")
     last_seen: PropertyRef = PropertyRef("last_seen")
     vlan: PropertyRef = PropertyRef("vlan")
-    sw_mac: PropertyRef = PropertyRef("sw_mac")
-    sw_port: PropertyRef = PropertyRef("sw_port")
-    ap_switch_mac: PropertyRef = PropertyRef("ap_switch_mac")
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
@@ -142,6 +140,7 @@ class UnifiClientToPortRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiClientSchema(CartographyNodeSchema):
     label: str = "UnifiClient"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkEndpoint"])
     properties: UnifiClientNodeProperties = UnifiClientNodeProperties()
     sub_resource_relationship: UnifiClientToSiteRel = UnifiClientToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

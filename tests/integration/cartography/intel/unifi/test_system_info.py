@@ -75,7 +75,7 @@ async def test_sync_system_info_relationships(mock_get, neo4j_session):
         neo4j_session, controller, common_job_parameters
     )
 
-    # Assert - Check RESOURCE relationships
+    # Assert - Check HAS_SYSTEM_INFO relationships (UnifiSite)-[:HAS_SYSTEM_INFO]->(UnifiSystemInfo)
     expected_rels = {
         ("controller_001", TEST_SITE_ID),
     }
@@ -86,7 +86,7 @@ async def test_sync_system_info_relationships(mock_get, neo4j_session):
             "id",
             "UnifiSite",
             "id",
-            "RESOURCE",
+            "HAS_SYSTEM_INFO",
             rel_direction_right=False,
         )
         == expected_rels

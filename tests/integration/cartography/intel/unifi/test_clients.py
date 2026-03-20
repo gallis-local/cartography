@@ -365,17 +365,27 @@ async def test_unifi_client_new_properties(mock_get, neo4j_session):
     assert result[0]["blocked"] is False
     assert result[0]["uptime"] == 3600
 
-    # Wired client
+    # Wired client — sw_mac and sw_port are no longer stored as node properties;
+    # the connection is captured via CONNECTED_TO_SWITCH and CONNECTED_VIA relationships.
+    # Verify vlan (which is still a node property) and the relationship is present.
     wired = neo4j_session.run(
         """
         MATCH (c:UnifiClient {id: 'DD:EE:FF:00:11:22'})
-        RETURN c.sw_mac as sw_mac, c.sw_port as sw_port, c.vlan as vlan
+        RETURN c.vlan as vlan
         """
     ).data()
     assert len(wired) == 1
-    assert wired[0]["sw_mac"] == "AA:BB:CC:DD:EE:FF"
-    assert wired[0]["sw_port"] == 1
     assert wired[0]["vlan"] == 10
+
+    # Verify wired switch relationship exists
+    switch_rels = neo4j_session.run(
+        """
+        MATCH (c:UnifiClient {id: 'DD:EE:FF:00:11:22'})-[:CONNECTED_TO_SWITCH]->(d:UnifiDevice)
+        RETURN d.id as switch_id
+        """
+    ).data()
+    assert len(switch_rels) == 1
+    assert switch_rels[0]["switch_id"] == "AA:BB:CC:DD:EE:FF"
 
 
 @pytest.mark.asyncio
