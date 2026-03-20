@@ -13,6 +13,7 @@ from typing import List
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.sdn import ProxmoxSDNControllerSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNIPAMSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNSubnetSchema
@@ -267,6 +268,8 @@ def transform_sdn_ipams(
                 "type": ipam.get("type"),
                 "cluster_id": cluster_id,
                 "url": ipam.get("url"),
+                # Mask actual token - only record that a token is configured
+                "token": "configured" if ipam.get("token") else None,
                 "section": ipam.get("section"),
             }
         )
@@ -399,6 +402,7 @@ def sync_sdn(
     proxmox_client: Any,
     cluster_id: str,
     proxmox_update_tag: int,
+    common_job_parameters: Dict[str, Any],
 ) -> None:
     """
     Sync all SDN resources for a Proxmox cluster.
@@ -444,3 +448,24 @@ def sync_sdn(
         f"Synced {len(zones)} zones, {len(vnets)} VNets, {len(all_subnets)} subnets, "
         f"{len(controllers)} controllers, {len(ipams)} IPAMs"
     )
+
+    cleanup_sdn(neo4j_session, common_job_parameters)
+
+
+def cleanup_sdn(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: Dict[str, Any],
+) -> None:
+    """
+    Remove stale SDN data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxSDNZoneSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNVNetSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNSubnetSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNControllerSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNIPAMSchema(), common_job_parameters).run(neo4j_session)

@@ -102,7 +102,7 @@ def test_sync_vms_and_containers(
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_rels
     )
@@ -1178,7 +1178,7 @@ def test_vm_cluster_relationship(
     # Assert - Verify VM->Cluster relationship exists
     result = neo4j_session.run(
         """
-        MATCH (vm:ProxmoxVM)-[:RESOURCE]->(cluster:ProxmoxCluster)
+        MATCH (cluster:ProxmoxCluster)-[:RESOURCE]->(vm:ProxmoxVM)
         WHERE vm.vmid = 100
         RETURN cluster.id as cluster_id, vm.name as vm_name
         """

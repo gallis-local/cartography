@@ -214,6 +214,32 @@ oci_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxRole",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="roleid", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="type",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "custom"},
+                ),
+                OntologyFieldMapping(
+                    ontology_field="scope",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "cluster"},
+                ),
+            ],
+        ),
+    ],
+)
+
 ROLES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "azure": azure_mapping,
@@ -222,4 +248,5 @@ ROLES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "kubernetes": kubernetes_mapping,
     "cloudflare": cloudflare_mapping,
     "oci": oci_mapping,
+    "proxmox": proxmox_mapping,
 }

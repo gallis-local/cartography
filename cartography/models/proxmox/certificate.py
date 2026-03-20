@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -67,7 +68,7 @@ class ProxmoxCertificateToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCertificate)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxCertificate)
 
     Certificates belong to clusters.
     """
@@ -78,7 +79,7 @@ class ProxmoxCertificateToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxCertificateToClusterRelProperties = (
         ProxmoxCertificateToClusterRelProperties()
@@ -128,6 +129,7 @@ class ProxmoxCertificateSchema(CartographyNodeSchema):
     sub_resource_relationship: ProxmoxCertificateToClusterRel = (
         ProxmoxCertificateToClusterRel()
     )
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Certificate"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxCertificateToNodeRel(),

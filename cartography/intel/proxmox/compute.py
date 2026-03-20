@@ -12,6 +12,7 @@ from typing import List
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.compute import ProxmoxDiskSchema
 from cartography.models.proxmox.compute import ProxmoxNetworkInterfaceSchema
 from cartography.models.proxmox.compute import ProxmoxVMSchema
@@ -656,67 +657,6 @@ def load_network_interfaces(
     )
 
 
-def create_vm_network_adjacency(
-    neo4j_session: neo4j.Session,
-    cluster_id: str,
-    update_tag: int,
-) -> None:
-    """
-    Create NETWORK_ADJACENT relationships between VMs on the same bridge/VLAN.
-
-    This derived relationship enables security analysis:
-    - Lateral movement path analysis
-    - Blast radius calculation for compromised VMs
-    - Network segmentation verification
-
-    VMs are considered adjacent if they share the same bridge AND
-    either both have no VLAN tag OR have the same VLAN tag.
-
-    :param neo4j_session: Neo4j session
-    :param cluster_id: Cluster ID to scope the query
-    :param update_tag: Sync timestamp
-    """
-    from cartography.client.core.tx import run_write_query
-
-    query = """
-    MATCH (vm1:ProxmoxVM{cluster_id: $ClusterId})-[:HAS_NETWORK_INTERFACE]->(ni1:ProxmoxNetworkInterface)
-    MATCH (vm2:ProxmoxVM{cluster_id: $ClusterId})-[:HAS_NETWORK_INTERFACE]->(ni2:ProxmoxNetworkInterface)
-    WHERE vm1.id < vm2.id  // Avoid duplicate pairs and self-references
-      AND ni1.bridge = ni2.bridge
-      AND ni1.bridge IS NOT NULL
-      AND (
-        // Both on same VLAN
-        (ni1.vlan_tag IS NOT NULL AND ni1.vlan_tag = ni2.vlan_tag)
-        OR
-        // Both untagged (native VLAN)
-        (ni1.vlan_tag IS NULL AND ni2.vlan_tag IS NULL)
-      )
-    MERGE (vm1)-[r:NETWORK_ADJACENT]-(vm2)
-    ON CREATE SET r.firstseen = timestamp()
-    SET r.lastupdated = $UpdateTag,
-        r.bridge = ni1.bridge,
-        r.vlan_tag = ni1.vlan_tag
-    """
-    run_write_query(
-        neo4j_session,
-        query,
-        ClusterId=cluster_id,
-        UpdateTag=update_tag,
-    )
-
-    # Remove stale NETWORK_ADJACENT edges (VMs that no longer share a bridge/VLAN)
-    cleanup_query = """
-    MATCH (:ProxmoxVM {cluster_id: $ClusterId})-[r:NETWORK_ADJACENT]-()
-    WHERE r.lastupdated < $UpdateTag
-    DELETE r
-    """
-    run_write_query(
-        neo4j_session,
-        cleanup_query,
-        ClusterId=cluster_id,
-        UpdateTag=update_tag,
-    )
-
 
 # ============================================================================
 # SYNC function
@@ -872,14 +812,30 @@ def sync(
     if all_interfaces:
         load_network_interfaces(neo4j_session, all_interfaces, cluster_id, update_tag)
 
-    # Create derived NETWORK_ADJACENT relationships for lateral movement analysis
-    create_vm_network_adjacency(neo4j_session, cluster_id, update_tag)
-
     guest_agent_msg = " (guest agent enabled)" if enable_guest_agent else ""
     logger.info(
         f"Synced {len(transformed_vms)} VMs/containers{guest_agent_msg} with "
         f"{len(all_disks)} disks and {len(all_interfaces)} network interfaces",
     )
 
+    cleanup(neo4j_session, common_job_parameters)
+
     # Return VMs for use by snapshot sync
     return all_vms
+
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: Dict[str, Any],
+) -> None:
+    """
+    Remove stale compute resource data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxVMSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxDiskSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxNetworkInterfaceSchema(), common_job_parameters).run(
+        neo4j_session
+    )

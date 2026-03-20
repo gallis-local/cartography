@@ -54,7 +54,7 @@ class ProxmoxSnapshotToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSnapshotToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSnapshot)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSnapshot)
 
     Snapshots belong to clusters.
     """
@@ -65,7 +65,7 @@ class ProxmoxSnapshotToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSnapshotToClusterRelProperties = ProxmoxSnapshotToClusterRelProperties()
 

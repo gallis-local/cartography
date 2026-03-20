@@ -120,9 +120,27 @@ aws_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxAPIToken",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="tokenid", required=True
+                ),
+                OntologyFieldMapping(ontology_field="expires_at", node_field="expire"),
+                # created_at: Not available
+                # last_used_at: Not available
+            ],
+        ),
+    ],
+)
+
 APIKEYS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "anthropic": anthropic_mapping,
     "openai": openai_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "subimage": subimage_mapping,
     "aws": aws_mapping,

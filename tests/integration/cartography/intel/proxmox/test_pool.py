@@ -103,7 +103,7 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_rels
     )

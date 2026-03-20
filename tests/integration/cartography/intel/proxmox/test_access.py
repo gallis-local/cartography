@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import patch
 
 import cartography.intel.proxmox.access
+import cartography.intel.proxmox.analysis
 from tests.data.proxmox.access import MOCK_ACL_DATA
 from tests.data.proxmox.access import MOCK_GROUP_DATA
 from tests.data.proxmox.access import MOCK_GROUP_MEMBERS_DATA
@@ -123,7 +124,7 @@ def test_sync_access_control(
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_user_rels
     )
@@ -131,7 +132,7 @@ def test_sync_access_control(
     # Assert - User to group relationships
     result = neo4j_session.run(
         """
-        MATCH (u:ProxmoxUser)-[:MEMBER_OF_GROUP]->(g:ProxmoxGroup)
+        MATCH (u:ProxmoxUser)-[:MEMBER_OF]->(g:ProxmoxGroup)
         RETURN u.id as userid, g.id as groupid
         ORDER BY userid, groupid
         """
@@ -408,6 +409,11 @@ def test_effective_permissions(
         TEST_UPDATE_TAG,
         common_job_parameters,
     )
+    cartography.intel.proxmox.analysis.run_effective_permissions(
+        neo4j_session,
+        TEST_UPDATE_TAG,
+        TEST_CLUSTER_ID,
+    )
 
     # Assert - Direct user permissions exist
     result = neo4j_session.run(
@@ -435,7 +441,7 @@ def test_effective_permissions(
     # Assert - Inherited permissions (user -> group -> resource)
     result = neo4j_session.run(
         """
-        MATCH (u:ProxmoxUser)-[:MEMBER_OF_GROUP]->(g:ProxmoxGroup {groupid: 'admins'})
+        MATCH (u:ProxmoxUser)-[:MEMBER_OF]->(g:ProxmoxGroup {groupid: 'admins'})
         MATCH (u)-[p:HAS_PERMISSION]->(c:ProxmoxCluster)
         WHERE p.via_group = true OR p.via_group IS NULL
         RETURN count(DISTINCT u) as user_count
@@ -456,3 +462,82 @@ def test_effective_permissions(
         assert vm_permission["via_acl"] is not None
         assert vm_permission["path"] == "/vms/100"
         assert vm_permission["propagate"] is not None
+
+
+@patch.object(
+    cartography.intel.proxmox.access, "get_users", return_value=MOCK_USER_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.access, "get_groups", return_value=MOCK_GROUP_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.access, "get_roles", return_value=MOCK_ROLE_DATA
+)
+@patch.object(cartography.intel.proxmox.access, "get_acls", return_value=MOCK_ACL_DATA)
+@patch.object(
+    cartography.intel.proxmox.access,
+    "get_group_members",
+    return_value=MOCK_GROUP_MEMBERS_DATA,
+)
+def test_authenticates_via(
+    mock_get_group_members,
+    mock_get_acls,
+    mock_get_roles,
+    mock_get_groups,
+    mock_get_users,
+    neo4j_session,
+):
+    """
+    Test that ProxmoxUser AUTHENTICATES_VIA ProxmoxAuthRealm relationships are created.
+
+    The AUTHENTICATES_VIA relationship is created by the schema when syncing users,
+    but requires ProxmoxAuthRealm nodes to already exist (created by authrealm.sync()).
+    """
+    common_job_parameters: dict[str, Any] = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    # Pre-create auth realm nodes (normally done by authrealm.sync in __init__.py)
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.lastupdated = $update_tag
+        MERGE (pam:ProxmoxAuthRealm {id: $pam_id})
+        SET pam.realm = 'pam', pam.cluster_id = $cluster_id, pam.lastupdated = $update_tag
+        MERGE (pve:ProxmoxAuthRealm {id: $pve_id})
+        SET pve.realm = 'pve', pve.cluster_id = $cluster_id, pve.lastupdated = $update_tag
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+        update_tag=TEST_UPDATE_TAG,
+        pam_id=f"{TEST_CLUSTER_ID}/realm/pam",
+        pve_id=f"{TEST_CLUSTER_ID}/realm/pve",
+    )
+
+    # Act
+    cartography.intel.proxmox.access.sync(
+        neo4j_session,
+        None,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    # Assert - all users have AUTHENTICATES_VIA relationships
+    result = neo4j_session.run(
+        """
+        MATCH (u:ProxmoxUser)-[:AUTHENTICATES_VIA]->(r:ProxmoxAuthRealm)
+        WHERE u.cluster_id = $cluster_id
+        RETURN u.userid as userid, r.realm as realm
+        ORDER BY userid
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+    )
+    rels = [(r["userid"], r["realm"]) for r in result]
+
+    # 3 pam users + 1 pve user
+    assert ("root@pam", "pam") in rels
+    assert ("readonly@pam", "pam") in rels
+    assert ("disabled@pam", "pam") in rels
+    assert ("admin@pve", "pve") in rels
+    assert len(rels) == 4

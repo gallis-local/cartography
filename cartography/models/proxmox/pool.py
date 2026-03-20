@@ -49,7 +49,7 @@ class ProxmoxPoolToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxPoolToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxPool)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxPool)
 
     Pools belong to clusters.
     """
@@ -60,7 +60,7 @@ class ProxmoxPoolToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxPoolToClusterRelProperties = ProxmoxPoolToClusterRelProperties()
 

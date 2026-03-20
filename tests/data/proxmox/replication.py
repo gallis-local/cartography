@@ -32,7 +32,7 @@ MOCK_REPLICATION_JOB_DATA = [
         "guest": 102,
         "schedule": "0 1 * * *",
         "comment": "Daily replication",
-        "enabled": 0,
+        "disable": 1,
         "source": "pve1",
     },
 ]

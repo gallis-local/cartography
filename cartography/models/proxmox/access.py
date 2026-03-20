@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -58,7 +59,7 @@ class ProxmoxUserToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxUserToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxUser)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxUser)
 
     Users belong to clusters.
     """
@@ -69,7 +70,7 @@ class ProxmoxUserToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxUserToClusterRelProperties = ProxmoxUserToClusterRelProperties()
 
@@ -86,7 +87,7 @@ class ProxmoxUserToGroupRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxUserToGroupRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxUser)-[:MEMBER_OF_GROUP]->(:ProxmoxGroup)
+    Relationship: (:ProxmoxUser)-[:MEMBER_OF]->(:ProxmoxGroup)
 
     Users are members of groups.
     """
@@ -99,7 +100,7 @@ class ProxmoxUserToGroupRel(CartographyRelSchema):
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
-    rel_label: str = "MEMBER_OF_GROUP"
+    rel_label: str = "MEMBER_OF"
     properties: ProxmoxUserToGroupRelProperties = ProxmoxUserToGroupRelProperties()
 
 
@@ -144,6 +145,7 @@ class ProxmoxUserSchema(CartographyNodeSchema):
     label: str = "ProxmoxUser"
     properties: ProxmoxUserNodeProperties = ProxmoxUserNodeProperties()
     sub_resource_relationship: ProxmoxUserToClusterRel = ProxmoxUserToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserAccount"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxUserToGroupRel(),
@@ -184,7 +186,7 @@ class ProxmoxGroupToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxGroupToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxGroup)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxGroup)
 
     Groups belong to clusters.
     """
@@ -195,7 +197,7 @@ class ProxmoxGroupToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxGroupToClusterRelProperties = (
         ProxmoxGroupToClusterRelProperties()
@@ -213,6 +215,7 @@ class ProxmoxGroupSchema(CartographyNodeSchema):
     label: str = "ProxmoxGroup"
     properties: ProxmoxGroupNodeProperties = ProxmoxGroupNodeProperties()
     sub_resource_relationship: ProxmoxGroupToClusterRel = ProxmoxGroupToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
 
 
 # ============================================================================
@@ -248,7 +251,7 @@ class ProxmoxRoleToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxRoleToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxRole)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxRole)
 
     Roles belong to clusters.
     """
@@ -259,7 +262,7 @@ class ProxmoxRoleToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxRoleToClusterRelProperties = ProxmoxRoleToClusterRelProperties()
 
@@ -275,6 +278,7 @@ class ProxmoxRoleSchema(CartographyNodeSchema):
     label: str = "ProxmoxRole"
     properties: ProxmoxRoleNodeProperties = ProxmoxRoleNodeProperties()
     sub_resource_relationship: ProxmoxRoleToClusterRel = ProxmoxRoleToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["PermissionRole"])
 
 
 # ============================================================================
@@ -320,7 +324,7 @@ class ProxmoxACLToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxACL)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxACL)
 
     ACLs belong to clusters.
     """
@@ -331,7 +335,7 @@ class ProxmoxACLToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxACLToClusterRelProperties = ProxmoxACLToClusterRelProperties()
 

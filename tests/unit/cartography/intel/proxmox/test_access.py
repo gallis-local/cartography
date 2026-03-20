@@ -35,6 +35,12 @@ def test_transform_user_data():
             "comment": "SSO user",
             "groups": "",  # Empty groups for SSO users
         },
+        {
+            # AD-federated user: userid format is user@domain@realm
+            "userid": "aduser@corp.example.com@entraid",
+            "enable": 1,
+            "expire": 0,
+        },
     ]
 
     group_members = {
@@ -46,11 +52,11 @@ def test_transform_user_data():
     cluster_id = "test-cluster"
     result = transform_user_data(raw_users, cluster_id, group_members)
 
-    assert len(result) == 3
+    assert len(result) == 4
 
     # Test root user (groups from user data string)
     root = next(u for u in result if u["userid"] == "root@pam")
-    assert root["id"] == "test-cluster:root@pam"
+    assert root["id"] == "test-cluster/user/root@pam"
     assert root["enable"] is True
     assert root["expire"] == 0
     assert root["firstname"] == "Root"
@@ -72,6 +78,11 @@ def test_transform_user_data():
     assert sso_user["groups"] == ["sso_group"]  # Enriched from group_members
     assert sso_user["email"] == "sso@example.com"
 
+    # Test AD-federated user: realm must be the last @-delimited segment
+    ad_user = next(u for u in result if u["userid"] == "aduser@corp.example.com@entraid")
+    assert ad_user["realm"] == "entraid"
+    assert ad_user["id"] == "test-cluster/user/aduser@corp.example.com@entraid"
+
 
 def test_transform_group_data():
     """Test group data transformation."""
@@ -92,7 +103,7 @@ def test_transform_group_data():
 
     # Test admins group
     admins = next(g for g in result if g["groupid"] == "admins")
-    assert admins["id"] == "test-cluster:admins"
+    assert admins["id"] == "test-cluster/group/admins"
     assert admins["comment"] == "Administrator group"
     assert admins["cluster_id"] == cluster_id
 
@@ -123,7 +134,7 @@ def test_transform_role_data():
 
     # Test Administrator role
     admin = next(r for r in result if r["roleid"] == "Administrator")
-    assert admin["id"] == "test-cluster:Administrator"
+    assert admin["id"] == "test-cluster/role/Administrator"
     assert admin["privs"] == ["VM.Allocate", "VM.Config", "Sys.Modify"]
     assert admin["special"] is True
     assert admin["cluster_id"] == cluster_id
@@ -167,16 +178,23 @@ def test_transform_acl_data():
             "ugid": "admin@pve",
             "propagate": 0,
         },
+        {
+            # API token: ugid format is user@realm!tokenname
+            "path": "/",
+            "roleid": "PVEAuditor",
+            "ugid": "root@pam!cartography",
+            "propagate": 1,
+        },
     ]
 
     cluster_id = "test-cluster"
     result = transform_acl_data(raw_acls, cluster_id)
 
-    assert len(result) == 5
+    assert len(result) == 6
 
     # Test root ACL with cluster resource type
     root_acl = next(a for a in result if a["ugid"] == "root@pam")
-    assert root_acl["id"] == "test-cluster:/:root@pam:Administrator"
+    assert root_acl["id"] == "test-cluster/acl//root@pam/Administrator"
     assert root_acl["path"] == "/"
     assert root_acl["roleid"] == "Administrator"
     assert root_acl["propagate"] is True
@@ -187,7 +205,7 @@ def test_transform_acl_data():
 
     # Test group ACL with VM resource type
     group_acl = next(a for a in result if a["path"] == "/vms/100")
-    assert group_acl["id"] == "test-cluster:/vms/100:auditors:PVEAuditor"
+    assert group_acl["id"] == "test-cluster/acl/vms/100/auditors/PVEAuditor"
     assert group_acl["path"] == "/vms/100"
     assert group_acl["propagate"] is False
     assert group_acl["principal_type"] == "group"
@@ -211,3 +229,9 @@ def test_transform_acl_data():
     assert node_acl["principal_type"] == "user"
     assert node_acl["resource_type"] == "node"
     assert node_acl["resource_id"] == "node1"
+
+    # Test API token ACL: principal_type must be "token" not "user"
+    token_acl = next(a for a in result if a["ugid"] == "root@pam!cartography")
+    assert token_acl["id"] == "test-cluster/acl//root@pam!cartography/PVEAuditor"
+    assert token_acl["principal_type"] == "token"
+    assert token_acl["base_userid"] == "root@pam"  # Base user extracted correctly

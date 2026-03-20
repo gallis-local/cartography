@@ -313,6 +313,24 @@ kubernetes_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxGroup",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="groupid", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="description", node_field="comment"
+                ),
+                # email: Not available
+            ],
+        ),
+    ],
+)
+
 GROUPS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "duo": duo_mapping,
@@ -325,6 +343,7 @@ GROUPS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "oci": oci_mapping,
     "okta": okta_mapping,
     "pagerduty": pagerduty_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "sentry": sentry_mapping,
     "slack": slack_mapping,

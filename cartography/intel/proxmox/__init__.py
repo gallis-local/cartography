@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from proxmoxer import ProxmoxAPI
 
 from cartography.config import Config
-from cartography.graph.job import GraphJob
 from cartography.intel.proxmox import access
+from cartography.intel.proxmox import analysis
 from cartography.intel.proxmox import apitoken
 from cartography.intel.proxmox import authrealm
 from cartography.intel.proxmox import backup
@@ -31,46 +31,6 @@ from cartography.intel.proxmox import replication
 from cartography.intel.proxmox import sdn
 from cartography.intel.proxmox import snapshot
 from cartography.intel.proxmox import storage
-from cartography.models.proxmox.access import ProxmoxACLSchema
-from cartography.models.proxmox.access import ProxmoxACLToClusterMatchLink
-from cartography.models.proxmox.access import ProxmoxACLToNodeMatchLink
-from cartography.models.proxmox.access import ProxmoxACLToPoolMatchLink
-from cartography.models.proxmox.access import ProxmoxACLToStorageMatchLink
-from cartography.models.proxmox.access import ProxmoxACLToVMMatchLink
-from cartography.models.proxmox.access import ProxmoxGroupSchema
-from cartography.models.proxmox.access import ProxmoxRoleSchema
-from cartography.models.proxmox.access import ProxmoxUserSchema
-from cartography.models.proxmox.apitoken import ProxmoxAPITokenSchema
-from cartography.models.proxmox.authrealm import ProxmoxAuthRealmSchema
-from cartography.models.proxmox.backup import ProxmoxBackupJobSchema
-from cartography.models.proxmox.backup import ProxmoxBackupJobToVMMatchLink
-from cartography.models.proxmox.certificate import ProxmoxCertificateSchema
-from cartography.models.proxmox.cluster import ProxmoxNodeNetworkInterfaceSchema
-from cartography.models.proxmox.cluster import ProxmoxNodeSchema
-from cartography.models.proxmox.compute import ProxmoxDiskSchema
-from cartography.models.proxmox.compute import ProxmoxNetworkInterfaceSchema
-from cartography.models.proxmox.compute import ProxmoxVMSchema
-from cartography.models.proxmox.firewall import ProxmoxFirewallIPSetSchema
-from cartography.models.proxmox.firewall import ProxmoxFirewallRuleSchema
-from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToIPSetMatchLink
-from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToNodeMatchLink
-from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToVMMatchLink
-from cartography.models.proxmox.firewalloptions import ProxmoxFirewallOptionsSchema
-from cartography.models.proxmox.ha import ProxmoxHAGroupSchema
-from cartography.models.proxmox.ha import ProxmoxHAResourceSchema
-from cartography.models.proxmox.ha import ProxmoxHAResourceToVMMatchLink
-from cartography.models.proxmox.pool import ProxmoxPoolSchema
-from cartography.models.proxmox.pool import ProxmoxPoolToStorageMatchLink
-from cartography.models.proxmox.pool import ProxmoxPoolToVMMatchLink
-from cartography.models.proxmox.replication import ProxmoxReplicationJobSchema
-from cartography.models.proxmox.sdn import ProxmoxSDNControllerSchema
-from cartography.models.proxmox.sdn import ProxmoxSDNIPAMSchema
-from cartography.models.proxmox.sdn import ProxmoxSDNSubnetSchema
-from cartography.models.proxmox.sdn import ProxmoxSDNVNetSchema
-from cartography.models.proxmox.sdn import ProxmoxSDNZoneSchema
-from cartography.models.proxmox.snapshot import ProxmoxSnapshotSchema
-from cartography.models.proxmox.storage import ProxmoxStorageSchema
-from cartography.models.proxmox.storage import ProxmoxStorageToNodeMatchLink
 from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
 from cartography.util import timeit
@@ -192,6 +152,16 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         proxmox_client,
         cluster_id,
         config.update_tag,
+        common_job_parameters,
+    )
+
+    # Sync storage first — required by compute (STORED_ON) and pool (CONTAINS_STORAGE)
+    storage.sync(
+        neo4j_session,
+        proxmox_client,
+        cluster_id,
+        config.update_tag,
+        common_job_parameters,
     )
 
     # Sync VMs and containers
@@ -212,15 +182,6 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         config.update_tag,
         common_job_parameters,
         vms,
-    )
-
-    # Sync storage
-    storage.sync(
-        neo4j_session,
-        proxmox_client,
-        cluster_id,
-        config.update_tag,
-        common_job_parameters,
     )
 
     # Sync resource pools
@@ -314,140 +275,8 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
 
-    # Run cleanup using modern GraphJob approach
-    # Per AGENTS.md: Use GraphJob.from_node_schema() instead of JSON cleanup files
-    logger.info("Running Proxmox cleanup jobs")
-
-    # Cleanup all resource types scoped to this cluster
-    GraphJob.from_node_schema(ProxmoxNodeSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(
-        ProxmoxNodeNetworkInterfaceSchema(), common_job_parameters
-    ).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxVMSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxDiskSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(
-        ProxmoxNetworkInterfaceSchema(), common_job_parameters
-    ).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxSnapshotSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxStorageSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxPoolSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxBackupJobSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxReplicationJobSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxHAGroupSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxHAResourceSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxUserSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxAPITokenSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxAuthRealmSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxGroupSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxRoleSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxACLSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxFirewallRuleSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxFirewallIPSetSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxFirewallOptionsSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxCertificateSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxSDNZoneSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxSDNVNetSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxSDNSubnetSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxSDNControllerSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-    GraphJob.from_node_schema(ProxmoxSDNIPAMSchema(), common_job_parameters).run(
-        neo4j_session
-    )
-
-    # Note: ProxmoxCluster doesn't need cleanup since it's the tenant root
-    # and has no sub_resource_relationship
-
-    # Cleanup stale MatchLink relationships.
-    # GraphJob.from_node_schema handles node + edge deletion via DETACH DELETE, but only
-    # when the source node itself becomes stale. If the source node persists while only
-    # a specific MatchLink edge becomes stale (e.g. a VM removed from a pool or backup
-    # job scope), the relationship must be cleaned up explicitly via from_matchlink().
-    GraphJob.from_matchlink(
-        ProxmoxBackupJobToVMMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxPoolToVMMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxPoolToStorageMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxHAResourceToVMMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxFirewallRuleToNodeMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxFirewallRuleToVMMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxFirewallRuleToIPSetMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxStorageToNodeMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxACLToVMMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxACLToStorageMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxACLToPoolMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxACLToNodeMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
-    GraphJob.from_matchlink(
-        ProxmoxACLToClusterMatchLink(), "ProxmoxCluster", cluster_id, config.update_tag
-    ).run(neo4j_session)
+    # Run post-ingestion analysis: create derived HAS_PERMISSION relationships
+    analysis.run_effective_permissions(neo4j_session, config.update_tag, cluster_id)
 
     merge_module_sync_metadata(
         neo4j_session,
