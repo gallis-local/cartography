@@ -80,7 +80,7 @@ def test_snapshot_sync(mock_get_snapshots, neo4j_session):
 def test_snapshot_to_cluster_relationship(mock_get_snapshots, neo4j_session):
     """Test ProxmoxSnapshot RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
     proxmox_client = MagicMock()
 
     # Mock snapshot data
@@ -99,7 +99,7 @@ def test_snapshot_to_cluster_relationship(mock_get_snapshots, neo4j_session):
     mock_get_snapshots.return_value = mock_snapshot_data
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 1,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -108,7 +108,7 @@ def test_snapshot_to_cluster_relationship(mock_get_snapshots, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 1,
         common_job_parameters,
         MOCK_VMS_FOR_SNAPSHOT,
     )
@@ -116,7 +116,7 @@ def test_snapshot_to_cluster_relationship(mock_get_snapshots, neo4j_session):
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (s:ProxmoxSnapshot)-[:RESOURCE]->(c:ProxmoxCluster)
+        MATCH (c:ProxmoxCluster)-[:RESOURCE]->(s:ProxmoxSnapshot)
         WHERE c.id = $cluster_id
         RETURN s.name as snapshot_name, c.id as cluster_id
         """,
@@ -264,7 +264,7 @@ def test_snapshot_multi_cluster_isolation(mock_get_snapshots, neo4j_session):
 def test_snapshot_cleanup_stale_data(mock_get_snapshots, neo4j_session):
     """Test cleanup removes stale snapshots from previous sync."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2)
     proxmox_client = MagicMock()
 
     # First sync - create snapshot1 and snapshot2
@@ -280,7 +280,7 @@ def test_snapshot_cleanup_stale_data(mock_get_snapshots, neo4j_session):
     mock_get_snapshots.return_value = mock_snapshot_data
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 2,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -288,7 +288,7 @@ def test_snapshot_cleanup_stale_data(mock_get_snapshots, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 2,
         common_job_parameters,
         MOCK_VMS_FOR_SNAPSHOT,
     )
@@ -305,7 +305,7 @@ def test_snapshot_cleanup_stale_data(mock_get_snapshots, neo4j_session):
     assert result.single()["count"] == 2
 
     # Second sync - only snapshot1 remains
-    new_update_tag = TEST_UPDATE_TAG + 1
+    new_update_tag = TEST_UPDATE_TAG + 3
     mock_snapshot_data = [mock_snapshot_data[0]]  # Only first snapshot
     mock_get_snapshots.return_value = mock_snapshot_data
 

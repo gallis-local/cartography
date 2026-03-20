@@ -68,14 +68,14 @@ def test_replication_sync(mock_get_jobs, neo4j_session):
 def test_replication_to_cluster_relationship(mock_get_jobs, neo4j_session):
     """Test ProxmoxReplicationJob RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
     proxmox_client = MagicMock()
 
     # Mock replication job data
     mock_get_jobs.return_value = [MOCK_REPLICATION_JOB_DATA[0]]
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 1,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -84,14 +84,14 @@ def test_replication_to_cluster_relationship(mock_get_jobs, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 1,
         common_job_parameters,
     )
 
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (j:ProxmoxReplicationJob)-[:RESOURCE]->(c:ProxmoxCluster)
+        MATCH (c:ProxmoxCluster)-[:RESOURCE]->(j:ProxmoxReplicationJob)
         WHERE c.id = $cluster_id
         RETURN j.job_id as job_id, c.id as cluster_id
         """,
@@ -137,10 +137,12 @@ def test_replication_multi_cluster_isolation(mock_get_jobs, neo4j_session):
     result = neo4j_session.run(
         """
         MATCH (j:ProxmoxReplicationJob)
-        WHERE j.job_id = '100-0'
+        WHERE j.job_id = '100-0' AND j.cluster_id IN [$cluster_a_id, $cluster_b_id]
         RETURN j.id as id, j.cluster_id as cluster_id
         ORDER BY j.id
-        """
+        """,
+        cluster_a_id=cluster_a_id,
+        cluster_b_id=cluster_b_id,
     )
 
     jobs = list(result)

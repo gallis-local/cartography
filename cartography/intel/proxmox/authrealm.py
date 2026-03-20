@@ -144,6 +144,8 @@ def sync(
 
     logger.info(f"Synced {len(transformed_realms)} authentication realms")
 
+    cleanup(neo4j_session, common_job_parameters)
+
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

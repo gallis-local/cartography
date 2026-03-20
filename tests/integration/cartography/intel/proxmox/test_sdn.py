@@ -224,12 +224,20 @@ def test_sdn_ipams_transform():
 def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
     """Test syncing SDN zones to Neo4j."""
     update_tag = 12345
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
+
+    # Create cluster node so RESOURCE relationship can be attached
+    neo4j_session.run(
+        "MERGE (c:ProxmoxCluster {id: $id}) SET c.lastupdated = $tag",
+        id=CLUSTER_ID, tag=update_tag,
+    )
 
     sdn.sync_sdn(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # Verify zones were created
@@ -249,7 +257,7 @@ def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
     # Verify zone relationship to cluster
     result = neo4j_session.run(
         """
-        MATCH (z:ProxmoxSDNZone{id: $zone_id})-[:RESOURCE]->(c:ProxmoxCluster{id: $cluster_id})
+        MATCH (c:ProxmoxCluster{id: $cluster_id})-[:RESOURCE]->(z:ProxmoxSDNZone{id: $zone_id})
         RETURN count(z) as count
         """,
         zone_id=f"{CLUSTER_ID}/sdn/zone/zone1",
@@ -261,12 +269,14 @@ def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
 def test_sync_sdn_vnets(neo4j_session: neo4j.Session, proxmox_client_mock):
     """Test syncing SDN VNets to Neo4j."""
     update_tag = 12345
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
     sdn.sync_sdn(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # Verify VNet was created
@@ -299,12 +309,14 @@ def test_sync_sdn_vnets(neo4j_session: neo4j.Session, proxmox_client_mock):
 def test_sync_sdn_subnets(neo4j_session: neo4j.Session, proxmox_client_mock):
     """Test syncing SDN subnets to Neo4j."""
     update_tag = 12345
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
     sdn.sync_sdn(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # Verify subnet was created
@@ -339,12 +351,14 @@ def test_sync_sdn_subnets(neo4j_session: neo4j.Session, proxmox_client_mock):
 def test_sync_sdn_controllers(neo4j_session: neo4j.Session, proxmox_client_mock):
     """Test syncing SDN controllers to Neo4j."""
     update_tag = 12345
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
     sdn.sync_sdn(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # Verify controller was created
@@ -365,12 +379,20 @@ def test_sync_sdn_controllers(neo4j_session: neo4j.Session, proxmox_client_mock)
 def test_sync_sdn_ipams(neo4j_session: neo4j.Session, proxmox_client_mock):
     """Test syncing SDN IPAMs to Neo4j."""
     update_tag = 12345
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
+
+    # Create cluster node so RESOURCE relationship can be attached
+    neo4j_session.run(
+        "MERGE (c:ProxmoxCluster {id: $id}) SET c.lastupdated = $tag",
+        id=CLUSTER_ID, tag=update_tag,
+    )
 
     sdn.sync_sdn(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # Verify IPAM was created
@@ -398,7 +420,8 @@ def test_sdn_api_error_handling(neo4j_session: neo4j.Session):
     mock_client.cluster.sdn.controllers.get.side_effect = Exception("API Error")
     mock_client.cluster.sdn.ipams.get.side_effect = Exception("API Error")
 
-    update_tag = 12345
+    update_tag = 12346
+    common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
     # Should not raise exception
     sdn.sync_sdn(
@@ -406,6 +429,7 @@ def test_sdn_api_error_handling(neo4j_session: neo4j.Session):
         mock_client,
         CLUSTER_ID,
         update_tag,
+        common_job_parameters,
     )
 
     # No SDN resources should be created

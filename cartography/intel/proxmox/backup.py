@@ -10,7 +10,9 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.backup import ProxmoxBackupJobSchema
+from cartography.models.proxmox.backup import ProxmoxBackupJobToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -242,3 +244,25 @@ def sync(
     logger.info(
         f"Synced {len(transformed_jobs)} backup jobs covering {len(job_vms)} VMs"
     )
+
+    cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
+
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Remove stale backup job data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    :param cluster_id: Cluster ID for MatchLink cleanup scoping
+    :param update_tag: Sync timestamp for MatchLink cleanup
+    """
+    GraphJob.from_node_schema(ProxmoxBackupJobSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxBackupJobToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)

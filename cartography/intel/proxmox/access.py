@@ -10,7 +10,13 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.access import ProxmoxACLSchema
+from cartography.models.proxmox.access import ProxmoxACLToClusterMatchLink
+from cartography.models.proxmox.access import ProxmoxACLToNodeMatchLink
+from cartography.models.proxmox.access import ProxmoxACLToPoolMatchLink
+from cartography.models.proxmox.access import ProxmoxACLToStorageMatchLink
+from cartography.models.proxmox.access import ProxmoxACLToVMMatchLink
 from cartography.models.proxmox.access import ProxmoxGroupSchema
 from cartography.models.proxmox.access import ProxmoxRoleSchema
 from cartography.models.proxmox.access import ProxmoxUserSchema
@@ -135,8 +141,9 @@ def transform_user_data(
         # Required field - use direct access
         userid = user["userid"]
 
-        # Extract realm from userid (format: user@realm or user@realm!token)
-        realm = userid.split("@")[1].split("!")[0] if "@" in userid else None
+        # Extract realm from userid (format: user@realm or user@domain@realm for federated AD users)
+        # Always use the LAST @-delimited segment as the realm
+        realm = userid.rsplit("@", 1)[1].split("!")[0] if "@" in userid else None
 
         # Parse groups if they exist (Proxmox returns comma-separated string)
         groups = []
@@ -313,7 +320,10 @@ def transform_acl_data(
         # Determine principal type and extract base user ID for tokens
         # Proxmox format: groups don't have @, users are user@realm, tokens are user@realm!tokenname
         if "@" in ugid:
-            principal_type = "user"
+            if "!" in ugid:
+                principal_type = "token"
+            else:
+                principal_type = "user"
             # For API tokens (user@realm!token), extract base user (user@realm)
             base_userid = ugid.split("!")[0] if "!" in ugid else ugid
         else:
@@ -542,92 +552,6 @@ def load_acl_resource_relationships(
         )
 
 
-def load_effective_permissions(
-    neo4j_session: neo4j.Session,
-    update_tag: int,
-    cluster_id: str,
-) -> None:
-    """
-    Create derived relationships showing effective permissions.
-
-    This creates direct HAS_PERMISSION relationships from users/groups to resources,
-    making it easier to query "what can this user access?" or "who can access this VM?"
-
-    :param neo4j_session: Neo4j session
-    :param update_tag: Sync timestamp
-    :param cluster_id: Cluster ID to scope cleanup (prevents cross-cluster edge deletion)
-    """
-    from cartography.client.core.tx import run_write_query
-
-    # Create direct user -> resource permissions (through ACLs)
-    query = """
-    MATCH (u:ProxmoxUser)<-[:APPLIES_TO_USER]-(acl:ProxmoxACL)-[:GRANTS_ROLE]->(role:ProxmoxRole)
-    MATCH (acl)-[:GRANTS_ACCESS_TO]->(resource)
-    WHERE resource:ProxmoxVM OR resource:ProxmoxStorage OR resource:ProxmoxPool OR
-          resource:ProxmoxNode OR resource:ProxmoxCluster
-    WITH u, resource, role, acl
-    MERGE (u)-[r:HAS_PERMISSION]->(resource)
-    ON CREATE SET r.firstseen = timestamp()
-    SET r.lastupdated = $UpdateTag,
-        r.via_acl = acl.id,
-        r.role = role.roleid,
-        r.privileges = role.privs,
-        r.path = acl.path,
-        r.propagate = acl.propagate
-    """
-    run_write_query(neo4j_session, query, UpdateTag=update_tag)
-
-    # Create group -> resource permissions
-    query = """
-    MATCH (g:ProxmoxGroup)<-[:APPLIES_TO_GROUP]-(acl:ProxmoxACL)-[:GRANTS_ROLE]->(role:ProxmoxRole)
-    MATCH (acl)-[:GRANTS_ACCESS_TO]->(resource)
-    WHERE resource:ProxmoxVM OR resource:ProxmoxStorage OR resource:ProxmoxPool OR
-          resource:ProxmoxNode OR resource:ProxmoxCluster
-    WITH g, resource, role, acl
-    MERGE (g)-[r:HAS_PERMISSION]->(resource)
-    ON CREATE SET r.firstseen = timestamp()
-    SET r.lastupdated = $UpdateTag,
-        r.via_acl = acl.id,
-        r.role = role.roleid,
-        r.privileges = role.privs,
-        r.path = acl.path,
-        r.propagate = acl.propagate
-    """
-    run_write_query(neo4j_session, query, UpdateTag=update_tag)
-
-    # Create inherited permissions: user -> group -> resource
-    query = """
-    MATCH (u:ProxmoxUser)-[:MEMBER_OF_GROUP]->(g:ProxmoxGroup)-[gp:HAS_PERMISSION]->(resource)
-    WHERE resource:ProxmoxVM OR resource:ProxmoxStorage OR resource:ProxmoxPool OR
-          resource:ProxmoxNode OR resource:ProxmoxCluster
-    WITH u, resource, gp
-    MERGE (u)-[r:HAS_PERMISSION]->(resource)
-    ON CREATE SET r.firstseen = timestamp()
-    SET r.lastupdated = $UpdateTag,
-        r.via_acl = gp.via_acl,
-        r.via_group = true,
-        r.role = gp.role,
-        r.privileges = gp.privileges,
-        r.path = gp.path,
-        r.propagate = gp.propagate
-    """
-    run_write_query(neo4j_session, query, UpdateTag=update_tag)
-
-    # Clean up stale HAS_PERMISSION relationships for this cluster only.
-    # Scoped to users/groups belonging to this cluster to avoid clobbering
-    # HAS_PERMISSION edges that belong to other clusters in a multi-cluster setup.
-    cleanup_query = """
-    MATCH (:ProxmoxUser {cluster_id: $ClusterId})-[r:HAS_PERMISSION]->()
-    WHERE r.lastupdated < $UpdateTag
-    DELETE r
-    UNION
-    MATCH (:ProxmoxGroup {cluster_id: $ClusterId})-[r:HAS_PERMISSION]->()
-    WHERE r.lastupdated < $UpdateTag
-    DELETE r
-    """
-    run_write_query(neo4j_session, cleanup_query, UpdateTag=update_tag, ClusterId=cluster_id)
-
-
 # ============================================================================
 # SYNC function - orchestrates Get → Transform → Load
 # ============================================================================
@@ -688,14 +612,47 @@ def sync(
             neo4j_session, transformed_acls, cluster_id, update_tag
         )
 
-    # Create derived effective permission relationships
-    # This makes it easy to query "what can this user access?"
-    load_effective_permissions(neo4j_session, update_tag, cluster_id)
-
     logger.info(
         f"Synced {len(transformed_users)} users, {len(transformed_groups)} groups, "
         f"{len(transformed_roles)} roles, and {len(transformed_acls)} ACLs with full permission graph"
     )
 
+    cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
+
     # Return users for use by API token sync
     return users
+
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Remove stale access control data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    :param cluster_id: Cluster ID for MatchLink cleanup scoping
+    :param update_tag: Sync timestamp for MatchLink cleanup
+    """
+    GraphJob.from_node_schema(ProxmoxUserSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxGroupSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxRoleSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxACLSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxACLToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxACLToStorageMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxACLToPoolMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxACLToNodeMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxACLToClusterMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)

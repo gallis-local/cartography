@@ -81,7 +81,7 @@ def test_firewalloptions_to_cluster_relationship(
 ):
     """Test ProxmoxFirewallOptions RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
     proxmox_client = MagicMock()
 
     # Mock firewall options data
@@ -91,7 +91,7 @@ def test_firewalloptions_to_cluster_relationship(
     proxmox_client.nodes.get.return_value = []
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 1,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -100,14 +100,14 @@ def test_firewalloptions_to_cluster_relationship(
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 1,
         common_job_parameters,
     )
 
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (o:ProxmoxFirewallOptions)-[:RESOURCE]->(c:ProxmoxCluster)
+        MATCH (c:ProxmoxCluster)-[:RESOURCE]->(o:ProxmoxFirewallOptions)
         WHERE c.id = $cluster_id
         RETURN o.scope as scope, c.id as cluster_id
         """,
@@ -158,10 +158,12 @@ def test_firewalloptions_multi_cluster_isolation(
     result = neo4j_session.run(
         """
         MATCH (o:ProxmoxFirewallOptions)
-        WHERE o.scope = 'cluster'
+        WHERE o.scope = 'cluster' AND o.cluster_id IN [$cluster_a_id, $cluster_b_id]
         RETURN o.id as id, o.cluster_id as cluster_id
         ORDER BY o.id
-        """
+        """,
+        cluster_a_id=cluster_a_id,
+        cluster_b_id=cluster_b_id,
     )
 
     options = list(result)

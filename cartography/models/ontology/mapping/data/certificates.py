@@ -53,7 +53,24 @@ azure_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxCertificate",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="domain", node_field="filename", required=True
+                ),
+                OntologyFieldMapping(ontology_field="expiry", node_field="notafter"),
+                OntologyFieldMapping(ontology_field="issuer", node_field="issuer"),
+            ],
+        ),
+    ],
+)
+
 CERTIFICATES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "azure": azure_mapping,
+    "proxmox": proxmox_mapping,
 }

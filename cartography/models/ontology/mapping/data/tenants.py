@@ -410,6 +410,23 @@ socketdev_mapping = OntologyMapping(
     ],
 )
 
+# Proxmox
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxCluster",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # status: Not available (quorate is a bool, not a status string)
+                # domain: Not applicable
+            ],
+        ),
+    ],
+)
+
 # Vercel
 vercel_mapping = OntologyMapping(
     module_name="vercel",
@@ -440,6 +457,7 @@ TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "keycloak": keycloak_mapping,
     "okta": okta_mapping,
     "openai": openai_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "sentry": sentry_mapping,
     "sentinelone": sentinelone_mapping,

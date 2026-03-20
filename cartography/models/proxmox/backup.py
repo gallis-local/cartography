@@ -65,7 +65,7 @@ class ProxmoxBackupJobToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxBackupJobToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxBackupJob)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxBackupJob)
 
     Backup jobs belong to clusters.
     """
@@ -76,7 +76,7 @@ class ProxmoxBackupJobToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxBackupJobToClusterRelProperties = (
         ProxmoxBackupJobToClusterRelProperties()

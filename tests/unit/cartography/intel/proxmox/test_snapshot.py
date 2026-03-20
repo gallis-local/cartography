@@ -27,7 +27,7 @@ def test_transform_qemu_snapshots():
 
     # Check first snapshot
     snap1 = transformed[0]
-    assert snap1["id"] == "cluster1:pve1/qemu/100:snapshot1"
+    assert snap1["id"] == "cluster1/vm/100/snapshot/snapshot1"
     assert snap1["name"] == "snapshot1"
     assert snap1["cluster_id"] == "cluster1"
     assert snap1["vmid"] == 100
@@ -40,7 +40,7 @@ def test_transform_qemu_snapshots():
 
     # Check second snapshot
     snap2 = transformed[1]
-    assert snap2["id"] == "cluster1:pve1/qemu/100:snapshot2"
+    assert snap2["id"] == "cluster1/vm/100/snapshot/snapshot2"
     assert snap2["name"] == "snapshot2"
     assert snap2["vmstate"] is False
     assert snap2["parent"] == "snapshot1"
@@ -66,7 +66,7 @@ def test_transform_lxc_snapshots():
 
     # Check snapshot
     snap = transformed[0]
-    assert snap["id"] == "cluster1:pve1/lxc/101:backup-daily"
+    assert snap["id"] == "cluster1/vm/101/snapshot/backup-daily"
     assert snap["name"] == "backup-daily"
     assert snap["cluster_id"] == "cluster1"
     assert snap["vmid"] == 101
@@ -103,6 +103,6 @@ def test_snapshot_cluster_scoped_id():
     transformed_a = transform_snapshot_data(raw_snapshots, "cluster-a")
     transformed_b = transform_snapshot_data(raw_snapshots, "cluster-b")
 
-    assert transformed_a[0]["id"] == "cluster-a:pve1/qemu/100:test-snap"
-    assert transformed_b[0]["id"] == "cluster-b:pve1/qemu/100:test-snap"
+    assert transformed_a[0]["id"] == "cluster-a/vm/100/snapshot/test-snap"
+    assert transformed_b[0]["id"] == "cluster-b/vm/100/snapshot/test-snap"
     assert transformed_a[0]["id"] != transformed_b[0]["id"]

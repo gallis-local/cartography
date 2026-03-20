@@ -69,14 +69,14 @@ def test_authrealm_sync(mock_get_realms, neo4j_session):
 def test_authrealm_to_cluster_relationship(mock_get_realms, neo4j_session):
     """Test ProxmoxAuthRealm RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
     proxmox_client = MagicMock()
 
     # Mock auth realm data
     mock_get_realms.return_value = [MOCK_AUTH_REALM_DATA[0]]
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 1,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -85,14 +85,14 @@ def test_authrealm_to_cluster_relationship(mock_get_realms, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 1,
         common_job_parameters,
     )
 
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (r:ProxmoxAuthRealm)-[:RESOURCE]->(c:ProxmoxCluster)
+        MATCH (c:ProxmoxCluster)-[:RESOURCE]->(r:ProxmoxAuthRealm)
         WHERE c.id = $cluster_id
         RETURN r.realm as realm, c.id as cluster_id
         """,
@@ -138,10 +138,12 @@ def test_authrealm_multi_cluster_isolation(mock_get_realms, neo4j_session):
     result = neo4j_session.run(
         """
         MATCH (r:ProxmoxAuthRealm)
-        WHERE r.realm = 'pam'
+        WHERE r.realm = 'pam' AND r.cluster_id IN [$cluster_a_id, $cluster_b_id]
         RETURN r.id as id, r.cluster_id as cluster_id
         ORDER BY r.id
-        """
+        """,
+        cluster_a_id=cluster_a_id,
+        cluster_b_id=cluster_b_id,
     )
 
     realms = list(result)

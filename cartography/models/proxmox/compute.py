@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -121,7 +122,7 @@ class ProxmoxVMToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxVM)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxVM)
 
     Per AGENTS.md: sub_resource_relationship should point to tenant-like object.
     """
@@ -132,7 +133,7 @@ class ProxmoxVMToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxVMToClusterRelProperties = ProxmoxVMToClusterRelProperties()
 
@@ -176,6 +177,7 @@ class ProxmoxVMSchema(CartographyNodeSchema):
     label: str = "ProxmoxVM"
     properties: ProxmoxVMNodeProperties = ProxmoxVMNodeProperties()
     sub_resource_relationship: ProxmoxVMToClusterRel = ProxmoxVMToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeInstance"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxVMToNodeRel(),
@@ -243,7 +245,7 @@ class ProxmoxDiskToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxDiskToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxDisk)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxDisk)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -252,7 +254,7 @@ class ProxmoxDiskToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxDiskToClusterRelProperties = ProxmoxDiskToClusterRelProperties()
 
@@ -392,7 +394,7 @@ class ProxmoxNetworkInterfaceToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNetworkInterface)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNetworkInterface)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -401,7 +403,7 @@ class ProxmoxNetworkInterfaceToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxNetworkInterfaceToClusterRelProperties = (
         ProxmoxNetworkInterfaceToClusterRelProperties()

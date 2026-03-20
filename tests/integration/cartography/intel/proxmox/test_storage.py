@@ -71,7 +71,7 @@ def test_sync_storage(mock_get_storage, neo4j_session):
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_rels
     )

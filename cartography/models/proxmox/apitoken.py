@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -51,7 +52,7 @@ class ProxmoxAPITokenToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxAPIToken)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxAPIToken)
 
     API tokens belong to clusters.
     """
@@ -62,7 +63,7 @@ class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxAPITokenToClusterRelProperties = ProxmoxAPITokenToClusterRelProperties()
 
@@ -107,6 +108,7 @@ class ProxmoxAPITokenSchema(CartographyNodeSchema):
     label: str = "ProxmoxAPIToken"
     properties: ProxmoxAPITokenNodeProperties = ProxmoxAPITokenNodeProperties()
     sub_resource_relationship: ProxmoxAPITokenToClusterRel = ProxmoxAPITokenToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["APIKey"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxAPITokenToUserRel(),
