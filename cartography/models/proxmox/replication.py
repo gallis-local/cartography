@@ -16,14 +16,9 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxReplicationJob Node Relationships to Nodes
-# ============================================================================
 
-# ============================================================================
 # ProxmoxReplicationJob Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobNodeProperties(CartographyNodeProperties):
@@ -37,24 +32,18 @@ class ProxmoxReplicationJobNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     job_id: PropertyRef = PropertyRef("job_id", extra_index=True)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    guest: PropertyRef = PropertyRef("guest")  # VM ID being replicated
-    target: PropertyRef = PropertyRef("target")  # Target node
-    type: PropertyRef = PropertyRef("type")  # local or remote
-    schedule: PropertyRef = PropertyRef("schedule")  # Replication schedule
-    rate: PropertyRef = PropertyRef("rate")  # Rate limit in MB/s
-    disable: PropertyRef = PropertyRef("disable")  # Whether job is disabled
+    guest: PropertyRef = PropertyRef("guest")
+    target: PropertyRef = PropertyRef("target")
+    type: PropertyRef = PropertyRef("type")
+    schedule: PropertyRef = PropertyRef("schedule")
+    rate: PropertyRef = PropertyRef("rate")
+    disable: PropertyRef = PropertyRef("disable")
     comment: PropertyRef = PropertyRef("comment")
-    source: PropertyRef = PropertyRef("source")  # Source node (optional)
-
+    source: PropertyRef = PropertyRef("source")
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxReplicationJob to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
@@ -74,15 +63,9 @@ class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxReplicationJobToClusterRelProperties = ProxmoxReplicationJobToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToVMRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxReplicationJob to ProxmoxVM.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
@@ -103,15 +86,9 @@ class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
     rel_label: str = "REPLICATES"
     properties: ProxmoxReplicationJobToVMRelProperties = ProxmoxReplicationJobToVMRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToTargetNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxReplicationJob to target ProxmoxNode.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
@@ -131,15 +108,9 @@ class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
     rel_label: str = "REPLICATES_TO"
     properties: ProxmoxReplicationJobToTargetNodeRelProperties = ProxmoxReplicationJobToTargetNodeRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToSourceNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxReplicationJob to source ProxmoxNode.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
@@ -158,7 +129,6 @@ class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "REPLICATES_FROM"
     properties: ProxmoxReplicationJobToSourceNodeRelProperties = ProxmoxReplicationJobToSourceNodeRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobSchema(CartographyNodeSchema):

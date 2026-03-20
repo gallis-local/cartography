@@ -1,7 +1,5 @@
 """
 Sync Proxmox backup jobs.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -10,17 +8,13 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.backup import ProxmoxBackupJobSchema
 from cartography.models.proxmox.backup import ProxmoxBackupJobToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
 
 
 @timeit
@@ -35,21 +29,12 @@ def get_backup_jobs(proxmox_client: Any) -> list[dict[str, Any]]:
     return proxmox_client.cluster.backup.get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
-
-
 def transform_backup_job_data(
     jobs: list[dict[str, Any]],
     cluster_id: str,
 ) -> list[dict[str, Any]]:
     """
     Transform backup job data into standard format.
-
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
 
     :param jobs: Raw backup job data from API
     :param cluster_id: Parent cluster ID
@@ -58,7 +43,6 @@ def transform_backup_job_data(
     transformed_jobs = []
 
     for job in jobs:
-        # Required field - use direct access
         job_id = job["id"]
 
         # Parse prune settings if they exist. The Proxmox API returns a map like:
@@ -81,10 +65,6 @@ def transform_backup_job_data(
         prune_keep_weekly = _convert(prune_cfg.get("keep-weekly"))
         prune_keep_monthly = _convert(prune_cfg.get("keep-monthly"))
         prune_keep_yearly = _convert(prune_cfg.get("keep-yearly"))
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{job_id}"
-        # NEW: f"{cluster_id}/backup/{job_id}"
         transformed_jobs.append(
             {
                 "id": f"{cluster_id}/backup/{job_id}",
@@ -112,11 +92,6 @@ def transform_backup_job_data(
     return transformed_jobs
 
 
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
-
-
 def load_backup_jobs(
     neo4j_session: neo4j.Session,
     jobs: list[dict[str, Any]],
@@ -139,7 +114,6 @@ def load_backup_jobs(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_backup_job_vm_relationships(
     neo4j_session: neo4j.Session,
     job_vms: list[dict[str, Any]],
@@ -156,9 +130,6 @@ def load_backup_job_vm_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.backup import ProxmoxBackupJobToVMMatchLink
-
     if not job_vms:
         return
 
@@ -172,11 +143,6 @@ def load_backup_job_vm_relationships(
     )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -188,8 +154,6 @@ def sync(
     """
     Sync backup job data.
 
-    Follows Cartography's Get → Transform → Load pattern.
-
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
     :param cluster_id: Parent cluster ID
@@ -198,7 +162,6 @@ def sync(
     """
     logger.info("Syncing Proxmox backup jobs")
 
-    # GET - retrieve data from API
     jobs = get_backup_jobs(proxmox_client)
 
     if not jobs:
@@ -234,10 +197,8 @@ def sync(
                         }
                     )
 
-    # TRANSFORM - manipulate data for ingestion
     transformed_jobs = transform_backup_job_data(jobs, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_backup_jobs(neo4j_session, transformed_jobs, cluster_id, update_tag)
     load_backup_job_vm_relationships(neo4j_session, job_vms, cluster_id, update_tag)
 
@@ -246,7 +207,6 @@ def sync(
     )
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

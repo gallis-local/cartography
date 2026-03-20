@@ -19,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 @timeit
 def get_auth_realms(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -37,11 +32,6 @@ def get_auth_realms(proxmox_client: Any) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.debug(f"Could not fetch authentication realms: {e}")
         return []
-
-
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
 
 
 def transform_auth_realm_data(
@@ -60,10 +50,6 @@ def transform_auth_realm_data(
     for realm in realms:
         # Required fields
         realm_name = realm["realm"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{realm_name}"
-        # NEW: f"{cluster_id}/realm/{realm_name}"
         realm_id = f"{cluster_id}/realm/{realm_name}"
 
         transformed_realms.append(
@@ -79,11 +65,6 @@ def transform_auth_realm_data(
         )
 
     return transformed_realms
-
-
-# ============================================================================
-# LOAD functions
-# ============================================================================
 
 
 def load_auth_realms(
@@ -108,11 +89,7 @@ def load_auth_realms(
         CLUSTER_ID=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -133,19 +110,15 @@ def sync(
     """
     logger.info("Syncing Proxmox authentication realms")
 
-    # GET - retrieve data from API
     raw_realms = get_auth_realms(proxmox_client)
 
-    # TRANSFORM - convert to standard format
     transformed_realms = transform_auth_realm_data(raw_realms, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_auth_realms(neo4j_session, transformed_realms, cluster_id, update_tag)
 
     logger.info(f"Synced {len(transformed_realms)} authentication realms")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

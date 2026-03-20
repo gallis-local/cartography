@@ -17,10 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxStorage Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxStorageNodeProperties(CartographyNodeProperties):
@@ -40,15 +37,9 @@ class ProxmoxStorageNodeProperties(CartographyNodeProperties):
     used: PropertyRef = PropertyRef("used")
     available: PropertyRef = PropertyRef("available")
 
-
 @dataclass(frozen=True)
 class ProxmoxStorageToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxStorage to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxStorageToClusterRel(CartographyRelSchema):
@@ -70,7 +61,6 @@ class ProxmoxStorageToClusterRel(CartographyRelSchema):
         ProxmoxStorageToClusterRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxStorageSchema(CartographyNodeSchema):
     """
@@ -83,11 +73,7 @@ class ProxmoxStorageSchema(CartographyNodeSchema):
     properties: ProxmoxStorageNodeProperties = ProxmoxStorageNodeProperties()
     sub_resource_relationship: ProxmoxStorageToClusterRel = ProxmoxStorageToClusterRel()
 
-
-# ============================================================================
 # MatchLink Schema for Storage Availability Relationships
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxStorageToNodeMatchLinkProperties(CartographyRelProperties):
@@ -101,7 +87,6 @@ class ProxmoxStorageToNodeMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxStorageToNodeMatchLink(CartographyRelSchema):

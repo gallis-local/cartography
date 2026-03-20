@@ -1,7 +1,5 @@
 """
 Sync Proxmox VMs and LXC containers.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -21,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions
-# ============================================================================
-
-
 @timeit
 def get_vms_for_node(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
     """
@@ -41,7 +34,6 @@ def get_vms_for_node(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]
         vm["type"] = "qemu"
         vm["node"] = node_name
     return vms
-
 
 @timeit
 def get_containers_for_node(
@@ -61,7 +53,6 @@ def get_containers_for_node(
         ct["node"] = node_name
     return containers
 
-
 @timeit
 def get_vm_config(
     proxmox_client: Any, node_name: str, vmid: int, vm_type: str
@@ -80,7 +71,6 @@ def get_vm_config(
         return proxmox_client.nodes(node_name).qemu(vmid).config.get()
     else:
         return proxmox_client.nodes(node_name).lxc(vmid).config.get()
-
 
 @timeit
 def get_guest_agent_info(
@@ -148,11 +138,6 @@ def get_guest_agent_info(
     return guest_data
 
 
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
-
-
 def transform_vm_data(
     vms: List[Dict[str, Any]], cluster_id: str
 ) -> List[Dict[str, Any]]:
@@ -166,9 +151,6 @@ def transform_vm_data(
     transformed_vms = []
 
     for vm in vms:
-        # NEW UID PATTERN: Remove node from UID since VMs can migrate between nodes
-        # OLD: f"{cluster_id}:{vm['node']}/{vm['type']}/{vm['vmid']}"
-        # NEW: f"{cluster_id}/vm/{vm['vmid']}" - node-agnostic, type is metadata not identity
         vm_id = f"{cluster_id}/vm/{vm['vmid']}"
 
         # Parse tags if they exist
@@ -253,7 +235,6 @@ def transform_vm_data(
 
     return transformed_vms
 
-
 def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, Any]]:
     """
     Extract disk configurations from VM config.
@@ -296,10 +277,6 @@ def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, An
             # Example: "cluster1/vm/100" -> cluster_id="cluster1", vmid_int=100
             cluster_id = vmid.split("/vm/")[0]
             vmid_int = int(vmid.split("/vm/")[1])
-
-            # NEW UID PATTERN: Hierarchical disk IDs showing clear parent-child relationship
-            # OLD: f"{vmid}:{key}"  # vmid contained node reference
-            # NEW: f"{cluster_id}/vm/{vmid_int}/disk/{key}"  # Node-agnostic, clear hierarchy
             disk_data = {
                 "id": f"{cluster_id}/vm/{vmid_int}/disk/{key}",
                 "disk_id": key,
@@ -421,7 +398,6 @@ def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, An
 
     return disks
 
-
 def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, Any]]:
     """
     Extract network interface configurations from VM config.
@@ -442,10 +418,6 @@ def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str,
                 # Example: "cluster1/vm/100" -> cluster_id="cluster1", vmid_int=100
                 cluster_id = vmid.split("/vm/")[0]
                 vmid_int = int(vmid.split("/vm/")[1])
-
-                # NEW UID PATTERN: Hierarchical NIC IDs showing clear parent-child relationship
-                # OLD: f"{vmid}:{key}"  # vmid contained node reference
-                # NEW: f"{cluster_id}/vm/{vmid_int}/net/{key}"  # Node-agnostic, clear hierarchy
                 nic_data = {
                     "id": f"{cluster_id}/vm/{vmid_int}/net/{key}",
                     "net_id": key,
@@ -519,7 +491,6 @@ def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str,
 
     return interfaces
 
-
 def enrich_interfaces_with_guest_data(
     interfaces: List[Dict[str, Any]],
     guest_network_interfaces: List[Dict[str, Any]],
@@ -577,11 +548,6 @@ def enrich_interfaces_with_guest_data(
                 iface["guest_interface_name"] = guest_name
 
 
-# ============================================================================
-# LOAD functions - using modern data model
-# ============================================================================
-
-
 def load_vms(
     neo4j_session: neo4j.Session,
     vms: List[Dict[str, Any]],
@@ -603,7 +569,6 @@ def load_vms(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 def load_disks(
     neo4j_session: neo4j.Session,
@@ -630,7 +595,6 @@ def load_disks(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_network_interfaces(
     neo4j_session: neo4j.Session,
     interfaces: List[Dict[str, Any]],
@@ -656,12 +620,7 @@ def load_network_interfaces(
         CLUSTER_ID=cluster_id,
     )
 
-
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -759,9 +718,6 @@ def sync(
             )
 
             # Extract disks and network interfaces
-            # NEW: Build VM ID using new pattern (node-agnostic)
-            # OLD: f"{vm['node']}/{vm['type']}/{vm['vmid']}"
-            # NEW: f"{cluster_id}/vm/{vm['vmid']}"
             full_vm_id = f"{cluster_id}/vm/{vm['vmid']}"
             disks = extract_disk_data(vm_config, full_vm_id)
             interfaces = extract_network_data(vm_config, full_vm_id)
@@ -822,7 +778,6 @@ def sync(
 
     # Return VMs for use by snapshot sync
     return all_vms
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

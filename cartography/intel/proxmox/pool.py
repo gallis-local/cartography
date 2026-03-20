@@ -1,7 +1,5 @@
 """
 Sync Proxmox resource pools.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -10,6 +8,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.pool import ProxmoxPoolSchema
 from cartography.models.proxmox.pool import ProxmoxPoolToStorageMatchLink
@@ -17,11 +16,6 @@ from cartography.models.proxmox.pool import ProxmoxPoolToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
 
 
 @timeit
@@ -34,7 +28,6 @@ def get_pools(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.pools.get()
-
 
 @timeit
 def get_pool_details(proxmox_client: Any, poolid: str) -> dict[str, Any]:
@@ -49,21 +42,12 @@ def get_pool_details(proxmox_client: Any, poolid: str) -> dict[str, Any]:
     return proxmox_client.pools(poolid).get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
-
-
 def transform_pool_data(
     pools: list[dict[str, Any]],
     cluster_id: str,
 ) -> list[dict[str, Any]]:
     """
     Transform pool data into standard format.
-
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
 
     :param pools: Raw pool data from API
     :param cluster_id: Parent cluster ID
@@ -72,12 +56,7 @@ def transform_pool_data(
     transformed_pools = []
 
     for pool in pools:
-        # Required field - use direct access
         poolid = pool["poolid"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{poolid}"
-        # NEW: f"{cluster_id}/pool/{poolid}"
         transformed_pools.append(
             {
                 "id": f"{cluster_id}/pool/{poolid}",
@@ -88,11 +67,6 @@ def transform_pool_data(
         )
 
     return transformed_pools
-
-
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
 
 
 def load_pools(
@@ -117,7 +91,6 @@ def load_pools(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_pool_member_relationships(
     neo4j_session: neo4j.Session,
     pool_members: list[dict[str, Any]],
@@ -135,10 +108,6 @@ def load_pool_member_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.pool import ProxmoxPoolToStorageMatchLink
-    from cartography.models.proxmox.pool import ProxmoxPoolToVMMatchLink
-
     if not pool_members:
         return
 
@@ -169,11 +138,6 @@ def load_pool_member_relationships(
         )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -185,8 +149,6 @@ def sync(
     """
     Sync pool data.
 
-    Follows Cartography's Get → Transform → Load pattern.
-
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
     :param cluster_id: Parent cluster ID
@@ -195,7 +157,6 @@ def sync(
     """
     logger.info("Syncing Proxmox resource pools")
 
-    # GET - retrieve data from API
     pools = get_pools(proxmox_client)
 
     # Collect pool member information
@@ -225,10 +186,8 @@ def sync(
 
                 pool_members.append(member_data)
 
-    # TRANSFORM - manipulate data for ingestion
     transformed_pools = transform_pool_data(pools, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_pools(neo4j_session, transformed_pools, cluster_id, update_tag)
     load_pool_member_relationships(neo4j_session, pool_members, cluster_id, update_tag)
 
@@ -237,7 +196,6 @@ def sync(
     )
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any], cluster_id: str, update_tag: int) -> None:
     """

@@ -19,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 def get_tokens_for_user(
     proxmox_client: Any,
     userid: str,
@@ -40,7 +35,6 @@ def get_tokens_for_user(
     except Exception as e:
         logger.debug(f"Could not fetch tokens for user {userid}: {e}")
         return []
-
 
 def get_all_tokens(
     proxmox_client: Any,
@@ -72,11 +66,6 @@ def get_all_tokens(
     return all_tokens
 
 
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
-
-
 def transform_token_data(
     tokens: List[Dict[str, Any]],
     cluster_id: str,
@@ -94,10 +83,6 @@ def transform_token_data(
         # Required fields
         tokenid = token["tokenid"]
         userid = token["userid"]
-
-        # NEW UID PATTERN: Hierarchical structure showing token belongs to user
-        # OLD: f"{cluster_id}:{userid}!{tokenid}"
-        # NEW: f"{cluster_id}/user/{userid}/token/{tokenid}"
         token_id = f"{cluster_id}/user/{userid}/token/{tokenid}"
 
         transformed_tokens.append(
@@ -113,11 +98,6 @@ def transform_token_data(
         )
 
     return transformed_tokens
-
-
-# ============================================================================
-# LOAD functions
-# ============================================================================
 
 
 def load_tokens(
@@ -142,11 +122,7 @@ def load_tokens(
         CLUSTER_ID=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -169,19 +145,15 @@ def sync(
     """
     logger.info("Syncing Proxmox API tokens")
 
-    # GET - retrieve data from API
     raw_tokens = get_all_tokens(proxmox_client, users)
 
-    # TRANSFORM - convert to standard format
     transformed_tokens = transform_token_data(raw_tokens, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_tokens(neo4j_session, transformed_tokens, cluster_id, update_tag)
 
     logger.info(f"Synced {len(transformed_tokens)} API tokens")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

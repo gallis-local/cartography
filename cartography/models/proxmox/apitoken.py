@@ -17,10 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxAPIToken Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenNodeProperties(CartographyNodeProperties):
@@ -34,20 +31,14 @@ class ProxmoxAPITokenNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     tokenid: PropertyRef = PropertyRef("tokenid", extra_index=True)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    userid: PropertyRef = PropertyRef("userid")  # Parent user ID
-    expire: PropertyRef = PropertyRef("expire")  # Expiration timestamp
-    privsep: PropertyRef = PropertyRef("privsep")  # Privilege separation
+    userid: PropertyRef = PropertyRef("userid")
+    expire: PropertyRef = PropertyRef("expire")
+    privsep: PropertyRef = PropertyRef("privsep")
     comment: PropertyRef = PropertyRef("comment")
-
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxAPIToken to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
@@ -67,15 +58,9 @@ class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxAPITokenToClusterRelProperties = ProxmoxAPITokenToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxAPITokenToUserRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxAPIToken to ProxmoxUser.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToUserRel(CartographyRelSchema):
@@ -95,7 +80,6 @@ class ProxmoxAPITokenToUserRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "BELONGS_TO"
     properties: ProxmoxAPITokenToUserRelProperties = ProxmoxAPITokenToUserRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenSchema(CartographyNodeSchema):

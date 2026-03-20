@@ -1,7 +1,5 @@
 """
 Sync Proxmox firewall configurations.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -10,6 +8,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.firewall import ProxmoxFirewallIPSetSchema
 from cartography.models.proxmox.firewall import ProxmoxFirewallRuleSchema
@@ -19,11 +18,6 @@ from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
 
 
 @timeit
@@ -36,7 +30,6 @@ def get_cluster_firewall_rules(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.firewall.rules.get()
-
 
 @timeit
 def get_node_firewall_rules(
@@ -52,7 +45,6 @@ def get_node_firewall_rules(
     """
     return proxmox_client.nodes(node_name).firewall.rules.get()
 
-
 @timeit
 def get_cluster_ipsets(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -63,7 +55,6 @@ def get_cluster_ipsets(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.firewall.ipset.get()
-
 
 @timeit
 def get_ipset_cidrs(proxmox_client: Any, ipset_name: str) -> list[dict[str, Any]]:
@@ -76,11 +67,6 @@ def get_ipset_cidrs(proxmox_client: Any, ipset_name: str) -> list[dict[str, Any]
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.firewall.ipset(ipset_name).get()
-
-
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
 
 
 def _extract_ipset_references(value: str | None) -> list[str]:
@@ -103,7 +89,6 @@ def _extract_ipset_references(value: str | None) -> list[str]:
             ipsets.append(part[1:])  # Remove + prefix
     return ipsets
 
-
 def transform_firewall_rule_data(
     rules: list[dict[str, Any]],
     cluster_id: str,
@@ -122,9 +107,6 @@ def transform_firewall_rule_data(
     transformed_rules = []
 
     for rule in rules:
-        # NEW UID PATTERN: Hierarchical structure based on scope
-        # OLD: f"{cluster_id}:{scope}:{scope_id}:{pos}" or f"{cluster_id}:{scope}:{pos}"
-        # NEW: path-like structure based on scope type
         pos = rule.get("pos", 0)
         if scope == "cluster":
             rule_id = f"{cluster_id}/firewall/rule/{pos}"
@@ -177,7 +159,6 @@ def transform_firewall_rule_data(
 
     return transformed_rules
 
-
 def transform_ipset_data(
     ipsets: list[dict[str, Any]],
     ipset_cidrs: dict[str, list[dict[str, Any]]],
@@ -198,12 +179,7 @@ def transform_ipset_data(
     transformed_ipsets = []
 
     for ipset in ipsets:
-        # Required field
         name = ipset["name"]
-
-        # NEW UID PATTERN: Hierarchical structure based on scope
-        # OLD: f"{cluster_id}:{scope}:{scope_id}:{name}" or f"{cluster_id}:{scope}:{name}"
-        # NEW: path-like structure based on scope type
         if scope == "cluster":
             ipset_id = f"{cluster_id}/firewall/ipset/{name}"
         elif scope == "node":
@@ -235,11 +211,6 @@ def transform_ipset_data(
     return transformed_ipsets
 
 
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
-
-
 def load_firewall_rules(
     neo4j_session: neo4j.Session,
     rules: list[dict[str, Any]],
@@ -264,7 +235,6 @@ def load_firewall_rules(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 def load_ipsets(
     neo4j_session: neo4j.Session,
@@ -291,7 +261,6 @@ def load_ipsets(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_firewall_scope_relationships(
     neo4j_session: neo4j.Session,
     rules: list[dict[str, Any]],
@@ -308,10 +277,6 @@ def load_firewall_scope_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToNodeMatchLink
-    from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToVMMatchLink
-
     # Separate rules by scope
     node_rules = [r for r in rules if r["scope"] == "node" and r["scope_id"]]
     vm_rules = [r for r in rules if r["scope"] == "vm" and r["scope_id"]]
@@ -347,7 +312,6 @@ def load_firewall_scope_relationships(
             _sub_resource_id=cluster_id,
         )
 
-
 def load_firewall_ipset_relationships(
     neo4j_session: neo4j.Session,
     rules: list[dict[str, Any]],
@@ -369,9 +333,6 @@ def load_firewall_ipset_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToIPSetMatchLink
-
     # Find rules that reference IPSets and expand to individual relationships
     ipset_relationships = []
     for rule in rules:
@@ -403,11 +364,6 @@ def load_firewall_ipset_relationships(
     )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -418,8 +374,6 @@ def sync(
 ) -> None:
     """
     Sync firewall configuration.
-
-    Follows Cartography's Get → Transform → Load pattern.
 
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
@@ -432,14 +386,12 @@ def sync(
     all_rules = []
     all_ipsets = []
 
-    # GET - Cluster-level firewall rules
     cluster_rules = get_cluster_firewall_rules(proxmox_client)
     transformed_cluster_rules = transform_firewall_rule_data(
         cluster_rules, cluster_id, "cluster"
     )
     all_rules.extend(transformed_cluster_rules)
 
-    # GET - Cluster-level IP sets
     cluster_ipsets = get_cluster_ipsets(proxmox_client)
     ipset_cidrs = {}
     for ipset in cluster_ipsets:
@@ -452,7 +404,6 @@ def sync(
     )
     all_ipsets.extend(transformed_ipsets)
 
-    # GET - Node-level firewall rules
     nodes = proxmox_client.nodes.get()
     for node in nodes:
         node_name = node["node"]
@@ -462,11 +413,9 @@ def sync(
         )
         all_rules.extend(transformed_node_rules)
 
-    # GET - VM-level firewall rules (sample only to avoid excessive API calls)
     # In production, you might want to limit this or make it configurable
     logger.debug("Skipping VM-level firewall rules to avoid excessive API calls")
 
-    # LOAD - ingest to Neo4j
     load_firewall_rules(neo4j_session, all_rules, cluster_id, update_tag)
     load_ipsets(neo4j_session, all_ipsets, cluster_id, update_tag)
 
@@ -482,7 +431,6 @@ def sync(
     logger.info(f"Synced {len(all_rules)} firewall rules and {len(all_ipsets)} IP sets")
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

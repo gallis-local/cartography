@@ -1,7 +1,5 @@
 """
 Sync Proxmox High Availability (HA) resources.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -10,6 +8,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.ha import ProxmoxHAGroupSchema
 from cartography.models.proxmox.ha import ProxmoxHAResourceSchema
@@ -17,11 +16,6 @@ from cartography.models.proxmox.ha import ProxmoxHAResourceToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
 
 
 @timeit
@@ -46,7 +40,6 @@ def get_ha_groups(proxmox_client: Any) -> list[dict[str, Any]]:
             return []
         raise
 
-
 @timeit
 def get_ha_resources(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -59,21 +52,12 @@ def get_ha_resources(proxmox_client: Any) -> list[dict[str, Any]]:
     return proxmox_client.cluster.ha.resources.get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# ============================================================================
-
-
 def transform_ha_group_data(
     groups: list[dict[str, Any]],
     cluster_id: str,
 ) -> list[dict[str, Any]]:
     """
     Transform HA group data into standard format.
-
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
 
     :param groups: Raw HA group data from API
     :param cluster_id: Parent cluster ID
@@ -82,12 +66,7 @@ def transform_ha_group_data(
     transformed_groups = []
 
     for group in groups:
-        # Required field - use direct access
         group_name = group["group"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{group_name}"
-        # NEW: f"{cluster_id}/ha/group/{group_name}"
         transformed_groups.append(
             {
                 "id": f"{cluster_id}/ha/group/{group_name}",
@@ -101,7 +80,6 @@ def transform_ha_group_data(
         )
 
     return transformed_groups
-
 
 def transform_ha_resource_data(
     resources: list[dict[str, Any]],
@@ -119,10 +97,6 @@ def transform_ha_resource_data(
     for resource in resources:
         # Required field - service ID (format: vm:100, ct:200)
         sid = resource["sid"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{sid}"
-        # NEW: f"{cluster_id}/ha/resource/{sid}"
         transformed_resources.append(
             {
                 "id": f"{cluster_id}/ha/resource/{sid}",
@@ -137,11 +111,6 @@ def transform_ha_resource_data(
         )
 
     return transformed_resources
-
-
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# ============================================================================
 
 
 def load_ha_groups(
@@ -166,7 +135,6 @@ def load_ha_groups(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_ha_resources(
     neo4j_session: neo4j.Session,
     resources: list[dict[str, Any]],
@@ -189,7 +157,6 @@ def load_ha_resources(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_ha_resource_vm_relationships(
     neo4j_session: neo4j.Session,
     resources: list[dict[str, Any]],
@@ -206,9 +173,6 @@ def load_ha_resource_vm_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.ha import ProxmoxHAResourceToVMMatchLink
-
     # Extract VM IDs from service IDs (format: vm:100, ct:200)
     vm_mappings = []
     for resource in resources:
@@ -238,11 +202,6 @@ def load_ha_resource_vm_relationships(
     )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -254,8 +213,6 @@ def sync(
     """
     Sync HA groups and resources.
 
-    Follows Cartography's Get → Transform → Load pattern.
-
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmox API client
     :param cluster_id: Parent cluster ID
@@ -264,15 +221,12 @@ def sync(
     """
     logger.info("Syncing Proxmox HA groups and resources")
 
-    # GET - retrieve data from API
     groups = get_ha_groups(proxmox_client)
     resources = get_ha_resources(proxmox_client)
 
-    # TRANSFORM - manipulate data for ingestion
     transformed_groups = transform_ha_group_data(groups, cluster_id)
     transformed_resources = transform_ha_resource_data(resources, cluster_id)
 
-    # LOAD - ingest to Neo4j
     if transformed_groups:
         load_ha_groups(neo4j_session, transformed_groups, cluster_id, update_tag)
 
@@ -287,7 +241,6 @@ def sync(
     )
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

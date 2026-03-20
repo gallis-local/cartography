@@ -1,7 +1,5 @@
 """
 Sync Proxmox clusters and nodes.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -21,12 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# Per docs: "should be 'dumb'... raise an exception if not able to complete"
-# ============================================================================
-
-
 @timeit
 def get_cluster_status(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -38,7 +30,6 @@ def get_cluster_status(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
     return proxmox_client.cluster.status.get()
 
-
 @timeit
 def get_nodes(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -49,7 +40,6 @@ def get_nodes(proxmox_client: Any) -> List[Dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.nodes.get()
-
 
 @timeit
 def get_node_status(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
@@ -63,7 +53,6 @@ def get_node_status(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
     """
     return proxmox_client.nodes(node_name).status.get()
 
-
 @timeit
 def get_node_network(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
     """
@@ -76,7 +65,6 @@ def get_node_network(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]
     """
     return proxmox_client.nodes(node_name).network.get()
 
-
 @timeit
 def get_cluster_options(proxmox_client: Any) -> Dict[str, Any]:
     """
@@ -88,7 +76,6 @@ def get_cluster_options(proxmox_client: Any) -> Dict[str, Any]:
     """
     return proxmox_client.cluster.options.get()
 
-
 @timeit
 def get_cluster_resources(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -99,7 +86,6 @@ def get_cluster_resources(proxmox_client: Any) -> List[Dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.resources.get()
-
 
 @timeit
 def get_cluster_config(proxmox_client: Any) -> Any:
@@ -114,12 +100,6 @@ def get_cluster_config(proxmox_client: Any) -> Any:
     return proxmox_client.cluster.config.get()
 
 
-# ============================================================================
-# TRANSFORM functions - manipulate data for graph ingestion
-# Per docs: Use data['field'] for required, data.get('field') for optional
-# ============================================================================
-
-
 def transform_cluster_data(
     cluster_status: List[Dict[str, Any]],
     proxmox_host: str,
@@ -127,17 +107,12 @@ def transform_cluster_data(
     """
     Transform cluster status data into standard format.
 
-    Per Cartography guidelines:
-    - Use data['field'] for required fields (will raise KeyError if missing)
-    - Use data.get('field') for optional fields
-
     :param cluster_status: Raw cluster status from API
     :param proxmox_host: Proxmox hostname for synthetic ID
     :return: Transformed cluster data
     """
     cluster_info = None
     for item in cluster_status:
-        # Required field - use direct access
         if item["type"] == "cluster":
             cluster_info = item
             break
@@ -158,8 +133,6 @@ def transform_cluster_data(
             "nodes_total": nodes_total,
             "cluster_id": None,
         }
-
-    # Per docs: "ID should uniquely identify the node... use API-provided fields for IDs"
     nodes_total = cluster_info.get(
         "nodes", len([i for i in cluster_status if i["type"] == "node"])
     )
@@ -168,9 +141,9 @@ def transform_cluster_data(
     )
 
     return {
-        "id": cluster_info["name"],  # Required field - direct access
-        "name": cluster_info["name"],  # Required
-        "corosync_version": cluster_info.get("version", "unknown"),  # Optional with default
+        "id": cluster_info["name"],
+        "name": cluster_info["name"],
+        "corosync_version": cluster_info.get("version", "unknown"),
         "quorate": bool(
             cluster_info.get("quorate", True)
         ),  # Optional with default, convert to bool
@@ -178,7 +151,6 @@ def transform_cluster_data(
         "nodes_total": nodes_total,
         "cluster_id": cluster_info.get("id"),  # Internal cluster ID from API
     }
-
 
 def transform_cluster_options(cluster_options: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -221,7 +193,6 @@ def transform_cluster_options(cluster_options: Dict[str, Any]) -> Dict[str, Any]
         ),
     }
 
-
 def transform_cluster_config(cluster_config: Any) -> Dict[str, Any]:
     """
     Transform cluster configuration (corosync) into metadata fields.
@@ -256,7 +227,6 @@ def transform_cluster_config(cluster_config: Any) -> Dict[str, Any]:
         "totem_version": totem.get("version"),
     }
 
-
 def transform_node_data(
     nodes: List[Dict[str, Any]], cluster_id: str
 ) -> List[Dict[str, Any]]:
@@ -270,26 +240,22 @@ def transform_node_data(
     transformed_nodes = []
 
     for node in nodes:
-        # Use direct access for required fields, .get() for optional
-        # NEW UID PATTERN: Consistent path-like structure with cluster scoping
-        # OLD: f"{cluster_id}:{node['node']}"
-        # NEW: f"{cluster_id}/node/{node['node']}"
         transformed_nodes.append(
             {
                 "id": f"{cluster_id}/node/{node['node']}",  # Node UID: cluster-scoped, path-like
-                "name": node["node"],  # Required
-                "cluster_id": cluster_id,  # Required
+                "name": node["node"],
+                "cluster_id": cluster_id,
                 "hostname": node["node"],  # Use node name as hostname
-                "ip": node.get("ip"),  # Optional
-                "status": node.get("status", "unknown"),  # Optional with default
-                "uptime": node.get("uptime", 0),  # Optional with default
-                "cpu_count": node.get("maxcpu", 0),  # Optional
-                "cpu_usage": node.get("cpu", 0.0),  # Optional
-                "memory_total": node.get("maxmem", 0),  # Optional
-                "memory_used": node.get("mem", 0),  # Optional
-                "disk_total": node.get("maxdisk", 0),  # Optional
-                "disk_used": node.get("disk", 0),  # Optional
-                "level": node.get("level"),  # Optional
+                "ip": node.get("ip"),
+                "status": node.get("status", "unknown"),
+                "uptime": node.get("uptime", 0),
+                "cpu_count": node.get("maxcpu", 0),
+                "cpu_usage": node.get("cpu", 0.0),
+                "memory_total": node.get("maxmem", 0),
+                "memory_used": node.get("mem", 0),
+                "disk_total": node.get("maxdisk", 0),
+                "disk_used": node.get("disk", 0),
+                "level": node.get("level"),
                 # Additional system info
                 "kversion": node.get("kversion"),  # Kernel version
                 # Convert loadavg array to comma-separated string
@@ -316,7 +282,6 @@ def transform_node_data(
 
     return transformed_nodes
 
-
 def transform_node_network_data(
     network_interfaces: List[Dict[str, Any]],
     node_name: str,
@@ -342,11 +307,7 @@ def transform_node_network_data(
     full_node_id = f"{cluster_id}/node/{node_name}"
 
     for iface in network_interfaces:
-        # Required field
         iface_name = iface["iface"]
-        # NEW UID PATTERN: Hierarchical structure showing interface belongs to node
-        # OLD: f"{cluster_id}:{node_name}:{iface_name}"
-        # NEW: f"{cluster_id}/node/{node_name}/net/{iface_name}"
         iface_id = f"{cluster_id}/node/{node_name}/net/{iface_name}"
 
         if iface_id not in merged:
@@ -387,12 +348,6 @@ def transform_node_network_data(
     return list(merged.values())
 
 
-# ============================================================================
-# LOAD functions - ingest data to Neo4j using modern data model
-# Per AGENTS.md: Use load() function with data model schemas
-# ============================================================================
-
-
 def load_cluster(
     neo4j_session: neo4j.Session, cluster_data: Dict[str, Any], update_tag: int
 ) -> None:
@@ -409,7 +364,6 @@ def load_cluster(
         [cluster_data],
         lastupdated=update_tag,
     )
-
 
 def load_nodes(
     neo4j_session: neo4j.Session,
@@ -432,7 +386,6 @@ def load_nodes(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 def load_node_networks(
     neo4j_session: neo4j.Session,
@@ -462,12 +415,6 @@ def load_node_networks(
     )
 
 
-# ============================================================================
-# SYNC function - orchestrates Get → Transform → Load
-# Per docs: "sync should call get, then load, and finally cleanup"
-# ============================================================================
-
-
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -478,8 +425,6 @@ def sync(
 ) -> Dict[str, Any]:
     """
     Sync cluster and node data.
-
-    Follows Cartography's Get → Transform → Load pattern.
     Cleanup is handled in separate cleanup job.
 
     :param neo4j_session: Neo4j session
@@ -491,13 +436,11 @@ def sync(
     """
     logger.info("Syncing Proxmox cluster and nodes")
 
-    # GET - retrieve data from API
     cluster_status = get_cluster_status(proxmox_client)
     nodes = get_nodes(proxmox_client)
     cluster_options = get_cluster_options(proxmox_client)
     cluster_config = get_cluster_config(proxmox_client)
 
-    # TRANSFORM - manipulate data for ingestion
     cluster_data = transform_cluster_data(cluster_status, proxmox_host)
 
     # Merge additional cluster metadata
@@ -506,7 +449,6 @@ def sync(
 
     transformed_nodes = transform_node_data(nodes, cluster_data["id"])
 
-    # LOAD - ingest to Neo4j
     load_cluster(neo4j_session, cluster_data, update_tag)
     load_nodes(neo4j_session, transformed_nodes, cluster_data["id"], update_tag)
 
@@ -533,7 +475,6 @@ def sync(
             f"Synced {len(all_node_networks)} network interfaces across {len(nodes)} nodes"
         )
 
-    # CLEANUP - remove stale data
     # Add CLUSTER_ID to parameters for cleanup jobs
     cleanup_params = {**common_job_parameters, "CLUSTER_ID": cluster_data["id"]}
     cleanup(neo4j_session, cleanup_params)
@@ -543,7 +484,6 @@ def sync(
     )
 
     return {"cluster_id": cluster_data["id"]}
-
 
 def cleanup(
     neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]

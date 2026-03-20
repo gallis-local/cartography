@@ -17,10 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxVM Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxVMNodeProperties(CartographyNodeProperties):
@@ -36,95 +33,77 @@ class ProxmoxVMNodeProperties(CartographyNodeProperties):
     name: PropertyRef = PropertyRef("name", extra_index=True)
     node: PropertyRef = PropertyRef("node")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    type: PropertyRef = PropertyRef("type", extra_index=True)  # 'qemu' or 'lxc'
-    status: PropertyRef = PropertyRef("status", extra_index=True)  # running/stopped
+    type: PropertyRef = PropertyRef("type", extra_index=True)
+    status: PropertyRef = PropertyRef("status", extra_index=True)
     template: PropertyRef = PropertyRef("template")
     cpu_cores: PropertyRef = PropertyRef("cpu_cores")
     cpu_sockets: PropertyRef = PropertyRef("cpu_sockets")
     # CPU configuration from VM config (cores/sockets are from detailed config)
-    cores: PropertyRef = PropertyRef("cores")  # CPU cores from config
-    sockets: PropertyRef = PropertyRef("sockets")  # CPU sockets from config
-    vcpus: PropertyRef = PropertyRef("vcpus")  # Total vCPUs (cores * sockets)
+    cores: PropertyRef = PropertyRef("cores")
+    sockets: PropertyRef = PropertyRef("sockets")
+    vcpus: PropertyRef = PropertyRef("vcpus")
     memory: PropertyRef = PropertyRef("memory")
     disk_size: PropertyRef = PropertyRef("disk_size")
     uptime: PropertyRef = PropertyRef("uptime")
     tags: PropertyRef = PropertyRef("tags")
     # Additional VM configuration
-    ostype: PropertyRef = PropertyRef("ostype")  # OS type (l24, l26, win10, etc.)
-    onboot: PropertyRef = PropertyRef("onboot")  # Auto-start on boot
-    protection: PropertyRef = PropertyRef("protection")  # Protection from deletion
-    description: PropertyRef = PropertyRef("description")  # VM description
-    vmgenid: PropertyRef = PropertyRef("vmgenid")  # VM generation ID
-    machine: PropertyRef = PropertyRef("machine")  # QEMU machine type
-    bios: PropertyRef = PropertyRef("bios")  # BIOS type (seabios/ovmf)
-    boot: PropertyRef = PropertyRef("boot")  # Boot order
-    scsihw: PropertyRef = PropertyRef("scsihw")  # SCSI controller type
-    cpu: PropertyRef = PropertyRef("cpu")  # CPU model and flags
-    cpulimit: PropertyRef = PropertyRef("cpulimit")  # CPU usage limit
-    cpuunits: PropertyRef = PropertyRef("cpuunits")  # CPU weight/priority
-    hotplug: PropertyRef = PropertyRef("hotplug")  # Hotplug features
-    lock: PropertyRef = PropertyRef("lock")  # Lock status
+    ostype: PropertyRef = PropertyRef("ostype")
+    onboot: PropertyRef = PropertyRef("onboot")
+    protection: PropertyRef = PropertyRef("protection")
+    description: PropertyRef = PropertyRef("description")
+    vmgenid: PropertyRef = PropertyRef("vmgenid")
+    machine: PropertyRef = PropertyRef("machine")
+    bios: PropertyRef = PropertyRef("bios")
+    boot: PropertyRef = PropertyRef("boot")
+    scsihw: PropertyRef = PropertyRef("scsihw")
+    cpu: PropertyRef = PropertyRef("cpu")
+    cpulimit: PropertyRef = PropertyRef("cpulimit")
+    cpuunits: PropertyRef = PropertyRef("cpuunits")
+    hotplug: PropertyRef = PropertyRef("hotplug")
+    lock: PropertyRef = PropertyRef("lock")
     # Memory configuration
-    balloon: PropertyRef = PropertyRef("balloon")  # Memory ballooning value
-    shares: PropertyRef = PropertyRef("shares")  # Memory shares for ballooning
+    balloon: PropertyRef = PropertyRef("balloon")
+    shares: PropertyRef = PropertyRef("shares")
     # Advanced CPU/Hardware configuration
-    numa: PropertyRef = PropertyRef("numa")  # NUMA enabled
-    kvm: PropertyRef = PropertyRef("kvm")  # KVM hardware virtualization
-    localtime: PropertyRef = PropertyRef("localtime")  # Use local time for RTC
-    keyboard: PropertyRef = PropertyRef("keyboard")  # Keyboard layout
-    vga: PropertyRef = PropertyRef("vga")  # VGA configuration
-    agent_config: PropertyRef = PropertyRef("agent_config")  # Guest agent config string
-    args: PropertyRef = PropertyRef("args")  # Extra QEMU arguments
+    numa: PropertyRef = PropertyRef("numa")
+    kvm: PropertyRef = PropertyRef("kvm")
+    localtime: PropertyRef = PropertyRef("localtime")
+    keyboard: PropertyRef = PropertyRef("keyboard")
+    vga: PropertyRef = PropertyRef("vga")
+    agent_config: PropertyRef = PropertyRef("agent_config")
+    args: PropertyRef = PropertyRef("args")
     # Memory and performance features
-    hugepages: PropertyRef = PropertyRef("hugepages")  # Hugepages size
-    keephugepages: PropertyRef = PropertyRef(
-        "keephugepages"
-    )  # Keep hugepages after shutdown
-    freeze: PropertyRef = PropertyRef("freeze")  # Freeze CPU at startup
+    hugepages: PropertyRef = PropertyRef("hugepages")
+    keephugepages: PropertyRef = PropertyRef("keephugepages")
+    freeze: PropertyRef = PropertyRef("freeze")
     # Hardware devices
-    watchdog: PropertyRef = PropertyRef("watchdog")  # Virtual watchdog device
-    rng0: PropertyRef = PropertyRef("rng0")  # Random number generator
-    audio0: PropertyRef = PropertyRef("audio0")  # Audio device
-    efidisk0: PropertyRef = PropertyRef("efidisk0")  # EFI disk configuration
-    tpmstate0: PropertyRef = PropertyRef("tpmstate0")  # TPM state disk
+    watchdog: PropertyRef = PropertyRef("watchdog")
+    rng0: PropertyRef = PropertyRef("rng0")
+    audio0: PropertyRef = PropertyRef("audio0")
+    efidisk0: PropertyRef = PropertyRef("efidisk0")
+    tpmstate0: PropertyRef = PropertyRef("tpmstate0")
     # Device counts (for arrays like hostpci, usb, serial, parallel)
-    hostpci_count: PropertyRef = PropertyRef(
-        "hostpci_count"
-    )  # Number of PCI passthrough devices
-    usb_count: PropertyRef = PropertyRef("usb_count")  # Number of USB devices
-    serial_count: PropertyRef = PropertyRef("serial_count")  # Number of serial ports
-    parallel_count: PropertyRef = PropertyRef(
-        "parallel_count"
-    )  # Number of parallel ports
+    hostpci_count: PropertyRef = PropertyRef("hostpci_count")
+    usb_count: PropertyRef = PropertyRef("usb_count")
+    serial_count: PropertyRef = PropertyRef("serial_count")
+    parallel_count: PropertyRef = PropertyRef("parallel_count")
     # Guest agent data (optional, requires QEMU guest agent)
-    guest_hostname: PropertyRef = PropertyRef("guest_hostname")  # Actual OS hostname
-    guest_os_name: PropertyRef = PropertyRef("guest_os_name")  # OS name
-    guest_os_version: PropertyRef = PropertyRef("guest_os_version")  # OS version
-    guest_kernel_release: PropertyRef = PropertyRef(
-        "guest_kernel_release"
-    )  # Kernel release
-    guest_kernel_version: PropertyRef = PropertyRef(
-        "guest_kernel_version"
-    )  # Kernel version
-    guest_machine: PropertyRef = PropertyRef("guest_machine")  # Hardware arch
-    agent_enabled: PropertyRef = PropertyRef("agent_enabled")  # Guest agent status
-
+    guest_hostname: PropertyRef = PropertyRef("guest_hostname")
+    guest_os_name: PropertyRef = PropertyRef("guest_os_name")
+    guest_os_version: PropertyRef = PropertyRef("guest_os_version")
+    guest_kernel_release: PropertyRef = PropertyRef("guest_kernel_release")
+    guest_kernel_version: PropertyRef = PropertyRef("guest_kernel_version")
+    guest_machine: PropertyRef = PropertyRef("guest_machine")
+    agent_enabled: PropertyRef = PropertyRef("agent_enabled")
 
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxVM to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRel(CartographyRelSchema):
     """
     Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxVM)
-
-    Per AGENTS.md: sub_resource_relationship should point to tenant-like object.
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -137,15 +116,9 @@ class ProxmoxVMToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxVMToClusterRelProperties = ProxmoxVMToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxVMToNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNode to ProxmoxVM.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxVMToNodeRel(CartographyRelSchema):
@@ -165,7 +138,6 @@ class ProxmoxVMToNodeRel(CartographyRelSchema):
     rel_label: str = "HOSTS_VM"
     properties: ProxmoxVMToNodeRelProperties = ProxmoxVMToNodeRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxVMSchema(CartographyNodeSchema):
     """
@@ -184,11 +156,7 @@ class ProxmoxVMSchema(CartographyNodeSchema):
         ]
     )
 
-
-# ============================================================================
 # ProxmoxDisk Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxDiskNodeProperties(CartographyNodeProperties):
@@ -205,49 +173,40 @@ class ProxmoxDiskNodeProperties(CartographyNodeProperties):
     backup: PropertyRef = PropertyRef("backup")
     cache: PropertyRef = PropertyRef("cache")
     # Additional disk configuration
-    format: PropertyRef = PropertyRef("format")  # Disk format (qcow2, raw, vmdk)
-    iothread: PropertyRef = PropertyRef("iothread")  # I/O thread enabled
-    discard: PropertyRef = PropertyRef("discard")  # Discard/trim support
-    ssd: PropertyRef = PropertyRef("ssd")  # SSD emulation flag
-    replicate: PropertyRef = PropertyRef("replicate")  # Replication enabled
-    serial: PropertyRef = PropertyRef("serial")  # Disk serial number
-    wwn: PropertyRef = PropertyRef("wwn")  # World Wide Name
-    snapshot: PropertyRef = PropertyRef("snapshot")  # Snapshot mode
+    format: PropertyRef = PropertyRef("format")
+    iothread: PropertyRef = PropertyRef("iothread")
+    discard: PropertyRef = PropertyRef("discard")
+    ssd: PropertyRef = PropertyRef("ssd")
+    replicate: PropertyRef = PropertyRef("replicate")
+    serial: PropertyRef = PropertyRef("serial")
+    wwn: PropertyRef = PropertyRef("wwn")
+    snapshot: PropertyRef = PropertyRef("snapshot")
     # Performance limits
-    iops: PropertyRef = PropertyRef("iops")  # IOPS limit
-    iops_rd: PropertyRef = PropertyRef("iops_rd")  # Read IOPS limit
-    iops_wr: PropertyRef = PropertyRef("iops_wr")  # Write IOPS limit
-    mbps: PropertyRef = PropertyRef("mbps")  # Bandwidth limit (MB/s)
-    mbps_rd: PropertyRef = PropertyRef("mbps_rd")  # Read bandwidth limit
-    mbps_wr: PropertyRef = PropertyRef("mbps_wr")  # Write bandwidth limit
+    iops: PropertyRef = PropertyRef("iops")
+    iops_rd: PropertyRef = PropertyRef("iops_rd")
+    iops_wr: PropertyRef = PropertyRef("iops_wr")
+    mbps: PropertyRef = PropertyRef("mbps")
+    mbps_rd: PropertyRef = PropertyRef("mbps_rd")
+    mbps_wr: PropertyRef = PropertyRef("mbps_wr")
     # Burst limits
-    mbps_max: PropertyRef = PropertyRef("mbps_max")  # Burst bandwidth limit
-    mbps_rd_max: PropertyRef = PropertyRef("mbps_rd_max")  # Burst read bandwidth
-    mbps_wr_max: PropertyRef = PropertyRef("mbps_wr_max")  # Burst write bandwidth
-    iops_max: PropertyRef = PropertyRef("iops_max")  # Burst IOPS limit
-    iops_rd_max: PropertyRef = PropertyRef("iops_rd_max")  # Burst read IOPS
-    iops_wr_max: PropertyRef = PropertyRef("iops_wr_max")  # Burst write IOPS
+    mbps_max: PropertyRef = PropertyRef("mbps_max")
+    mbps_rd_max: PropertyRef = PropertyRef("mbps_rd_max")
+    mbps_wr_max: PropertyRef = PropertyRef("mbps_wr_max")
+    iops_max: PropertyRef = PropertyRef("iops_max")
+    iops_rd_max: PropertyRef = PropertyRef("iops_rd_max")
+    iops_wr_max: PropertyRef = PropertyRef("iops_wr_max")
     # Media and access properties
-    media: PropertyRef = PropertyRef("media")  # Media type (cdrom/disk)
-    ro: PropertyRef = PropertyRef("ro")  # Read-only flag
-    detect_zeroes: PropertyRef = PropertyRef("detect_zeroes")  # Detect zero writes
-
+    media: PropertyRef = PropertyRef("media")
+    ro: PropertyRef = PropertyRef("ro")
+    detect_zeroes: PropertyRef = PropertyRef("detect_zeroes")
 
 @dataclass(frozen=True)
 class ProxmoxDiskToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxDisk to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxDisk)
 class ProxmoxDiskToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxDisk)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -258,15 +217,9 @@ class ProxmoxDiskToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxDiskToClusterRelProperties = ProxmoxDiskToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxDiskToVMRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxVM to ProxmoxDisk.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxDiskToVMRel(CartographyRelSchema):
@@ -287,15 +240,9 @@ class ProxmoxDiskToVMRel(CartographyRelSchema):
     rel_label: str = "HAS_DISK"
     properties: ProxmoxDiskToVMRelProperties = ProxmoxDiskToVMRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxDiskToStorageRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxDisk to ProxmoxStorage.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxDiskToStorageRel(CartographyRelSchema):
@@ -315,7 +262,6 @@ class ProxmoxDiskToStorageRel(CartographyRelSchema):
     rel_label: str = "STORED_ON"
     properties: ProxmoxDiskToStorageRelProperties = ProxmoxDiskToStorageRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxDiskSchema(CartographyNodeSchema):
     """
@@ -334,11 +280,7 @@ class ProxmoxDiskSchema(CartographyNodeSchema):
         ]
     )
 
-
-# ============================================================================
 # ProxmoxNetworkInterface Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceNodeProperties(CartographyNodeProperties):
@@ -350,53 +292,42 @@ class ProxmoxNetworkInterfaceNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     net_id: PropertyRef = PropertyRef("net_id")
     vmid: PropertyRef = PropertyRef("vmid")
-    node_name: PropertyRef = PropertyRef("node_name")  # Node hosting the VM
+    node_name: PropertyRef = PropertyRef("node_name")
     bridge: PropertyRef = PropertyRef(
         "bridge", extra_index=True
-    )  # Bridge name for topology
+    )
     mac_address: PropertyRef = PropertyRef("mac_address", extra_index=True)
     model: PropertyRef = PropertyRef("model")
     firewall: PropertyRef = PropertyRef(
         "firewall", extra_index=True
-    )  # Firewall enabled
+    )
     vlan_tag: PropertyRef = PropertyRef(
         "vlan_tag", extra_index=True
-    )  # VLAN for segmentation
+    )
     # Additional networking properties
-    ip: PropertyRef = PropertyRef("ip", extra_index=True)  # IPv4 address
-    ip6: PropertyRef = PropertyRef("ip6")  # IPv6 address
-    gw: PropertyRef = PropertyRef("gw")  # Gateway
-    gw6: PropertyRef = PropertyRef("gw6")  # IPv6 gateway
-    mtu: PropertyRef = PropertyRef("mtu")  # MTU size
-    rate: PropertyRef = PropertyRef("rate")  # Bandwidth rate limit
-    link_up: PropertyRef = PropertyRef("link_up")  # Link status
+    ip: PropertyRef = PropertyRef("ip", extra_index=True)
+    ip6: PropertyRef = PropertyRef("ip6")
+    gw: PropertyRef = PropertyRef("gw")
+    gw6: PropertyRef = PropertyRef("gw6")
+    mtu: PropertyRef = PropertyRef("mtu")
+    rate: PropertyRef = PropertyRef("rate")
+    link_up: PropertyRef = PropertyRef("link_up")
     # Advanced network configuration
-    queues: PropertyRef = PropertyRef("queues")  # Multi-queue setting (VirtIO)
-    trunks: PropertyRef = PropertyRef("trunks")  # VLAN trunk configuration
-    tag: PropertyRef = PropertyRef("tag")  # Native VLAN tag for trunk
+    queues: PropertyRef = PropertyRef("queues")
+    trunks: PropertyRef = PropertyRef("trunks")
+    tag: PropertyRef = PropertyRef("tag")
     # Guest agent runtime data (actual IPs from running VM)
-    actual_ipv4: PropertyRef = PropertyRef("actual_ipv4")  # Actual IPv4 addresses (CSV)
-    actual_ipv6: PropertyRef = PropertyRef("actual_ipv6")  # Actual IPv6 addresses (CSV)
-    guest_interface_name: PropertyRef = PropertyRef(
-        "guest_interface_name"
-    )  # Interface name in guest OS
-
+    actual_ipv4: PropertyRef = PropertyRef("actual_ipv4")
+    actual_ipv6: PropertyRef = PropertyRef("actual_ipv6")
+    guest_interface_name: PropertyRef = PropertyRef("guest_interface_name")
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNetworkInterface to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
-
 @dataclass(frozen=True)
+# Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNetworkInterface)
 class ProxmoxNetworkInterfaceToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNetworkInterface)
-    """
-
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
@@ -409,7 +340,6 @@ class ProxmoxNetworkInterfaceToClusterRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToClusterRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVMRelProperties(CartographyRelProperties):
     """
@@ -419,9 +349,8 @@ class ProxmoxNetworkInterfaceToVMRelProperties(CartographyRelProperties):
     """
 
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    firewall_enabled: PropertyRef = PropertyRef("firewall")  # Interface firewall status
-    interface_slot: PropertyRef = PropertyRef("net_id")  # e.g., net0, net1
-
+    firewall_enabled: PropertyRef = PropertyRef("firewall")
+    interface_slot: PropertyRef = PropertyRef("net_id")
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
@@ -444,7 +373,6 @@ class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToVMRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToBridgeRelProperties(CartographyRelProperties):
     """
@@ -454,8 +382,7 @@ class ProxmoxNetworkInterfaceToBridgeRelProperties(CartographyRelProperties):
     """
 
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    vlan_tag: PropertyRef = PropertyRef("vlan_tag")  # VLAN tag if trunk/tagged
-
+    vlan_tag: PropertyRef = PropertyRef("vlan_tag")
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
@@ -479,7 +406,6 @@ class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToBridgeRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
     """
@@ -489,7 +415,6 @@ class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
     """
 
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
@@ -512,7 +437,6 @@ class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
     properties: ProxmoxNetworkInterfaceToVNetRelProperties = (
         ProxmoxNetworkInterfaceToVNetRelProperties()
     )
-
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceSchema(CartographyNodeSchema):

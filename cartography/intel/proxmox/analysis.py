@@ -13,7 +13,6 @@ from cartography.client.core.tx import run_write_query
 
 logger = logging.getLogger(__name__)
 
-
 def run_effective_permissions(
     neo4j_session: neo4j.Session,
     update_tag: int,
