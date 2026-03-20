@@ -19,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 @timeit
 def get_cluster_firewall_options(proxmox_client: Any) -> Dict[str, Any]:
     """
@@ -37,7 +32,6 @@ def get_cluster_firewall_options(proxmox_client: Any) -> Dict[str, Any]:
     except Exception as e:
         logger.debug(f"Could not fetch cluster firewall options: {e}")
         return {}
-
 
 @timeit
 def get_node_firewall_options(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
@@ -53,11 +47,6 @@ def get_node_firewall_options(proxmox_client: Any, node_name: str) -> Dict[str, 
     except Exception as e:
         logger.debug(f"Could not fetch firewall options for node {node_name}: {e}")
         return {}
-
-
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
 
 
 def transform_firewall_options_data(
@@ -77,10 +66,6 @@ def transform_firewall_options_data(
     """
     if not options:
         return None
-
-    # NEW UID PATTERN: Hierarchical structure based on scope
-    # OLD: f"{cluster_id}:{scope}:{scope_id}:firewall_options" or f"{cluster_id}:{scope}:firewall_options"
-    # NEW: path-like structure based on scope type
     if scope == "cluster":
         options_id = f"{cluster_id}/firewall/options"
     elif scope == "node":
@@ -109,11 +94,6 @@ def transform_firewall_options_data(
     }
 
 
-# ============================================================================
-# LOAD functions
-# ============================================================================
-
-
 def load_firewall_options(
     neo4j_session: neo4j.Session,
     options_list: List[Dict[str, Any]],
@@ -139,11 +119,7 @@ def load_firewall_options(
         CLUSTER_ID=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -166,7 +142,6 @@ def sync(
 
     all_options = []
 
-    # GET - Cluster-level firewall options
     cluster_options = get_cluster_firewall_options(proxmox_client)
     transformed_cluster_options = transform_firewall_options_data(
         cluster_options, cluster_id, "cluster"
@@ -174,7 +149,6 @@ def sync(
     if transformed_cluster_options:
         all_options.append(transformed_cluster_options)
 
-    # GET - Node-level firewall options
     nodes = proxmox_client.nodes.get()
     for node in nodes:
         node_name = node["node"]
@@ -185,13 +159,11 @@ def sync(
         if transformed_node_options:
             all_options.append(transformed_node_options)
 
-    # LOAD - ingest to Neo4j
     load_firewall_options(neo4j_session, all_options, cluster_id, update_tag)
 
     logger.info(f"Synced {len(all_options)} firewall options configurations")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

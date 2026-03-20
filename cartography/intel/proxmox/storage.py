@@ -1,7 +1,5 @@
 """
 Sync Proxmox storage resources.
-
-Follows Cartography's Get → Transform → Load pattern.
 """
 
 import logging
@@ -12,17 +10,13 @@ from typing import List
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.storage import ProxmoxStorageSchema
 from cartography.models.proxmox.storage import ProxmoxStorageToNodeMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# GET functions
-# ============================================================================
 
 
 @timeit
@@ -36,7 +30,6 @@ def get_storage(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
     return proxmox_client.storage.get()
 
-
 @timeit
 def get_storage_status(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
     """
@@ -48,11 +41,6 @@ def get_storage_status(proxmox_client: Any, node_name: str) -> List[Dict[str, An
     :raises: Exception if API call fails
     """
     return proxmox_client.nodes(node_name).storage.get()
-
-
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
 
 
 def transform_storage_data(
@@ -100,10 +88,6 @@ def transform_storage_data(
                     used = max(used, status.get("used", 0))
                     available = max(available, status.get("avail", 0))
                     break
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{storage_id}"
-        # NEW: f"{cluster_id}/storage/{storage_id}"
         transformed_storage.append(
             {
                 "id": f"{cluster_id}/storage/{storage_id}",
@@ -121,11 +105,6 @@ def transform_storage_data(
         )
 
     return transformed_storage
-
-
-# ============================================================================
-# LOAD functions - using modern data model
-# ============================================================================
 
 
 def load_storage(
@@ -150,7 +129,6 @@ def load_storage(
         CLUSTER_ID=cluster_id,
     )
 
-
 def load_storage_node_relationships(
     neo4j_session: neo4j.Session,
     storage_list: List[Dict[str, Any]],
@@ -168,9 +146,6 @@ def load_storage_node_relationships(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     """
-    from cartography.client.core.tx import load_matchlinks
-    from cartography.models.proxmox.storage import ProxmoxStorageToNodeMatchLink
-
     # Flatten storage -> nodes into individual relationships
     relationships = []
     for storage in storage_list:
@@ -197,11 +172,7 @@ def load_storage_node_relationships(
         _sub_resource_id=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -222,7 +193,6 @@ def sync(
     """
     logger.info("Syncing Proxmox storage")
 
-    # GET - retrieve data from API
     storage_list = get_storage(proxmox_client)
 
     # Get storage status from each node for size information
@@ -234,12 +204,10 @@ def sync(
         storage_status = get_storage_status(proxmox_client, node_name)
         storage_status_map[node_name] = storage_status
 
-    # TRANSFORM - manipulate data for ingestion
     transformed_storage = transform_storage_data(
         storage_list, storage_status_map, cluster_id
     )
 
-    # LOAD - ingest to Neo4j
     load_storage(neo4j_session, transformed_storage, cluster_id, update_tag)
     load_storage_node_relationships(
         neo4j_session, transformed_storage, cluster_id, update_tag
@@ -248,7 +216,6 @@ def sync(
     logger.info(f"Synced {len(transformed_storage)} storage resources")
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
-
 
 def cleanup(
     neo4j_session: neo4j.Session,

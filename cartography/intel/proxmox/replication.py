@@ -19,11 +19,6 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# GET functions - retrieve data from Proxmox API
-# ============================================================================
-
-
 @timeit
 def get_replication_jobs(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -37,11 +32,6 @@ def get_replication_jobs(proxmox_client: Any) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.debug(f"Could not fetch replication jobs: {e}")
         return []
-
-
-# ============================================================================
-# TRANSFORM functions
-# ============================================================================
 
 
 def transform_replication_job_data(
@@ -60,10 +50,6 @@ def transform_replication_job_data(
     for job in jobs:
         # Required fields
         job_id = job["id"]
-
-        # NEW UID PATTERN: Consistent path-like structure
-        # OLD: f"{cluster_id}:{job_id}"
-        # NEW: f"{cluster_id}/replication/{job_id}"
         replication_job_id = f"{cluster_id}/replication/{job_id}"
 
         target = job.get("target")
@@ -90,11 +76,6 @@ def transform_replication_job_data(
     return transformed_jobs
 
 
-# ============================================================================
-# LOAD functions
-# ============================================================================
-
-
 def load_replication_jobs(
     neo4j_session: neo4j.Session,
     jobs: List[Dict[str, Any]],
@@ -117,11 +98,7 @@ def load_replication_jobs(
         CLUSTER_ID=cluster_id,
     )
 
-
-# ============================================================================
 # SYNC function
-# ============================================================================
-
 
 @timeit
 def sync(
@@ -142,19 +119,15 @@ def sync(
     """
     logger.info("Syncing Proxmox replication jobs")
 
-    # GET - retrieve data from API
     raw_jobs = get_replication_jobs(proxmox_client)
 
-    # TRANSFORM - convert to standard format
     transformed_jobs = transform_replication_job_data(raw_jobs, cluster_id)
 
-    # LOAD - ingest to Neo4j
     load_replication_jobs(neo4j_session, transformed_jobs, cluster_id, update_tag)
 
     logger.info(f"Synced {len(transformed_jobs)} replication jobs")
 
     cleanup(neo4j_session, common_job_parameters)
-
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

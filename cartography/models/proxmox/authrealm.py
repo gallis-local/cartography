@@ -15,10 +15,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxAuthRealm Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmNodeProperties(CartographyNodeProperties):
@@ -32,20 +29,14 @@ class ProxmoxAuthRealmNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     realm: PropertyRef = PropertyRef("realm", extra_index=True)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    type: PropertyRef = PropertyRef("type")  # pam, ldap, ad, pve, openid
+    type: PropertyRef = PropertyRef("type")
     comment: PropertyRef = PropertyRef("comment")
-    default: PropertyRef = PropertyRef("default")  # Is default realm
-    tfa: PropertyRef = PropertyRef("tfa")  # Two-factor auth type (oath, yubico, etc.)
-
+    default: PropertyRef = PropertyRef("default")
+    tfa: PropertyRef = PropertyRef("tfa")
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxAuthRealm to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
@@ -64,7 +55,6 @@ class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxAuthRealmToClusterRelProperties = ProxmoxAuthRealmToClusterRelProperties()
-
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmSchema(CartographyNodeSchema):

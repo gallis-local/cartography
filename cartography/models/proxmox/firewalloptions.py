@@ -16,10 +16,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxFirewallOptions Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
@@ -32,28 +29,20 @@ class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     cluster_id: PropertyRef = PropertyRef("cluster_id")
-    scope: PropertyRef = PropertyRef("scope")  # cluster or node
-    scope_id: PropertyRef = PropertyRef("scope_id")  # node name for node-level
-    node_id: PropertyRef = PropertyRef("node_id")  # full node ID (cluster_id/node/name) for node-level
-    enable: PropertyRef = PropertyRef("enable")  # Enable/disable firewall
-    policy_in: PropertyRef = PropertyRef("policy_in")  # Default incoming policy (ACCEPT, REJECT, DROP)
-    policy_out: PropertyRef = PropertyRef("policy_out")  # Default outgoing policy
-    log_level_in: PropertyRef = PropertyRef("log_level_in")  # Log level for incoming traffic
-    log_level_out: PropertyRef = PropertyRef("log_level_out")  # Log level for outgoing traffic
-    nf_conntrack_max: PropertyRef = PropertyRef("nf_conntrack_max")  # Max connection tracking entries
-    nf_conntrack_tcp_timeout_established: PropertyRef = PropertyRef(
-        "nf_conntrack_tcp_timeout_established"
-    )  # TCP timeout
-
+    scope: PropertyRef = PropertyRef("scope")
+    scope_id: PropertyRef = PropertyRef("scope_id")
+    node_id: PropertyRef = PropertyRef("node_id")
+    enable: PropertyRef = PropertyRef("enable")
+    policy_in: PropertyRef = PropertyRef("policy_in")
+    policy_out: PropertyRef = PropertyRef("policy_out")
+    log_level_in: PropertyRef = PropertyRef("log_level_in")
+    log_level_out: PropertyRef = PropertyRef("log_level_out")
+    nf_conntrack_max: PropertyRef = PropertyRef("nf_conntrack_max")
+    nf_conntrack_tcp_timeout_established: PropertyRef = PropertyRef("nf_conntrack_tcp_timeout_established")
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxFirewallOptions to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
@@ -75,15 +64,9 @@ class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
         ProxmoxFirewallOptionsToClusterRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxFirewallOptions to ProxmoxNode.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
@@ -105,7 +88,6 @@ class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
     properties: ProxmoxFirewallOptionsToNodeRelProperties = (
         ProxmoxFirewallOptionsToNodeRelProperties()
     )
-
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):

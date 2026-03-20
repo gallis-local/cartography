@@ -17,10 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxCertificate Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
@@ -38,32 +35,26 @@ class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
     fingerprint: PropertyRef = PropertyRef("fingerprint", extra_index=True)
     issuer: PropertyRef = PropertyRef("issuer")
     subject: PropertyRef = PropertyRef("subject")
-    san: PropertyRef = PropertyRef("san")  # Array of Subject Alternative Names
-    notbefore: PropertyRef = PropertyRef("notbefore")  # Valid from timestamp
-    notafter: PropertyRef = PropertyRef("notafter", extra_index=True)  # Valid until
+    san: PropertyRef = PropertyRef("san")
+    notbefore: PropertyRef = PropertyRef("notbefore")
+    notafter: PropertyRef = PropertyRef("notafter", extra_index=True)
     public_key_type: PropertyRef = PropertyRef("public_key_type")
     public_key_bits: PropertyRef = PropertyRef("public_key_bits")
-    pem: PropertyRef = PropertyRef("pem")  # PEM-encoded certificate
+    pem: PropertyRef = PropertyRef("pem")
     # Computed expiration properties for easy querying
     expires_in_days: PropertyRef = PropertyRef(
         "expires_in_days", extra_index=True
-    )  # Days until expiration
+    )
     is_expired: PropertyRef = PropertyRef(
         "is_expired", extra_index=True
-    )  # True if already expired
+    )
     expires_soon: PropertyRef = PropertyRef(
         "expires_soon", extra_index=True
-    )  # True if expires within 30 days
-
+    )
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxCertificate to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRel(CartographyRelSchema):
@@ -85,15 +76,9 @@ class ProxmoxCertificateToClusterRel(CartographyRelSchema):
         ProxmoxCertificateToClusterRelProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxCertificateToNodeRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxNode to ProxmoxCertificate.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToNodeRel(CartographyRelSchema):
@@ -114,7 +99,6 @@ class ProxmoxCertificateToNodeRel(CartographyRelSchema):
     properties: ProxmoxCertificateToNodeRelProperties = (
         ProxmoxCertificateToNodeRelProperties()
     )
-
 
 @dataclass(frozen=True)
 class ProxmoxCertificateSchema(CartographyNodeSchema):

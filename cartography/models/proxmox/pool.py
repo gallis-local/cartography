@@ -17,10 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
-# ============================================================================
 # ProxmoxPool Node Schema
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxPoolNodeProperties(CartographyNodeProperties):
@@ -36,15 +33,9 @@ class ProxmoxPoolNodeProperties(CartographyNodeProperties):
     comment: PropertyRef = PropertyRef("comment")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
 
-
 @dataclass(frozen=True)
 class ProxmoxPoolToClusterRelProperties(CartographyRelProperties):
-    """
-    Properties for relationship from ProxmoxPool to ProxmoxCluster.
-    """
-
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxPoolToClusterRel(CartographyRelSchema):
@@ -64,7 +55,6 @@ class ProxmoxPoolToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxPoolToClusterRelProperties = ProxmoxPoolToClusterRelProperties()
 
-
 @dataclass(frozen=True)
 class ProxmoxPoolSchema(CartographyNodeSchema):
     """
@@ -77,11 +67,7 @@ class ProxmoxPoolSchema(CartographyNodeSchema):
     properties: ProxmoxPoolNodeProperties = ProxmoxPoolNodeProperties()
     sub_resource_relationship: ProxmoxPoolToClusterRel = ProxmoxPoolToClusterRel()
 
-
-# ============================================================================
 # MatchLink Schemas for Pool Containment Relationships
-# ============================================================================
-
 
 @dataclass(frozen=True)
 class ProxmoxPoolToVMMatchLinkProperties(CartographyRelProperties):
@@ -95,7 +81,6 @@ class ProxmoxPoolToVMMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxPoolToVMMatchLink(CartographyRelSchema):
@@ -124,7 +109,6 @@ class ProxmoxPoolToVMMatchLink(CartographyRelSchema):
         ProxmoxPoolToVMMatchLinkProperties()
     )
 
-
 @dataclass(frozen=True)
 class ProxmoxPoolToStorageMatchLinkProperties(CartographyRelProperties):
     """
@@ -137,7 +121,6 @@ class ProxmoxPoolToStorageMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
-
 
 @dataclass(frozen=True)
 class ProxmoxPoolToStorageMatchLink(CartographyRelSchema):

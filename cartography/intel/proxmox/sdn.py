@@ -23,7 +23,6 @@ from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
 
-
 @timeit
 def get_sdn_zones(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -38,7 +37,6 @@ def get_sdn_zones(proxmox_client: Any) -> List[Dict[str, Any]]:
         logger.warning(f"Failed to get SDN zones: {e}")
         return []
 
-
 @timeit
 def get_sdn_vnets(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -52,7 +50,6 @@ def get_sdn_vnets(proxmox_client: Any) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Failed to get SDN VNets: {e}")
         return []
-
 
 @timeit
 def get_sdn_subnets(proxmox_client: Any, vnet: str) -> List[Dict[str, Any]]:
@@ -69,7 +66,6 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> List[Dict[str, Any]]:
         logger.debug(f"No subnets found for VNet {vnet}: {e}")
         return []
 
-
 @timeit
 def get_sdn_controllers(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -84,7 +80,6 @@ def get_sdn_controllers(proxmox_client: Any) -> List[Dict[str, Any]]:
         logger.warning(f"Failed to get SDN controllers: {e}")
         return []
 
-
 @timeit
 def get_sdn_ipams(proxmox_client: Any) -> List[Dict[str, Any]]:
     """
@@ -98,7 +93,6 @@ def get_sdn_ipams(proxmox_client: Any) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Failed to get SDN IPAMs: {e}")
         return []
-
 
 @timeit
 def transform_sdn_zones(
@@ -141,7 +135,6 @@ def transform_sdn_zones(
         )
     return transformed_zones
 
-
 @timeit
 def transform_sdn_vnets(
     vnets_data: List[Dict[str, Any]], cluster_id: str
@@ -172,7 +165,6 @@ def transform_sdn_vnets(
             }
         )
     return transformed_vnets
-
 
 @timeit
 def transform_sdn_subnets(
@@ -209,7 +201,6 @@ def transform_sdn_subnets(
         )
     return transformed_subnets
 
-
 @timeit
 def transform_sdn_controllers(
     controllers_data: List[Dict[str, Any]], cluster_id: str
@@ -243,7 +234,6 @@ def transform_sdn_controllers(
         )
     return transformed_controllers
 
-
 @timeit
 def transform_sdn_ipams(
     ipams_data: List[Dict[str, Any]], cluster_id: str
@@ -275,7 +265,6 @@ def transform_sdn_ipams(
         )
     return transformed_ipams
 
-
 @timeit
 def load_sdn_zones(
     neo4j_session: neo4j.Session,
@@ -298,7 +287,6 @@ def load_sdn_zones(
         lastupdated=proxmox_update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 @timeit
 def load_sdn_vnets(
@@ -323,7 +311,6 @@ def load_sdn_vnets(
         CLUSTER_ID=cluster_id,
     )
 
-
 @timeit
 def load_sdn_subnets(
     neo4j_session: neo4j.Session,
@@ -346,7 +333,6 @@ def load_sdn_subnets(
         lastupdated=proxmox_update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 @timeit
 def load_sdn_controllers(
@@ -371,7 +357,6 @@ def load_sdn_controllers(
         CLUSTER_ID=cluster_id,
     )
 
-
 @timeit
 def load_sdn_ipams(
     neo4j_session: neo4j.Session,
@@ -394,7 +379,6 @@ def load_sdn_ipams(
         lastupdated=proxmox_update_tag,
         CLUSTER_ID=cluster_id,
     )
-
 
 @timeit
 def sync_sdn(
@@ -450,7 +434,6 @@ def sync_sdn(
     )
 
     cleanup_sdn(neo4j_session, common_job_parameters)
-
 
 def cleanup_sdn(
     neo4j_session: neo4j.Session,
