@@ -100,7 +100,7 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_group_rels
     )
@@ -119,7 +119,7 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_resource_rels
     )

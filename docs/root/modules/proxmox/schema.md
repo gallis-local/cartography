@@ -10,7 +10,7 @@ Representation of a Proxmox Virtual Environment cluster.
 | lastupdated | Timestamp of the last time the node was updated |
 | **id** | Unique cluster identifier (cluster name or derived from hostname) |
 | name | Human-readable cluster name |
-| version | Proxmox VE version string |
+| corosync_version | Corosync version string |
 | quorate | Boolean indicating if the cluster has quorum |
 | nodes_online | Number of nodes currently online in the cluster |
 | migration | Migration mode setting (secure, insecure) |
@@ -37,7 +37,7 @@ Representation of a Proxmox Virtual Environment cluster.
 - ProxmoxCluster contains ProxmoxNodes.
 
     ```
-    (ProxmoxNode)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxNode)
     ```
 
 ### ProxmoxNode
@@ -68,7 +68,7 @@ Representation of a physical or virtual node in a Proxmox cluster.
 - ProxmoxNode belongs to a ProxmoxCluster.
 
     ```
-    (ProxmoxNode)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxNode)
     ```
 
 - ProxmoxNode hosts ProxmoxVMs.
@@ -99,7 +99,7 @@ Representation of a physical or virtual network interface on a Proxmox node.
 | lastupdated | Timestamp of the last time the node was updated |
 | **id** | Unique identifier for the network interface |
 | name | Interface name (e.g., vmbr0, eth0) |
-| node_name | Name of the node this interface belongs to |
+| node_id | Full node ID path (e.g., "cluster_id/node/node_name") |
 | type | Interface type (bridge, bond, eth, vlan, etc.) |
 | address | IPv4 address |
 | netmask | IPv4 subnet mask |
@@ -124,7 +124,7 @@ Representation of a physical or virtual network interface on a Proxmox node.
 - ProxmoxNodeNetworkInterface belongs to a ProxmoxCluster.
 
     ```
-    (ProxmoxNodeNetworkInterface)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxNodeNetworkInterface)
     ```
 
 ### ProxmoxVM
@@ -151,6 +151,12 @@ Representation of a QEMU virtual machine or LXC container.
 | tags | Array of tags assigned to the VM |
 
 #### Relationships
+
+- ProxmoxVM belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxVM)
+    ```
 
 - ProxmoxVM is hosted by a ProxmoxNode.
 
@@ -184,7 +190,7 @@ Representation of a virtual disk attached to a VM or container.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique identifier in format "node/type/vmid:disk_id" (e.g., "node1/qemu/100:scsi0") |
+| **id** | Unique identifier in format "cluster_id/vm/vmid/disk/disk_id" (e.g., "mycluster/vm/100/disk/scsi0") |
 | disk_id | Disk identifier (e.g., "scsi0", "virtio0", "sata0", "ide0", "efidisk0", "tpmstate0", "rootfs") |
 | vmid | ID of the parent VM/container |
 | storage | Storage backend ID where the disk is stored |
@@ -193,6 +199,12 @@ Representation of a virtual disk attached to a VM or container.
 | cache | Cache mode (e.g., "writeback", "none") |
 
 #### Relationships
+
+- ProxmoxDisk belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxDisk)
+    ```
 
 - ProxmoxDisk belongs to a ProxmoxVM.
 
@@ -214,7 +226,7 @@ Representation of a network interface attached to a VM or container.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique identifier in format "node/type/vmid:net_id" (e.g., "node1/qemu/100:net0") |
+| **id** | Unique identifier in format "cluster_id/vm/vmid/net/net_id" (e.g., "mycluster/vm/100/net/net0") |
 | net_id | Network interface identifier (e.g., "net0", "net1") |
 | vmid | ID of the parent VM/container |
 | bridge | Bridge name the interface is connected to |
@@ -231,6 +243,12 @@ Representation of a network interface attached to a VM or container.
 | link_up | Boolean indicating if the link is up |
 
 #### Relationships
+
+- ProxmoxNetworkInterface belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxNetworkInterface)
+    ```
 
 - ProxmoxNetworkInterface belongs to a ProxmoxVM.
 
@@ -259,6 +277,12 @@ Representation of a storage backend in Proxmox.
 
 #### Relationships
 
+- ProxmoxStorage belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxStorage)
+    ```
+
 - ProxmoxStorage is available on ProxmoxNodes.
 
     ```
@@ -279,12 +303,18 @@ Representation of a resource pool for organizing VMs, containers, and storage.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique pool identifier |
+| **id** | Unique identifier (format: cluster_id/pool/poolid) |
 | poolid | Pool name |
 | cluster_id | ID of the parent ProxmoxCluster |
 | comment | Description or notes about the pool |
 
 #### Relationships
+
+- ProxmoxPool belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxPool)
+    ```
 
 - ProxmoxPool contains ProxmoxVMs.
 
@@ -327,6 +357,12 @@ Representation of a scheduled backup job configuration.
 
 #### Relationships
 
+- ProxmoxBackupJob belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxBackupJob)
+    ```
+
 - ProxmoxBackupJob backs up ProxmoxVMs.
 
     ```
@@ -347,7 +383,7 @@ Representation of a High Availability group defining node preferences.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique group identifier |
+| **id** | Unique identifier (format: cluster_id/ha/group/name) |
 | group | HA group name |
 | cluster_id | ID of the parent ProxmoxCluster |
 | nodes | Comma-separated list of preferred nodes |
@@ -356,6 +392,12 @@ Representation of a High Availability group defining node preferences.
 | comment | Description or notes about the HA group |
 
 #### Relationships
+
+- ProxmoxHAGroup belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxHAGroup)
+    ```
 
 - ProxmoxHAResource is a member of ProxmoxHAGroup.
 
@@ -371,8 +413,8 @@ Representation of a VM or container configured for High Availability.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| **id** | Unique resource identifier (format: "vm:100" or "ct:200") |
-| sid | Service ID (same as id) |
+| **id** | Unique identifier (format: cluster_id/ha/resource/sid, e.g., "mycluster/ha/resource/vm:100") |
+| sid | Service ID (e.g., "vm:100" or "ct:200") |
 | cluster_id | ID of the parent ProxmoxCluster |
 | state | Current HA state (started, stopped, disabled, etc.) |
 | group | Associated HA group name |
@@ -381,6 +423,12 @@ Representation of a VM or container configured for High Availability.
 | comment | Description or notes about the HA resource |
 
 #### Relationships
+
+- ProxmoxHAResource belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxHAResource)
+    ```
 
 - ProxmoxHAResource protects ProxmoxVMs.
 
@@ -466,7 +514,7 @@ RETURN v.name, v.node, v.cluster_id
 ### Cluster topology overview
 
 ```cypher
-MATCH (n:ProxmoxNode)-[:RESOURCE]->(c:ProxmoxCluster)
+MATCH (c:ProxmoxCluster)-[:RESOURCE]->(n:ProxmoxNode)
 OPTIONAL MATCH (n)-[:HOSTS_VM]->(v:ProxmoxVM)
 WHERE v.template = false
 RETURN c.name as cluster,
@@ -578,10 +626,16 @@ Representation of a user account in Proxmox VE.
 
 #### Relationships
 
+- ProxmoxUser belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxUser)
+    ```
+
 - ProxmoxUser is a member of ProxmoxGroups.
 
     ```
-    (ProxmoxUser)-[MEMBER_OF_GROUP]->(ProxmoxGroup)
+    (ProxmoxUser)-[MEMBER_OF]->(ProxmoxGroup)
     ```
 
 - ProxmoxUser authenticates via ProxmoxAuthRealm.
@@ -611,6 +665,12 @@ Representation of a user group in Proxmox VE.
 
 #### Relationships
 
+- ProxmoxGroup belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxGroup)
+    ```
+
 - ProxmoxACL grants permissions to ProxmoxGroups.
 
     ```
@@ -633,6 +693,12 @@ Representation of a permission role in Proxmox VE.
 
 #### Relationships
 
+- ProxmoxRole belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxRole)
+    ```
+
 - ProxmoxACL grants ProxmoxRoles.
 
     ```
@@ -653,11 +719,17 @@ Representation of an Access Control List entry in Proxmox VE.
 | roleid | Role granted by this ACL |
 | ugid | User or group ID this ACL applies to |
 | propagate | Boolean indicating if permissions propagate to children |
-| principal_type | Type of principal (user or group) |
+| principal_type | Type of principal (user, group, or token) |
 | resource_type | Type of resource (cluster, vm, storage, pool, node, access) |
 | resource_id | ID of specific resource if applicable |
 
 #### Relationships
+
+- ProxmoxACL belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxACL)
+    ```
 
 - ProxmoxACL grants ProxmoxRoles.
 
@@ -717,10 +789,22 @@ Representation of a firewall rule at cluster, node, or VM level.
 
 #### Relationships
 
+- ProxmoxFirewallRule belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxFirewallRule)
+    ```
+
 - Node-scoped ProxmoxFirewallRules apply to ProxmoxNodes.
 
     ```
     (ProxmoxFirewallRule)-[APPLIES_TO_NODE]->(ProxmoxNode)
+    ```
+
+- VM-scoped ProxmoxFirewallRules apply to ProxmoxVMs.
+
+    ```
+    (ProxmoxFirewallRule)-[APPLIES_TO_VM]->(ProxmoxVM)
     ```
 
 - ProxmoxFirewallRule references ProxmoxFirewallIPSets.
@@ -729,7 +813,7 @@ Representation of a firewall rule at cluster, node, or VM level.
     (ProxmoxFirewallRule)-[USES_IPSET {in_source, in_dest}]->(ProxmoxFirewallIPSet)
     ```
 
-> **Note**: VM-level firewall rules are not currently synced. Only cluster-level and node-level rules are collected.
+> **Note**: VM-level firewall rules require per-VM API calls and are not currently collected by default.
 
 ### ProxmoxFirewallIPSet
 
@@ -746,6 +830,14 @@ Representation of an IP set (address group) for firewall rules.
 | scope_id | Scope identifier (node name or vmid) |
 | comment | IP set description or notes |
 | cidrs | Array of CIDR entries in this IP set |
+
+#### Relationships
+
+- ProxmoxFirewallIPSet belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxFirewallIPSet)
+    ```
 
 ### ProxmoxSnapshot
 
@@ -767,6 +859,12 @@ Representation of a VM or container snapshot.
 | parent | Name of the parent snapshot (if any) |
 
 #### Relationships
+
+- ProxmoxSnapshot belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSnapshot)
+    ```
 
 - ProxmoxSnapshot is a snapshot of a ProxmoxVM.
 
@@ -795,6 +893,12 @@ Representation of a VM/container replication job for disaster recovery.
 | comment | Job description or notes |
 
 #### Relationships
+
+- ProxmoxReplicationJob belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxReplicationJob)
+    ```
 
 - ProxmoxReplicationJob replicates a ProxmoxVM.
 
@@ -832,6 +936,12 @@ Representation of an authentication realm in Proxmox VE.
 
 #### Relationships
 
+- ProxmoxAuthRealm belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxAuthRealm)
+    ```
+
 - ProxmoxUsers authenticate via ProxmoxAuthRealm.
 
     ```
@@ -855,6 +965,12 @@ Representation of an API token for Proxmox VE authentication.
 | comment | Token description or notes |
 
 #### Relationships
+
+- ProxmoxAPIToken belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxAPIToken)
+    ```
 
 - ProxmoxAPIToken belongs to a ProxmoxUser.
 
@@ -884,6 +1000,12 @@ Representation of firewall global configuration at cluster or node level.
 | nf_conntrack_tcp_timeout_established | TCP established connection timeout |
 
 #### Relationships
+
+- ProxmoxFirewallOptions belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxFirewallOptions)
+    ```
 
 - Node-level ProxmoxFirewallOptions applies to a ProxmoxNode.
 
@@ -923,7 +1045,7 @@ Representation of a Software-Defined Networking zone in Proxmox VE.
 - ProxmoxSDNZone belongs to a ProxmoxCluster.
 
     ```
-    (ProxmoxSDNZone)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSDNZone)
     ```
 
 ### ProxmoxSDNVNet
@@ -944,6 +1066,12 @@ Representation of a Virtual Network in a Proxmox SDN zone.
 | mac | MAC address |
 
 #### Relationships
+
+- ProxmoxSDNVNet belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSDNVNet)
+    ```
 
 - ProxmoxSDNVNet belongs to a ProxmoxSDNZone.
 
@@ -969,6 +1097,12 @@ Representation of an IP subnet within a Proxmox SDN VNet.
 | dnszoneprefix | DNS zone prefix |
 
 #### Relationships
+
+- ProxmoxSDNSubnet belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSDNSubnet)
+    ```
 
 - ProxmoxSDNSubnet belongs to a ProxmoxSDNVNet.
 
@@ -1000,7 +1134,7 @@ Representation of an SDN controller (e.g., EVPN/BGP) in Proxmox VE.
 - ProxmoxSDNController belongs to a ProxmoxCluster.
 
     ```
-    (ProxmoxSDNController)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSDNController)
     ```
 
 ### ProxmoxSDNIPAM
@@ -1025,7 +1159,7 @@ Representation of an IPAM (IP Address Management) plugin in Proxmox VE.
 - ProxmoxSDNIPAM belongs to a ProxmoxCluster.
 
     ```
-    (ProxmoxSDNIPAM)-[RESOURCE]->(ProxmoxCluster)
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxSDNIPAM)
     ```
 
 ### ProxmoxCertificate
@@ -1038,7 +1172,7 @@ Representation of an SSL/TLS certificate used by a Proxmox node.
 | lastupdated | Timestamp of the last time the node was updated |
 | **id** | Certificate identifier |
 | cluster_id | ID of the parent ProxmoxCluster |
-| node_name | Node using this certificate |
+| node_id | Full node ID path (e.g., "cluster_id/node/node_name") |
 | filename | Certificate filename |
 | fingerprint | Certificate fingerprint (hash) |
 | issuer | Certificate issuer DN |
@@ -1051,6 +1185,12 @@ Representation of an SSL/TLS certificate used by a Proxmox node.
 | pem | PEM-encoded certificate |
 
 #### Relationships
+
+- ProxmoxCertificate belongs to a ProxmoxCluster.
+
+    ```
+    (ProxmoxCluster)-[RESOURCE]->(ProxmoxCertificate)
+    ```
 
 - ProxmoxNode uses ProxmoxCertificates.
 
@@ -1166,7 +1306,7 @@ ORDER BY u.userid
 
 ```cypher
 // Find users, their groups, and what the groups can access
-MATCH (u:ProxmoxUser)-[:MEMBER_OF_GROUP]->(g:ProxmoxGroup)
+MATCH (u:ProxmoxUser)-[:MEMBER_OF]->(g:ProxmoxGroup)
 OPTIONAL MATCH (g)-[p:HAS_PERMISSION]->(resource)
 RETURN u.userid, g.groupid,
        collect(DISTINCT {
@@ -1247,7 +1387,7 @@ ORDER BY u.userid, acl.path
 ```cypher
 // Analyze what each group can access
 MATCH (g:ProxmoxGroup)
-OPTIONAL MATCH (g)<-[:MEMBER_OF_GROUP]-(u:ProxmoxUser)
+OPTIONAL MATCH (g)<-[:MEMBER_OF]-(u:ProxmoxUser)
 OPTIONAL MATCH (g)-[p:HAS_PERMISSION]->(resource)
 RETURN g.groupid,
        count(DISTINCT u) as member_count,

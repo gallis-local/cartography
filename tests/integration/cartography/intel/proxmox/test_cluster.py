@@ -90,7 +90,7 @@ def test_sync_cluster_and_nodes(
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_rels
     )
@@ -194,7 +194,7 @@ def test_sync_node_network_interfaces(
             "ProxmoxCluster",
             "id",
             "RESOURCE",
-            rel_direction_right=True,
+            rel_direction_right=False,
         )
         == expected_cluster_rels
     )
@@ -317,7 +317,7 @@ def test_cluster_enhanced_metadata(
     result = neo4j_session.run(
         """
         MATCH (c:ProxmoxCluster {id: $cluster_id})
-        RETURN c.nodes_total, c.nodes_online, c.cluster_id, c.version, c.quorate
+        RETURN c.nodes_total, c.nodes_online, c.cluster_id, c.corosync_version, c.quorate
         """,
         cluster_id=TEST_CLUSTER_ID,
     )
@@ -326,7 +326,7 @@ def test_cluster_enhanced_metadata(
     assert data["c.nodes_total"] == 3  # From MOCK_CLUSTER_DATA
     assert data["c.nodes_online"] == 2  # Two nodes with online=1
     assert data["c.cluster_id"] == "cluster/test-cluster"  # From MOCK_CLUSTER_DATA
-    assert data["c.version"] == "8.1.3"
+    assert data["c.corosync_version"] == "8.1.3"
     assert data["c.quorate"] is True
 
 
@@ -609,7 +609,7 @@ def test_node_cluster_relationship(
     # Assert - Verify node->cluster relationship
     result = neo4j_session.run(
         """
-        MATCH (node:ProxmoxNode)-[:RESOURCE]->(cluster:ProxmoxCluster)
+        MATCH (cluster:ProxmoxCluster)-[:RESOURCE]->(node:ProxmoxNode)
         WHERE cluster.id = $cluster_id
         RETURN node.name as node_name, cluster.id as cluster_id
         ORDER BY node_name

@@ -50,7 +50,7 @@ class ProxmoxAuthRealmToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxAuthRealm)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxAuthRealm)
 
     Auth realms belong to clusters.
     """
@@ -61,7 +61,7 @@ class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxAuthRealmToClusterRelProperties = ProxmoxAuthRealmToClusterRelProperties()
 

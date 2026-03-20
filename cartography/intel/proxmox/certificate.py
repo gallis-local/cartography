@@ -11,6 +11,7 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.certificate import ProxmoxCertificateSchema
 from cartography.util import timeit
 
@@ -193,3 +194,20 @@ def sync(
     load_certificates(neo4j_session, all_certificates, cluster_id, update_tag)
 
     logger.info(f"Synced {len(all_certificates)} SSL/TLS certificates")
+
+    cleanup(neo4j_session, common_job_parameters)
+
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+) -> None:
+    """
+    Remove stale certificate data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxCertificateSchema(), common_job_parameters).run(
+        neo4j_session
+    )

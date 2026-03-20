@@ -1,0 +1,29 @@
+2026-03-22 17:54:18.028+0000 INFO  Logging config in use: Embedded default config 'default-user-logs.xml'
+2026-03-22 17:54:18.033+0000 INFO  Starting...
+2026-03-22 17:54:18.559+0000 INFO  This instance is ServerId{cd4a5465} (cd4a5465-0c19-4e6f-9379-592cdab58463)
+2026-03-22 17:54:19.122+0000 INFO  ======== Neo4j 5.15.0 ========
+2026-03-22 17:54:18.331+0000 INFO  Progress tracking: enabled
+2026-03-22 17:54:18.333+0000 INFO  Memory usage guard: minimum estimate
+2026-03-22 17:54:18.339+0000 INFO  GDS license file: null
+2026-03-22 17:54:18.340+0000 INFO  GDS license state: unlicensed
+2026-03-22 17:54:18.349+0000 INFO  Register GraphDataScience...
+2026-03-22 17:54:18.372+0000 INFO  GraphDataScience registered.
+2026-03-22 17:54:18.374+0000 INFO  Register GraphDataScienceExtras...
+2026-03-22 17:54:18.375+0000 INFO  GraphDataScienceExtras registered.
+2026-03-22 17:54:18.375+0000 INFO  Register MetricsFacade...
+2026-03-22 17:54:18.376+0000 INFO  MetricsFacade registered.
+2026-03-22 17:54:18.380+0000 INFO  Register legacy Task Store/ Registry...
+2026-03-22 17:54:18.380+0000 INFO  Task Store/ Registry registered.
+2026-03-22 17:54:18.381+0000 INFO  Register legacy User Log Registry...
+2026-03-22 17:54:18.381+0000 INFO  User Log Registry registered.
+2026-03-22 17:54:16.888+0000 INFO  GDS compatibility: for Neo4j Settings 5.x -- available, for Neo4j Settings 4.4 -- not available, selected: Neo4j Settings 5.x
+2026-03-22 17:54:16.889+0000 INFO  GDS compatibility: for Neo4j 4.4 -- not available, for Neo4j 5.11 -- not available, for Neo4j 5.12 -- not available, for Neo4j 5.13 -- not available, for Neo4j 5.14 -- not available, for Neo4j 5.15 -- available, for Neo4j 5.16 -- not available, for Neo4j 5.17 -- not available, for Neo4j 5.18 -- not available, for Neo4j 5.19 -- not available, for Neo4j 5.20 -- not available, selected: Neo4j 5.15
+2026-03-22 17:54:45.845+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-03-22 17:54:44.715+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-03-22 17:54:44.716+0000 INFO  Remote interface available at http://localhost:7474/
+2026-03-22 17:54:44.719+0000 INFO  id: E3A69A8F0A5D09A1594AABBE32295FB6F1B3E11029A9124833769E0CD3DAD294
+2026-03-22 17:54:44.720+0000 INFO  name: system
+2026-03-22 17:54:44.720+0000 INFO  creationDate: 2026-03-22T17:54:17.44Z
+2026-03-22 17:54:44.720+0000 INFO  Started.
+2026-03-22 18:22:30.779+0000 INFO  Neo4j Server shutdown initiated by request
+2026-03-22 18:22:30.780+0000 INFO  Stopping...

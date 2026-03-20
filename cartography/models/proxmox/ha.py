@@ -53,7 +53,7 @@ class ProxmoxHAGroupToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAGroupToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxHAGroup)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxHAGroup)
 
     HA groups belong to clusters.
     """
@@ -64,7 +64,7 @@ class ProxmoxHAGroupToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxHAGroupToClusterRelProperties = (
         ProxmoxHAGroupToClusterRelProperties()
@@ -120,7 +120,7 @@ class ProxmoxHAResourceToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAResourceToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxHAResource)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxHAResource)
 
     HA resources belong to clusters.
     """
@@ -131,7 +131,7 @@ class ProxmoxHAResourceToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxHAResourceToClusterRelProperties = (
         ProxmoxHAResourceToClusterRelProperties()

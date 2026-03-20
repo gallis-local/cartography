@@ -75,7 +75,7 @@ class ProxmoxSDNZoneToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNZone)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNZone)
 
     SDN Zones are cluster-wide resources.
     """
@@ -86,7 +86,7 @@ class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNZoneToClusterRelProperties = ProxmoxSDNZoneToClusterRelProperties()
 
@@ -145,7 +145,7 @@ class ProxmoxSDNVNetToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNVNet)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNVNet)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -154,7 +154,7 @@ class ProxmoxSDNVNetToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNVNetToClusterRelProperties = ProxmoxSDNVNetToClusterRelProperties()
 
@@ -248,7 +248,7 @@ class ProxmoxSDNSubnetToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNSubnet)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNSubnet)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -257,7 +257,7 @@ class ProxmoxSDNSubnetToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNSubnetToClusterRelProperties = ProxmoxSDNSubnetToClusterRelProperties()
 
@@ -351,7 +351,7 @@ class ProxmoxSDNControllerToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNControllerToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNController)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNController)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -360,7 +360,7 @@ class ProxmoxSDNControllerToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNControllerToClusterRelProperties = ProxmoxSDNControllerToClusterRelProperties()
 
@@ -399,8 +399,8 @@ class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
 
     # External IPAM configuration
     url: PropertyRef = PropertyRef("url")  # API URL (for external IPAMs)
-    # Note: token field intentionally omitted - storing IPAM API credentials in the graph
-    # is a security risk. Use external secret management for credential storage.
+    # Token is masked to "configured" in transform to avoid storing raw credentials
+    token: PropertyRef = PropertyRef("token")
     section: PropertyRef = PropertyRef("section")  # Section/tenant ID (NetBox/phpIPAM)
 
 
@@ -416,7 +416,7 @@ class ProxmoxSDNIPAMToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNIPAM)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNIPAM)
     """
 
     target_node_label: str = "ProxmoxCluster"
@@ -425,7 +425,7 @@ class ProxmoxSDNIPAMToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxSDNIPAMToClusterRelProperties = ProxmoxSDNIPAMToClusterRelProperties()
 

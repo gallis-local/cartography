@@ -75,7 +75,7 @@ class ProxmoxFirewallRuleToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxFirewallRule)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallRule)
 
     Firewall rules belong to clusters.
     """
@@ -86,7 +86,7 @@ class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxFirewallRuleToClusterRelProperties = (
         ProxmoxFirewallRuleToClusterRelProperties()
@@ -143,7 +143,7 @@ class ProxmoxFirewallIPSetToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxFirewallIPSet)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallIPSet)
 
     IP sets belong to clusters.
     """
@@ -154,7 +154,7 @@ class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxFirewallIPSetToClusterRelProperties = (
         ProxmoxFirewallIPSetToClusterRelProperties()

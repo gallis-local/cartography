@@ -58,7 +58,7 @@ class ProxmoxFirewallOptionsToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxFirewallOptions)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallOptions)
 
     Firewall options belong to clusters.
     """
@@ -69,7 +69,7 @@ class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxFirewallOptionsToClusterRelProperties = (
         ProxmoxFirewallOptionsToClusterRelProperties()

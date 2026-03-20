@@ -59,7 +59,7 @@ class ProxmoxReplicationJobToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxReplicationJob)-[:RESOURCE]->(:ProxmoxCluster)
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxReplicationJob)
 
     Replication jobs belong to clusters.
     """
@@ -70,7 +70,7 @@ class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
             "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
         }
     )
-    direction: LinkDirection = LinkDirection.OUTWARD
+    direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
     properties: ProxmoxReplicationJobToClusterRelProperties = ProxmoxReplicationJobToClusterRelProperties()
 

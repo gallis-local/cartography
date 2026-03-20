@@ -683,6 +683,27 @@ salesforce_mapping = OntologyMapping(
         ),
     ],
 )
+
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxUser",
+            fields=[
+                OntologyFieldMapping(ontology_field="email", node_field="email"),
+                OntologyFieldMapping(
+                    ontology_field="username", node_field="userid", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="firstname", node_field="firstname"
+                ),
+                OntologyFieldMapping(ontology_field="lastname", node_field="lastname"),
+                OntologyFieldMapping(ontology_field="active", node_field="enable"),
+            ],
+        ),
+    ],
+)
+
 vercel_mapping = OntologyMapping(
     module_name="vercel",
     nodes=[
@@ -900,6 +921,7 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "salesforce": salesforce_mapping,
     "oci": oci_mapping,
     "openai": openai_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "miradore": miradore_mapping,
     "snipeit": snipeit_mapping,

@@ -190,6 +190,8 @@ def sync(
 
     logger.info(f"Synced {len(all_options)} firewall options configurations")
 
+    cleanup(neo4j_session, common_job_parameters)
+
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
     """

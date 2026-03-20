@@ -341,6 +341,26 @@ netlify_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxVM",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="id", node_field="id", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name"
+                ),
+                OntologyFieldMapping(ontology_field="region", node_field="node"),
+                OntologyFieldMapping(ontology_field="state", node_field="status"),
+                OntologyFieldMapping(ontology_field="type", node_field="type"),
+            ],
+        ),
+    ],
+)
+
 COMPUTE_INSTANCE_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "scaleway": scaleway_mapping,
@@ -348,4 +368,5 @@ COMPUTE_INSTANCE_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "gcp": gcp_mapping,
     "azure": azure_mapping,
     "netlify": netlify_mapping,
+    "proxmox": proxmox_mapping,
 }

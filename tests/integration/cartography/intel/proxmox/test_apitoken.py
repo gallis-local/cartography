@@ -84,7 +84,7 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
 def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
     proxmox_client = MagicMock()
 
     # Create a test user
@@ -102,7 +102,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     mock_get_tokens.return_value = [MOCK_API_TOKEN_DATA[0]]
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 1,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -113,7 +113,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 1,
         common_job_parameters,
         mock_users,
     )
@@ -121,7 +121,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (t:ProxmoxAPIToken)-[:RESOURCE]->(c:ProxmoxCluster)
+        MATCH (c:ProxmoxCluster)-[:RESOURCE]->(t:ProxmoxAPIToken)
         WHERE c.id = $cluster_id
         RETURN t.tokenid as tokenid, c.id as cluster_id
         """,
@@ -138,7 +138,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
 def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken BELONGS_TO relationship to ProxmoxUser."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2)
     proxmox_client = MagicMock()
 
     # Create a test user
@@ -158,7 +158,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     mock_get_tokens.return_value = [MOCK_API_TOKEN_DATA[0]]
 
     common_job_parameters = {
-        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "UPDATE_TAG": TEST_UPDATE_TAG + 2,
         "CLUSTER_ID": cluster_id,
     }
 
@@ -169,7 +169,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
         neo4j_session,
         proxmox_client,
         cluster_id,
-        TEST_UPDATE_TAG,
+        TEST_UPDATE_TAG + 2,
         common_job_parameters,
         mock_users,
     )
@@ -240,10 +240,12 @@ def test_apitoken_multi_cluster_isolation(mock_get_tokens, neo4j_session):
     result = neo4j_session.run(
         """
         MATCH (t:ProxmoxAPIToken)
-        WHERE t.tokenid = 'token1'
+        WHERE t.tokenid = 'token1' AND t.cluster_id IN [$cluster_a_id, $cluster_b_id]
         RETURN t.id as id, t.cluster_id as cluster_id
         ORDER BY t.id
-        """
+        """,
+        cluster_a_id=cluster_a_id,
+        cluster_b_id=cluster_b_id,
     )
 
     tokens = list(result)

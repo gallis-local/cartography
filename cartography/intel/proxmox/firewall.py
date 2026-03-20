@@ -10,8 +10,12 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
 from cartography.models.proxmox.firewall import ProxmoxFirewallIPSetSchema
 from cartography.models.proxmox.firewall import ProxmoxFirewallRuleSchema
+from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToIPSetMatchLink
+from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToNodeMatchLink
+from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToVMMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -476,3 +480,36 @@ def sync(
         )
 
     logger.info(f"Synced {len(all_rules)} firewall rules and {len(all_ipsets)} IP sets")
+
+    cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
+
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Remove stale firewall data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    :param cluster_id: Cluster ID for MatchLink cleanup scoping
+    :param update_tag: Sync timestamp for MatchLink cleanup
+    """
+    GraphJob.from_node_schema(ProxmoxFirewallRuleSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxFirewallIPSetSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_matchlink(
+        ProxmoxFirewallRuleToNodeMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxFirewallRuleToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxFirewallRuleToIPSetMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)

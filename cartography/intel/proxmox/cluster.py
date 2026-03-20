@@ -152,7 +152,7 @@ def transform_cluster_data(
         return {
             "id": cluster_id,
             "name": cluster_id,
-            "version": "unknown",
+            "corosync_version": "unknown",
             "quorate": True,
             "nodes_online": nodes_online,
             "nodes_total": nodes_total,
@@ -170,7 +170,7 @@ def transform_cluster_data(
     return {
         "id": cluster_info["name"],  # Required field - direct access
         "name": cluster_info["name"],  # Required
-        "version": cluster_info.get("version", "unknown"),  # Optional with default
+        "corosync_version": cluster_info.get("version", "unknown"),  # Optional with default
         "quorate": bool(
             cluster_info.get("quorate", True)
         ),  # Optional with default, convert to bool
