@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -26,9 +27,6 @@ class UnifiDeviceNodeProperties(CartographyNodeProperties):
     uptime: PropertyRef = PropertyRef("uptime")
     last_seen: PropertyRef = PropertyRef("last_seen")
     upgradable: PropertyRef = PropertyRef("upgradable")
-    uplink_mac: PropertyRef = PropertyRef("uplink_mac")
-    uplink_port_id: PropertyRef = PropertyRef("uplink_port_id")
-    wlan_ids: PropertyRef = PropertyRef("wlan_ids")
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
@@ -107,6 +105,7 @@ class UnifiDeviceBroadcastsWlanRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiDeviceSchema(CartographyNodeSchema):
     label: str = "UnifiDevice"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkInfrastructureDevice"])
     properties: UnifiDeviceNodeProperties = UnifiDeviceNodeProperties()
     sub_resource_relationship: UnifiDeviceToSiteRel = UnifiDeviceToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

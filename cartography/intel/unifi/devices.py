@@ -57,13 +57,14 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "upgradable": device.upgradable,
                 "uplink_mac": uplink.get("uplink_mac"),
                 "uplink_port_id": (
-                    f"{uplink['uplink_mac']}_{uplink['uplink_remote_port_idx']}"
-                    if uplink.get("uplink_mac") and uplink.get("uplink_remote_port_idx") is not None
+                    f"{uplink['uplink_mac']}_{uplink['uplink_remote_port']}"
+                    if uplink.get("uplink_mac") and uplink.get("uplink_remote_port") is not None
                     else None
                 ),
                 "wlan_ids": list(wlan_id_set) or None,
             }
         )
+    logger.info("Fetched %d UniFi devices", len(devices))
     return devices
 
 

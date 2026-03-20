@@ -5,7 +5,6 @@ import neo4j
 from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
-from cartography.graph.job import GraphJob
 from cartography.models.unifi.site import UnifiSiteSchema
 from cartography.util import timeit
 
@@ -65,11 +64,17 @@ def cleanup(
     """
     Clean up stale UniFi sites from Neo4j.
 
+    UnifiSite is a root tenant node with no sub_resource_relationship and no
+    other_relationships, so GraphJob.from_node_schema generates an empty job.
+    We use a direct Cypher query instead so that sites removed from the
+    controller are properly cleaned up.
+
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
-    GraphJob.from_node_schema(UnifiSiteSchema(), common_job_parameters).run(
-        neo4j_session
+    neo4j_session.run(
+        "MATCH (s:UnifiSite) WHERE s.lastupdated <> $UPDATE_TAG DETACH DELETE s",
+        UPDATE_TAG=common_job_parameters["UPDATE_TAG"],
     )
 
 

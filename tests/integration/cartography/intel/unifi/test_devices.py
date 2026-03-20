@@ -144,7 +144,6 @@ async def test_unifi_devices_cleanup(mock_get, neo4j_session):
             "uplink_mac": None,
             "uplink_port_id": None,
             "wlan_ids": None,
-            "site_id": "default",
         }
     ]
     cartography.intel.unifi.devices.load_devices(
@@ -209,7 +208,7 @@ async def test_unifi_device_new_properties(mock_get, neo4j_session):
         """
         MATCH (d:UnifiDevice {id: '00:11:22:33:44:55'})
         RETURN d.ip as ip, d.version as version, d.state as state,
-               d.uptime as uptime, d.upgradable as upgradable, d.uplink_mac as uplink_mac
+               d.uptime as uptime, d.upgradable as upgradable
         """
     ).data()
 
@@ -219,7 +218,6 @@ async def test_unifi_device_new_properties(mock_get, neo4j_session):
     assert result[0]["state"] == "CONNECTED"
     assert result[0]["uptime"] == 86400
     assert result[0]["upgradable"] is False
-    assert result[0]["uplink_mac"] == "AA:BB:CC:DD:EE:FF"
 
 
 @pytest.mark.asyncio
