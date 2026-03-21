@@ -38,6 +38,7 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 stat_handler = get_stats_client(__name__)
 
+
 def _get_proxmox_client(config: Config) -> "ProxmoxAPI":
     """
     Create and return a Proxmox API client.
@@ -145,7 +146,7 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
     common_job_parameters["CLUSTER_ID"] = cluster_id
 
     # Sync SDN (Software-Defined Networking) resources
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client,
         cluster_id,

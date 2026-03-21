@@ -6,8 +6,6 @@ Syncs VM/container replication jobs for disaster recovery.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_replication_jobs(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_replication_jobs(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all replication jobs in the cluster.
 
@@ -35,9 +33,9 @@ def get_replication_jobs(proxmox_client: Any) -> List[Dict[str, Any]]:
 
 
 def transform_replication_job_data(
-    jobs: List[Dict[str, Any]],
+    jobs: list[dict[str, Any]],
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform replication job data into standard format.
 
@@ -78,7 +76,7 @@ def transform_replication_job_data(
 
 def load_replication_jobs(
     neo4j_session: neo4j.Session,
-    jobs: List[Dict[str, Any]],
+    jobs: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -98,7 +96,6 @@ def load_replication_jobs(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -106,7 +103,7 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync VM/container replication jobs.
@@ -129,7 +126,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
     """
     Remove stale replication job data.
 

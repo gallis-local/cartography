@@ -6,8 +6,6 @@ Syncs firewall configuration options at cluster and node levels.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_cluster_firewall_options(proxmox_client: Any) -> Dict[str, Any]:
+def get_cluster_firewall_options(proxmox_client: Any) -> dict[str, Any]:
     """
     Get cluster-level firewall options.
 
@@ -34,7 +32,7 @@ def get_cluster_firewall_options(proxmox_client: Any) -> Dict[str, Any]:
         return {}
 
 @timeit
-def get_node_firewall_options(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
+def get_node_firewall_options(proxmox_client: Any, node_name: str) -> dict[str, Any]:
     """
     Get node-level firewall options.
 
@@ -50,11 +48,11 @@ def get_node_firewall_options(proxmox_client: Any, node_name: str) -> Dict[str, 
 
 
 def transform_firewall_options_data(
-    options: Dict[str, Any],
+    options: dict[str, Any],
     cluster_id: str,
     scope: str,
     scope_id: str | None = None,
-) -> Dict[str, Any] | None:
+) -> dict[str, Any] | None:
     """
     Transform firewall options data into standard format.
 
@@ -96,7 +94,7 @@ def transform_firewall_options_data(
 
 def load_firewall_options(
     neo4j_session: neo4j.Session,
-    options_list: List[Dict[str, Any]],
+    options_list: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -119,7 +117,6 @@ def load_firewall_options(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -127,7 +124,7 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync firewall global options.
@@ -165,7 +162,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
     """
     Remove stale firewall options data.
 

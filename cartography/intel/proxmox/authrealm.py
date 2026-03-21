@@ -6,8 +6,6 @@ Syncs authentication realms (PAM, LDAP, AD, etc.).
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_auth_realms(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_auth_realms(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all authentication realms in the cluster.
 
@@ -35,9 +33,9 @@ def get_auth_realms(proxmox_client: Any) -> List[Dict[str, Any]]:
 
 
 def transform_auth_realm_data(
-    realms: List[Dict[str, Any]],
+    realms: list[dict[str, Any]],
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform auth realm data into standard format.
 
@@ -69,7 +67,7 @@ def transform_auth_realm_data(
 
 def load_auth_realms(
     neo4j_session: neo4j.Session,
-    realms: List[Dict[str, Any]],
+    realms: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -89,7 +87,6 @@ def load_auth_realms(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -97,7 +94,7 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync authentication realms.
@@ -120,7 +117,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
     """
     Remove stale auth realm data.
 
