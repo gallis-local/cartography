@@ -4,6 +4,7 @@ from typing import Any
 import neo4j
 from aiounifi.controller import Controller
 from aiounifi.errors import AiounifiException
+from aiounifi.models.api import ApiRequest
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -14,43 +15,42 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> list[dict[str, Any]]:  
+async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     Retrieve UniFi admins from the controller.
 
     Note: This endpoint (/rest/admin) requires super-admin privileges.
-    If the authenticated user is not a super-admin, or if the login rate limit
-    is hit after retries, an empty list is returned and a warning is logged.
+    If the authenticated user is not a super-admin, an empty list is returned
+    and a warning is logged.
 
     :param controller: Controller instance
     :return: List of admin data
     """
     logger.debug("Fetching UniFi admins")
     try:
-        await controller.admins.update()
+        response = await controller.request(ApiRequest(method="get", path="/rest/admin"))
     except AiounifiException as exc:
-        # aiounifi raises LoginRequired (401) or ResponseError (403/429).
-        # Neither is an aiohttp exception — catching the aiounifi base class
-        # stops the built-in retry loop before it hits the login rate limit
-        # and locks out all subsequent module syncs.
+        # aiounifi raises LoginRequired (401), NoPermission (403), or
+        # ResponseError (429) when the account lacks super-admin privileges
+        # or the login rate limit has been hit.
         logger.warning(
-            "UniFi admin listing unavailable (requires super-admin privileges or "
-            "hit login rate limit). Skipping admin sync: %s. "
+            "UniFi admin listing unavailable (requires super-admin privileges). "
+            "Skipping admin sync: %s. "
             "Grant super-admin access to the cartography service account to enable this.",
             exc,
         )
         return []
 
     admins = []
-    for admin in controller.admins.values():
+    for admin_raw in response.get("data", []):
         admins.append(
             {
-                "id": admin.raw["_id"],
-                "name": admin.raw.get("name"),
-                "email": admin.raw.get("email") or None,
-                "role": admin.raw.get("role"),
-                "is_super_admin": admin.raw.get("is_super_admin", False),
-                "last_site_name": admin.raw.get("last_site_name"),
+                "id": admin_raw.get("_id"),
+                "name": admin_raw.get("name"),
+                "email": admin_raw.get("email") or None,
+                "role": admin_raw.get("role"),
+                "is_super_admin": admin_raw.get("is_super_admin", False),
+                "last_site_name": admin_raw.get("last_site_name"),
             }
         )
     logger.debug("Fetched %d UniFi admins", len(admins))
