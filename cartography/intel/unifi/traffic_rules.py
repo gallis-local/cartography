@@ -52,6 +52,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "target_client_macs": target_client_macs or None,
             }
         )
+    logger.debug("Fetched %d UniFi traffic rules", len(traffic_rules))
     return traffic_rules
 
 
@@ -69,6 +70,7 @@ def load_traffic_rules(
     :param data: List of traffic rule data
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi traffic rules to the graph.", len(data))
     load(
         neo4j_session,
         UnifiTrafficRuleSchema(),
@@ -88,6 +90,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi traffic rule cleanup job")
     GraphJob.from_node_schema(UnifiTrafficRuleSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -98,14 +101,13 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi traffic rules.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of traffic rule data
     """
     site_id = common_job_parameters["site_id"]
     traffic_rules = await get(controller)
@@ -113,4 +115,3 @@ async def sync(
         neo4j_session, traffic_rules, site_id, common_job_parameters["UPDATE_TAG"]
     )
     cleanup(neo4j_session, common_job_parameters)
-    return traffic_rules

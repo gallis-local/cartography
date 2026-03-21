@@ -69,6 +69,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "ap_switch_mac": ap_switch_mac,
             }
         )
+    logger.debug("Fetched %d UniFi clients", len(clients))
     return clients
 
 
@@ -87,6 +88,7 @@ def load_clients(
     :param site_id: Site ID for the clients
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi clients to the graph.", len(data))
     load(
         neo4j_session,
         UnifiClientSchema(),
@@ -106,6 +108,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi client cleanup job")
     GraphJob.from_node_schema(UnifiClientSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -116,17 +119,15 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi clients.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of client data
     """
     site_id = common_job_parameters["site_id"]
     clients = await get(controller)
     load_clients(neo4j_session, clients, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
-    return clients

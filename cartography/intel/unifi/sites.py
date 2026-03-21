@@ -33,6 +33,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "role": getattr(site, "role", "admin"),
             }
         )
+    logger.debug("Fetched %d UniFi sites", len(sites))
     return sites
 
 
@@ -49,6 +50,7 @@ def load_sites(
     :param data: List of site data
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi sites to the graph.", len(data))
     load(
         neo4j_session,
         UnifiSiteSchema(),
@@ -72,6 +74,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi site cleanup job")
     neo4j_session.run(
         "MATCH (s:UnifiSite) WHERE s.lastupdated <> $UPDATE_TAG DETACH DELETE s",
         UPDATE_TAG=common_job_parameters["UPDATE_TAG"],
@@ -83,16 +86,14 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi sites.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of site data
     """
     sites = await get(controller)
     load_sites(neo4j_session, sites, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
-    return sites

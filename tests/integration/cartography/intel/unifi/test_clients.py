@@ -5,17 +5,25 @@ from unittest.mock import patch
 import pytest
 
 import cartography.intel.unifi.clients
+import cartography.intel.unifi.devices
 import cartography.intel.unifi.ports
 import cartography.intel.unifi.sites
 import cartography.intel.unifi.wlans
 import tests.data.unifi
-from tests.integration.cartography.intel.unifi.test_devices import (
-    _ensure_local_neo4j_has_test_devices,
-)
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
 TEST_UPDATE_TAG = 123456789
+
+
+def _ensure_local_neo4j_has_test_devices(neo4j_session):
+    """Load test UniFi devices into Neo4j."""
+    cartography.intel.unifi.devices.load_devices(
+        neo4j_session,
+        tests.data.unifi.UNIFI_DEVICES,
+        "default",  # site_id
+        TEST_UPDATE_TAG,
+    )
 
 
 def _ensure_local_neo4j_has_test_sites(neo4j_session):

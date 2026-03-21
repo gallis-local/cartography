@@ -39,6 +39,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "source": pf.source,
             }
         )
+    logger.debug("Fetched %d UniFi port forwards", len(port_forwards))
     return port_forwards
 
 
@@ -54,8 +55,10 @@ def load_port_forwards(
 
     :param neo4j_session: Neo4j session
     :param data: List of port forward data
+    :param site_id: Site ID for the port forwards
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi port forwards to the graph.", len(data))
     load(
         neo4j_session,
         UnifiPortForwardSchema(),
@@ -75,6 +78,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi port forward cleanup job")
     GraphJob.from_node_schema(UnifiPortForwardSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -85,14 +89,13 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi port forwards.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of port forward data
     """
     site_id = common_job_parameters["site_id"]
     port_forwards = await get(controller)
@@ -100,4 +103,3 @@ async def sync(
         neo4j_session, port_forwards, site_id, common_job_parameters["UPDATE_TAG"]
     )
     cleanup(neo4j_session, common_job_parameters)
-    return port_forwards

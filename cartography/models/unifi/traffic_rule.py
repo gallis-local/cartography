@@ -19,11 +19,9 @@ class UnifiTrafficRuleNodeProperties(CartographyNodeProperties):
     enabled: PropertyRef = PropertyRef("enabled")
     action: PropertyRef = PropertyRef("action")
     matching_target: PropertyRef = PropertyRef("matching_target")
-    # Bandwidth limit settings
     bandwidth_limit_enabled: PropertyRef = PropertyRef("bandwidth_limit_enabled")
     download_limit_kbps: PropertyRef = PropertyRef("download_limit_kbps")
     upload_limit_kbps: PropertyRef = PropertyRef("upload_limit_kbps")
-    # Matching criteria
     app_ids: PropertyRef = PropertyRef("app_ids")
     app_category_ids: PropertyRef = PropertyRef("app_category_ids")
     network_ids: PropertyRef = PropertyRef("network_ids")

@@ -3,6 +3,7 @@ import ssl
 
 import aiohttp
 from aiounifi.controller import Controller
+from aiounifi.errors import AiounifiException
 from aiounifi.models.configuration import Configuration
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ async def create_unifi_controller(
     controller = Controller(config)
     try:
         await controller.login()
-    except Exception:
+    except (AiounifiException, aiohttp.ClientError):
         await session.close()
         raise
 

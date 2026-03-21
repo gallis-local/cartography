@@ -35,6 +35,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "dpiapp_ids": group.dpiapp_ids or None,
             }
         )
+    logger.debug("Fetched %d UniFi DPI groups", len(dpi_groups))
     return dpi_groups
 
 
@@ -53,6 +54,7 @@ def load_dpi_groups(
     :param site_id: Site ID for the DPI groups
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi DPI groups to the graph.", len(data))
     load(
         neo4j_session,
         UnifiDPIGroupSchema(),
@@ -72,6 +74,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi DPI group cleanup job")
     GraphJob.from_node_schema(UnifiDPIGroupSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -82,14 +85,13 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi DPI groups.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of DPI group data
     """
     site_id = common_job_parameters["site_id"]
     dpi_groups = await get(controller)
@@ -97,4 +99,3 @@ async def sync(
         neo4j_session, dpi_groups, site_id, common_job_parameters["UPDATE_TAG"]
     )
     cleanup(neo4j_session, common_job_parameters)
-    return dpi_groups

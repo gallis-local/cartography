@@ -1,5 +1,42 @@
 ## UniFi Schema
 
+```mermaid
+graph LR
+    Site(UnifiSite) -- HAS_SYSTEM_INFO --> SysInfo(UnifiSystemInfo)
+
+    Site -- RESOURCE --> Dev(UnifiDevice)
+    Site -- RESOURCE --> Client(UnifiClient)
+    Site -- RESOURCE --> Wlan(UnifiWlan)
+    Site -- RESOURCE --> Port(UnifiPort)
+    Site -- RESOURCE --> PF(UnifiPortForward)
+    Site -- RESOURCE --> TR(UnifiTrafficRule)
+    Site -- RESOURCE --> TRoute(UnifiTrafficRoute)
+    Site -- RESOURCE --> DPIGroup(UnifiDPIGroup)
+    Site -- RESOURCE --> DPIApp(UnifiDPIApp)
+    Site -- RESOURCE --> FwPolicy(UnifiFirewallPolicy)
+    Site -- RESOURCE --> FwZone(UnifiFirewallZone)
+    Site -- RESOURCE --> Voucher(UnifiVoucher)
+    Site -- RESOURCE --> Admin(UnifiAdmin)
+
+    Dev -- UPLINK_TO --> Dev
+    Dev -- UPLINK_VIA_PORT --> Port
+    Dev -- BROADCASTS --> Wlan
+    Dev -- HAS_PORT --> Port
+    Client -- CONNECTED_TO_AP --> Dev
+    Client -- CONNECTED_TO_SWITCH --> Dev
+    Client -- UPLINKED_TO_SWITCH --> Dev
+    Client -- CONNECTED_TO_WLAN --> Wlan
+    Client -- CONNECTED_VIA --> Port
+
+    FwPolicy -- FROM_ZONE --> FwZone
+    FwPolicy -- TO_ZONE --> FwZone
+
+    DPIGroup -- CONTAINS_APP --> DPIApp
+    TR -- APPLIES_TO_APP --> DPIApp
+    TR -- APPLIES_TO_CLIENT --> Client
+    TRoute -- APPLIES_TO_CLIENT --> Client
+```
+
 ### UnifiSite
 
 Representation of a [UniFi site](https://help.ui.com/hc/en-us/articles/360012888634-UniFi-How-to-Set-Up-a-UniFi-Network-on-the-UniFi-OS-Console), the top-level organizational unit in a UniFi deployment.
@@ -8,7 +45,7 @@ Representation of a [UniFi site](https://help.ui.com/hc/en-us/articles/360012888
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | The site ID (e.g. `default`) |
+| **id** | The site ID (e.g. `default`) |
 | name | Human-readable site name |
 | desc | Site description |
 | role | Admin role for this site |
@@ -24,73 +61,73 @@ Representation of a [UniFi site](https://help.ui.com/hc/en-us/articles/360012888
 - A UnifiSite contains UnifiDevices
 
     ```
-    (UnifiDevice)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiDevice)
     ```
 
 - A UnifiSite contains UnifiClients
 
     ```
-    (UnifiClient)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiClient)
     ```
 
 - A UnifiSite contains UnifiWlans
 
     ```
-    (UnifiWlan)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiWlan)
     ```
 
 - A UnifiSite contains UnifiPorts
 
     ```
-    (UnifiPort)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiPort)
     ```
 
 - A UnifiSite contains UnifiPortForwards
 
     ```
-    (UnifiPortForward)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiPortForward)
     ```
 
 - A UnifiSite contains UnifiTrafficRules
 
     ```
-    (UnifiTrafficRule)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiTrafficRule)
     ```
 
 - A UnifiSite contains UnifiTrafficRoutes
 
     ```
-    (UnifiTrafficRoute)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiTrafficRoute)
     ```
 
 - A UnifiSite contains UnifiDPIGroups
 
     ```
-    (UnifiDPIGroup)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiDPIGroup)
     ```
 
 - A UnifiSite contains UnifiDPIApps
 
     ```
-    (UnifiDPIApp)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiDPIApp)
     ```
 
 - A UnifiSite contains UnifiFirewallPolicies
 
     ```
-    (UnifiFirewallPolicy)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiFirewallPolicy)
     ```
 
 - A UnifiSite contains UnifiFirewallZones
 
     ```
-    (UnifiFirewallZone)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiFirewallZone)
     ```
 
 - A UnifiSite contains UnifiVouchers
 
     ```
-    (UnifiVoucher)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiVoucher)
     ```
 
 ---
@@ -103,13 +140,13 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Device MAC address (used as unique identifier) |
+| **id** | Device MAC address (used as unique identifier) |
 | mac | Device MAC address |
 | adopted | Whether the device has been adopted by the controller |
 | type | Device type (e.g. `uap`, `usw`, `ugw`) |
 | model | Device model code (e.g. `U7PG2`, `US24P250`) |
 | name | Human-readable device name |
-| ip | Current IP address of the device |
+| **ip** | Current IP address of the device |
 | version | Firmware version string |
 | state | Device state (e.g. `CONNECTED`, `DISCONNECTED`, `UPGRADING`) |
 | uptime | Seconds since the device last rebooted |
@@ -124,7 +161,7 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
 - A UnifiDevice belongs to a UnifiSite
 
     ```
-    (UnifiDevice)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiDevice)
     ```
 
 - A UnifiDevice uplinks to another UnifiDevice
@@ -148,20 +185,25 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
 - A UnifiDevice has UnifiPorts
 
     ```
-    (UnifiPort)-[HAS_PORT]->(UnifiDevice)
+    (UnifiDevice)-[HAS_PORT]->(UnifiPort)
     ```
 
 - A wireless UnifiClient is connected to a UnifiDevice (access point)
 
     ```
-    (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_AP]->(UnifiDevice)
     ```
 
-- A UnifiClient is connected to a UnifiDevice (switch).
-  Wired clients connect directly; wireless clients connect via their AP's uplink switch.
+- A wired UnifiClient is connected to a UnifiDevice (switch) via `sw_mac`
 
     ```
-    (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_SWITCH]->(UnifiDevice)
+    ```
+
+- A wireless UnifiClient uplinks to a UnifiDevice (switch) via `ap_switch_mac`
+
+    ```
+    (UnifiClient)-[UPLINKED_TO_SWITCH]->(UnifiDevice)
     ```
 
 ---
@@ -174,9 +216,9 @@ Representation of a client currently connected to the UniFi network.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Client MAC address (used as unique identifier) |
+| **id** | Client MAC address (used as unique identifier) |
 | mac | Client MAC address |
-| ip | Current IP address of the client |
+| **ip** | Current IP address of the client |
 | hostname | Client hostname (from DHCP or mDNS) |
 | name | Human-readable alias set in the controller |
 | is_guest | Whether this is a guest network client |
@@ -200,34 +242,37 @@ Representation of a client currently connected to the UniFi network.
 - A UnifiClient belongs to a UnifiSite
 
     ```
-    (UnifiClient)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiClient)
     ```
 
-- A wireless UnifiClient is connected to its access point
+- A wireless UnifiClient is connected to its access point (AP)
 
     ```
-    (UnifiDevice)-[CONNECTED_TO_AP]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_AP]->(UnifiDevice)
     ```
 
-- All UnifiClients have a `CONNECTED_TO_SWITCH` relationship to the switch carrying their traffic.
-  For wired clients this is the directly connected switch (via `sw_mac`).
-  For wireless clients this is the switch the AP uplinks to (via `ap_switch_mac`).
-  This allows querying all clients on a switch with a single relationship type.
+- A wired UnifiClient is connected to a UnifiDevice (switch) via `sw_mac`
 
     ```
-    (UnifiDevice)-[CONNECTED_TO_SWITCH]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_SWITCH]->(UnifiDevice)
+    ```
+
+- A wireless UnifiClient uplinks to a UnifiDevice (switch) via `ap_switch_mac`
+
+    ```
+    (UnifiClient)-[UPLINKED_TO_SWITCH]->(UnifiDevice)
     ```
 
 - A wireless UnifiClient is connected to a UnifiWlan (matched by SSID name, scoped to site)
 
     ```
-    (UnifiWlan)-[CONNECTED_TO_WLAN]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_WLAN]->(UnifiWlan)
     ```
 
 - A wired UnifiClient connects via a specific UnifiPort
 
     ```
-    (UnifiPort)-[CONNECTED_VIA]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_VIA]->(UnifiPort)
     ```
 
 ---
@@ -240,8 +285,8 @@ Representation of a UniFi wireless network (SSID) configuration.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | WLAN unique ID |
-| name | SSID (network name) |
+| **id** | WLAN unique ID |
+| **name** | SSID (network name) |
 | enabled | Whether this WLAN is currently active |
 | is_guest | Whether this is a guest WLAN |
 | security | Security type (e.g. `wpapsk`, `open`) |
@@ -263,7 +308,7 @@ Representation of a UniFi wireless network (SSID) configuration.
 - A UnifiWlan belongs to a UnifiSite
 
     ```
-    (UnifiWlan)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiWlan)
     ```
 
 - A UnifiDevice (access point) broadcasts this UnifiWlan
@@ -275,7 +320,7 @@ Representation of a UniFi wireless network (SSID) configuration.
 - Wireless UnifiClients are connected to this UnifiWlan
 
     ```
-    (UnifiWlan)-[CONNECTED_TO_WLAN]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_TO_WLAN]->(UnifiWlan)
     ```
 
 ---
@@ -288,7 +333,7 @@ Representation of a physical switch port on a UniFi device.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Composite ID (`<device_mac>_<port_idx>`) |
+| **id** | Composite ID (`<device_mac>_<port_idx>`) |
 | port_idx | Port number on the device |
 | name | Port label/name |
 | port_poe | Whether this port supports PoE hardware |
@@ -305,19 +350,19 @@ Representation of a physical switch port on a UniFi device.
 - A UnifiPort belongs to a UnifiSite
 
     ```
-    (UnifiPort)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiPort)
     ```
 
 - A UnifiPort is a physical port on a UnifiDevice
 
     ```
-    (UnifiPort)-[HAS_PORT]->(UnifiDevice)
+    (UnifiDevice)-[HAS_PORT]->(UnifiPort)
     ```
 
 - A wired UnifiClient connects through this UnifiPort
 
     ```
-    (UnifiPort)-[CONNECTED_VIA]->(UnifiClient)
+    (UnifiClient)-[CONNECTED_VIA]->(UnifiPort)
     ```
 
 - A UnifiDevice uplinks to its upstream switch through this UnifiPort
@@ -336,7 +381,7 @@ Representation of a NAT port forwarding rule on the UniFi gateway.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Port forward rule unique ID |
+| **id** | Port forward rule unique ID |
 | name | Rule name |
 | enabled | Whether this rule is active |
 | destination_port | External destination port |
@@ -351,7 +396,7 @@ Representation of a NAT port forwarding rule on the UniFi gateway.
 - A UnifiPortForward belongs to a UnifiSite
 
     ```
-    (UnifiPortForward)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiPortForward)
     ```
 
 ---
@@ -364,7 +409,7 @@ Representation of a UniFi traffic management rule (QoS, blocking, application co
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Rule unique ID |
+| **id** | Rule unique ID |
 | description | Human-readable rule description |
 | enabled | Whether this rule is active |
 | action | Rule action (`BLOCK`, `ALLOW`) |
@@ -383,7 +428,7 @@ Representation of a UniFi traffic management rule (QoS, blocking, application co
 - A UnifiTrafficRule belongs to a UnifiSite
 
     ```
-    (UnifiTrafficRule)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiTrafficRule)
     ```
 
 - A UnifiTrafficRule targets specific UnifiDPIApps
@@ -408,7 +453,7 @@ Representation of a policy-based routing rule on the UniFi gateway.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Route unique ID |
+| **id** | Route unique ID |
 | description | Human-readable route description |
 | enabled | Whether this route is active |
 | matching_target | Matching target type (e.g. `IP`, `DOMAIN`, `REGION`) |
@@ -423,7 +468,7 @@ Representation of a policy-based routing rule on the UniFi gateway.
 - A UnifiTrafficRoute belongs to a UnifiSite
 
     ```
-    (UnifiTrafficRoute)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiTrafficRoute)
     ```
 
 - A UnifiTrafficRoute targets specific UnifiClients
@@ -442,7 +487,7 @@ Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | DPI group unique ID |
+| **id** | DPI group unique ID |
 | name | Group name |
 | attr_no_delete | Whether this group cannot be deleted (built-in) |
 | attr_hidden_id | Internal hidden ID for built-in groups |
@@ -453,19 +498,13 @@ Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 - A UnifiDPIGroup belongs to a UnifiSite
 
     ```
-    (UnifiDPIGroup)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiDPIGroup)
     ```
 
 - A UnifiDPIGroup contains UnifiDPIApps
 
     ```
     (UnifiDPIGroup)-[CONTAINS_APP]->(UnifiDPIApp)
-    ```
-
-- A UnifiDPIApp is a member of a UnifiDPIGroup
-
-    ```
-    (UnifiDPIApp)-[MEMBER_OF]->(UnifiDPIGroup)
     ```
 
 ---
@@ -478,24 +517,17 @@ Representation of a Deep Packet Inspection (DPI) application restriction in UniF
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | DPI application unique ID |
+| **id** | DPI application unique ID |
 | blocked | Whether this application is blocked |
 | enabled | Whether this DPI restriction is active |
 | log | Whether matching traffic is logged |
-| dpi_group_ids | List of DPI group IDs this app belongs to |
 
 #### Relationships
 
 - A UnifiDPIApp belongs to a UnifiSite
 
     ```
-    (UnifiDPIApp)-[RESOURCE]->(UnifiSite)
-    ```
-
-- A UnifiDPIApp is a member of a UnifiDPIGroup
-
-    ```
-    (UnifiDPIApp)-[MEMBER_OF]->(UnifiDPIGroup)
+    (UnifiSite)-[RESOURCE]->(UnifiDPIApp)
     ```
 
 - A UnifiDPIGroup contains this UnifiDPIApp
@@ -520,7 +552,7 @@ Representation of a firewall policy rule in UniFi.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Policy unique ID |
+| **id** | Policy unique ID |
 | name | Policy name |
 | description | Policy description |
 | enabled | Whether this policy is active |
@@ -539,7 +571,7 @@ Representation of a firewall policy rule in UniFi.
 - A UnifiFirewallPolicy belongs to a UnifiSite
 
     ```
-    (UnifiFirewallPolicy)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiFirewallPolicy)
     ```
 
 - A UnifiFirewallPolicy originates from a source UnifiFirewallZone
@@ -564,8 +596,8 @@ Representation of a network security zone in UniFi.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Zone unique ID |
-| name | Zone name (e.g. `LAN`, `WAN`, `Guest`) |
+| **id** | Zone unique ID |
+| **name** | Zone name (e.g. `LAN`, `WAN`, `Guest`) |
 | attr_no_edit | Whether this zone cannot be edited (built-in) |
 | default_zone | Whether this is a default built-in zone |
 | zone_key | Internal zone key (e.g. `lan`, `wan`) |
@@ -577,7 +609,7 @@ Representation of a network security zone in UniFi.
 - A UnifiFirewallZone belongs to a UnifiSite
 
     ```
-    (UnifiFirewallZone)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiFirewallZone)
     ```
 
 - UnifiFirewallPolicies reference this zone as their source
@@ -602,8 +634,8 @@ Representation of UniFi controller metadata and version information.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Unique controller ID |
-| anonymous_controller_id | Anonymous UUID for the controller |
+| **id** | Unique controller ID |
+| **anonymous_controller_id** | Anonymous UUID for the controller |
 | hostname | Controller hostname |
 | name | Controller display name |
 | version | Current software version |
@@ -631,8 +663,8 @@ Representation of a guest network hotspot voucher in UniFi.
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
 | lastupdated | Timestamp of the last time the node was updated |
-| id | Voucher unique ID |
-| code | The voucher code (indexed for quick lookup) |
+| **id** | Voucher unique ID |
+| **code** | The voucher code (indexed for quick lookup) |
 | note | Optional note attached to this voucher |
 | quota | Maximum number of uses (0 = unlimited) |
 | duration | Session duration in minutes |
@@ -654,5 +686,5 @@ Representation of a guest network hotspot voucher in UniFi.
 - A UnifiVoucher belongs to a UnifiSite
 
     ```
-    (UnifiVoucher)-[RESOURCE]->(UnifiSite)
+    (UnifiSite)-[RESOURCE]->(UnifiVoucher)
     ```

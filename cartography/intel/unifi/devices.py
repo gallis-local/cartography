@@ -64,7 +64,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "wlan_ids": list(wlan_id_set) or None,
             }
         )
-    logger.info("Fetched %d UniFi devices", len(devices))
+    logger.debug("Fetched %d UniFi devices", len(devices))
     return devices
 
 
@@ -83,6 +83,7 @@ def load_devices(
     :param site_id: Site ID for the devices
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi devices to the graph.", len(data))
     load(
         neo4j_session,
         UnifiDeviceSchema(),
@@ -102,6 +103,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi device cleanup job")
     GraphJob.from_node_schema(UnifiDeviceSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -112,17 +114,15 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi devices.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of device data
     """
     site_id = common_job_parameters["site_id"]
     devices = await get(controller)
     load_devices(neo4j_session, devices, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
-    return devices

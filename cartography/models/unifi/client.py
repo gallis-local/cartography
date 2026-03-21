@@ -18,7 +18,7 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     is_guest: PropertyRef = PropertyRef("is_guest")
     mac: PropertyRef = PropertyRef("mac")
-    ip: PropertyRef = PropertyRef("ip")
+    ip: PropertyRef = PropertyRef("ip", extra_index=True)
     oui: PropertyRef = PropertyRef("oui")
     satisfaction: PropertyRef = PropertyRef("satisfaction")
     channel: PropertyRef = PropertyRef("channel")

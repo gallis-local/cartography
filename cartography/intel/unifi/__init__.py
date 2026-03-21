@@ -52,6 +52,7 @@ async def _sync_unifi(
     # Default to 'default' if no site is configured — passing None to aiounifi
     # would produce URLs like /api/s/None/... causing 401s.
     site = site or "default"
+    logger.info("Starting UniFi ingestion for host %s, site %s", host, site)
 
     controller = None
     try:
@@ -78,195 +79,113 @@ async def _sync_unifi(
             "site_id": site_id,
         }
 
-        # Sync in hierarchical order. Each module is wrapped in try/except
-        # so that a failure in one module does not block the rest of the sync.
-        failed_modules: list[str] = []
-
+        # Sync in hierarchical order.
         # 1. Sites (top level organization) — required by all other modules
-        try:
-            await cartography.intel.unifi.sites.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi sites — aborting remaining modules.")
-            raise
+        await cartography.intel.unifi.sites.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 2. WLANs — must come BEFORE devices so BROADCASTS relationships resolve on first run
-        try:
-            await cartography.intel.unifi.wlans.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi WLANs.")
-            failed_modules.append("wlans")
+        await cartography.intel.unifi.wlans.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 3. Devices (belong to sites, reference WLANs via BROADCASTS)
-        try:
-            await cartography.intel.unifi.devices.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi devices.")
-            failed_modules.append("devices")
+        await cartography.intel.unifi.devices.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 4. Ports (belong to devices)
-        if "devices" not in failed_modules:
-            try:
-                await cartography.intel.unifi.ports.sync(
-                    neo4j_session,
-                    controller,
-                    common_job_parameters,
-                )
-            except Exception:
-                logger.exception("Failed to sync UniFi ports.")
-                failed_modules.append("ports")
-        else:
-            logger.warning("Skipping UniFi ports sync because devices sync failed.")
+        await cartography.intel.unifi.ports.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 5. Clients (connect to devices and WLANs)
-        if "devices" not in failed_modules:
-            try:
-                await cartography.intel.unifi.clients.sync(
-                    neo4j_session,
-                    controller,
-                    common_job_parameters,
-                )
-            except Exception:
-                logger.exception("Failed to sync UniFi clients.")
-                failed_modules.append("clients")
-        else:
-            logger.warning("Skipping UniFi clients sync because devices sync failed.")
+        await cartography.intel.unifi.clients.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 6. Port forwards
-        try:
-            await cartography.intel.unifi.port_forwards.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi port forwards.")
-            failed_modules.append("port_forwards")
+        await cartography.intel.unifi.port_forwards.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 7. Traffic rules
-        try:
-            await cartography.intel.unifi.traffic_rules.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi traffic rules.")
-            failed_modules.append("traffic_rules")
+        await cartography.intel.unifi.traffic_rules.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 8. Traffic routes
-        try:
-            await cartography.intel.unifi.traffic_routes.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi traffic routes.")
-            failed_modules.append("traffic_routes")
+        await cartography.intel.unifi.traffic_routes.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 9. DPI apps — must come BEFORE DPI groups (groups reference app IDs)
-        try:
-            await cartography.intel.unifi.dpi_apps.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi DPI apps.")
-            failed_modules.append("dpi_apps")
+        await cartography.intel.unifi.dpi_apps.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 10. DPI groups (depend on DPI apps)
-        if "dpi_apps" not in failed_modules:
-            try:
-                await cartography.intel.unifi.dpi_groups.sync(
-                    neo4j_session,
-                    controller,
-                    common_job_parameters,
-                )
-            except Exception:
-                logger.exception("Failed to sync UniFi DPI groups.")
-                failed_modules.append("dpi_groups")
-        else:
-            logger.warning("Skipping UniFi DPI groups sync because DPI apps sync failed.")
+        await cartography.intel.unifi.dpi_groups.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 11. Firewall zones — must come BEFORE firewall policies
-        try:
-            await cartography.intel.unifi.firewall_zones.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi firewall zones.")
-            failed_modules.append("firewall_zones")
+        await cartography.intel.unifi.firewall_zones.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 12. Firewall policies (depend on firewall zones)
-        if "firewall_zones" not in failed_modules:
-            try:
-                await cartography.intel.unifi.firewall_policies.sync(
-                    neo4j_session,
-                    controller,
-                    common_job_parameters,
-                )
-            except Exception:
-                logger.exception("Failed to sync UniFi firewall policies.")
-                failed_modules.append("firewall_policies")
-        else:
-            logger.warning(
-                "Skipping UniFi firewall policies sync because firewall zones sync failed.",
-            )
+        await cartography.intel.unifi.firewall_policies.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 13. System information
-        try:
-            await cartography.intel.unifi.system_info.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi system info.")
-            failed_modules.append("system_info")
+        await cartography.intel.unifi.system_info.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
         # 14. Vouchers
-        try:
-            await cartography.intel.unifi.vouchers.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi vouchers.")
-            failed_modules.append("vouchers")
+        await cartography.intel.unifi.vouchers.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
-        # 15. Admins — last; requires super-admin privileges and failure must not
-        # break the session for other modules (aiounifi retries on 401 => 429 lockout)
-        try:
-            await cartography.intel.unifi.admins.sync(
-                neo4j_session,
-                controller,
-                common_job_parameters,
-            )
-        except Exception:
-            logger.exception("Failed to sync UniFi admins.")
-            failed_modules.append("admins")
+        # 15. Admins (requires super-admin privileges; returns empty list gracefully if not available)
+        await cartography.intel.unifi.admins.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
 
-        if failed_modules:
-            logger.error(
-                "UniFi sync completed with failures in: %s",
-                ", ".join(failed_modules),
-            )
+        logger.info("Completed UniFi ingestion for host %s, site %s", host, site)
 
     finally:
         if controller:
