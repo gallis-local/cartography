@@ -6,8 +6,6 @@ Syncs API tokens for user authentication.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -22,7 +20,7 @@ logger = logging.getLogger(__name__)
 def get_tokens_for_user(
     proxmox_client: Any,
     userid: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get API tokens for a specific user.
 
@@ -38,8 +36,8 @@ def get_tokens_for_user(
 
 def get_all_tokens(
     proxmox_client: Any,
-    users: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    users: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Get all API tokens across all users.
 
@@ -67,9 +65,9 @@ def get_all_tokens(
 
 
 def transform_token_data(
-    tokens: List[Dict[str, Any]],
+    tokens: list[dict[str, Any]],
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform API token data into standard format.
 
@@ -102,7 +100,7 @@ def transform_token_data(
 
 def load_tokens(
     neo4j_session: neo4j.Session,
-    tokens: List[Dict[str, Any]],
+    tokens: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -122,7 +120,6 @@ def load_tokens(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -130,8 +127,8 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
-    users: List[Dict[str, Any]],
+    common_job_parameters: dict[str, Any],
+    users: list[dict[str, Any]],
 ) -> None:
     """
     Sync API tokens for all users.
@@ -155,7 +152,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
     """
     Remove stale API token data.
 

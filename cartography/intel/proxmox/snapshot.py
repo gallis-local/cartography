@@ -6,8 +6,6 @@ Syncs VM and container snapshots.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -24,7 +22,7 @@ def get_snapshots_for_vm(
     node_name: str,
     vmid: int,
     vm_type: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get snapshots for a specific VM or container.
 
@@ -55,8 +53,8 @@ def get_snapshots_for_vm(
 
 def get_all_snapshots(
     proxmox_client: Any,
-    vms: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    vms: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Get all snapshots across all VMs and containers.
 
@@ -89,9 +87,9 @@ def get_all_snapshots(
 
 
 def transform_snapshot_data(
-    snapshots: List[Dict[str, Any]],
+    snapshots: list[dict[str, Any]],
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform snapshot data into standard format.
 
@@ -129,7 +127,7 @@ def transform_snapshot_data(
 
 def load_snapshots(
     neo4j_session: neo4j.Session,
-    snapshots: List[Dict[str, Any]],
+    snapshots: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -149,7 +147,6 @@ def load_snapshots(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -157,8 +154,8 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
-    vms: List[Dict[str, Any]],
+    common_job_parameters: dict[str, Any],
+    vms: list[dict[str, Any]],
 ) -> None:
     """
     Sync VM and container snapshots.
@@ -182,7 +179,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
     """
     Remove stale snapshot data.
 

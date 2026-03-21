@@ -4,8 +4,6 @@ Sync Proxmox clusters and nodes.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_cluster_status(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_cluster_status(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get cluster status information.
 
@@ -31,7 +29,7 @@ def get_cluster_status(proxmox_client: Any) -> List[Dict[str, Any]]:
     return proxmox_client.cluster.status.get()
 
 @timeit
-def get_nodes(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_nodes(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all nodes in the cluster.
 
@@ -42,7 +40,7 @@ def get_nodes(proxmox_client: Any) -> List[Dict[str, Any]]:
     return proxmox_client.nodes.get()
 
 @timeit
-def get_node_status(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
+def get_node_status(proxmox_client: Any, node_name: str) -> dict[str, Any]:
     """
     Get detailed status for a specific node.
 
@@ -54,7 +52,7 @@ def get_node_status(proxmox_client: Any, node_name: str) -> Dict[str, Any]:
     return proxmox_client.nodes(node_name).status.get()
 
 @timeit
-def get_node_network(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
+def get_node_network(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
     Get network interface configuration for a specific node.
 
@@ -66,7 +64,7 @@ def get_node_network(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]
     return proxmox_client.nodes(node_name).network.get()
 
 @timeit
-def get_cluster_options(proxmox_client: Any) -> Dict[str, Any]:
+def get_cluster_options(proxmox_client: Any) -> dict[str, Any]:
     """
     Get cluster-wide configuration options.
 
@@ -77,7 +75,7 @@ def get_cluster_options(proxmox_client: Any) -> Dict[str, Any]:
     return proxmox_client.cluster.options.get()
 
 @timeit
-def get_cluster_resources(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_cluster_resources(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get cluster resource summary.
 
@@ -101,9 +99,9 @@ def get_cluster_config(proxmox_client: Any) -> Any:
 
 
 def transform_cluster_data(
-    cluster_status: List[Dict[str, Any]],
+    cluster_status: list[dict[str, Any]],
     proxmox_host: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Transform cluster status data into standard format.
 
@@ -152,7 +150,7 @@ def transform_cluster_data(
         "cluster_id": cluster_info.get("id"),  # Internal cluster ID from API
     }
 
-def transform_cluster_options(cluster_options: Dict[str, Any]) -> Dict[str, Any]:
+def transform_cluster_options(cluster_options: dict[str, Any]) -> dict[str, Any]:
     """
     Transform cluster options into additional metadata fields.
 
@@ -193,7 +191,7 @@ def transform_cluster_options(cluster_options: Dict[str, Any]) -> Dict[str, Any]
         ),
     }
 
-def transform_cluster_config(cluster_config: Any) -> Dict[str, Any]:
+def transform_cluster_config(cluster_config: Any) -> dict[str, Any]:
     """
     Transform cluster configuration (corosync) into metadata fields.
 
@@ -228,8 +226,8 @@ def transform_cluster_config(cluster_config: Any) -> Dict[str, Any]:
     }
 
 def transform_node_data(
-    nodes: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    nodes: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform node data into standard format.
 
@@ -283,10 +281,10 @@ def transform_node_data(
     return transformed_nodes
 
 def transform_node_network_data(
-    network_interfaces: List[Dict[str, Any]],
+    network_interfaces: list[dict[str, Any]],
     node_name: str,
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform node network interface data into standard format.
 
@@ -302,7 +300,7 @@ def transform_node_network_data(
     :return: List of transformed network interface dicts (one per iface name)
     """
     # Ordered dict keyed by iface_id to deduplicate and merge dual-stack entries
-    merged: Dict[str, Dict[str, Any]] = {}
+    merged: dict[str, dict[str, Any]] = {}
 
     full_node_id = f"{cluster_id}/node/{node_name}"
 
@@ -349,7 +347,7 @@ def transform_node_network_data(
 
 
 def load_cluster(
-    neo4j_session: neo4j.Session, cluster_data: Dict[str, Any], update_tag: int
+    neo4j_session: neo4j.Session, cluster_data: dict[str, Any], update_tag: int
 ) -> None:
     """
     Load cluster data into Neo4j using modern data model.
@@ -367,7 +365,7 @@ def load_cluster(
 
 def load_nodes(
     neo4j_session: neo4j.Session,
-    nodes: List[Dict[str, Any]],
+    nodes: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -389,7 +387,7 @@ def load_nodes(
 
 def load_node_networks(
     neo4j_session: neo4j.Session,
-    network_interfaces: List[Dict[str, Any]],
+    network_interfaces: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -403,8 +401,6 @@ def load_node_networks(
     """
     if not network_interfaces:
         return
-
-    from cartography.models.proxmox.cluster import ProxmoxNodeNetworkInterfaceSchema
 
     load(
         neo4j_session,
@@ -421,8 +417,8 @@ def sync(
     proxmox_client: Any,
     proxmox_host: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
-) -> Dict[str, Any]:
+    common_job_parameters: dict[str, Any],
+) -> dict[str, Any]:
     """
     Sync cluster and node data.
     Cleanup is handled in separate cleanup job.
@@ -486,7 +482,7 @@ def sync(
     return {"cluster_id": cluster_data["id"]}
 
 def cleanup(
-    neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
 ) -> None:
     """
     Remove stale cluster, node, and network interface data.
