@@ -7,8 +7,6 @@ controllers, and IPAM configurations.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -24,7 +22,7 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 @timeit
-def get_sdn_zones(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_sdn_zones(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all SDN zones from the cluster.
 
@@ -38,7 +36,7 @@ def get_sdn_zones(proxmox_client: Any) -> List[Dict[str, Any]]:
         return []
 
 @timeit
-def get_sdn_vnets(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_sdn_vnets(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all SDN VNets from the cluster.
 
@@ -52,7 +50,7 @@ def get_sdn_vnets(proxmox_client: Any) -> List[Dict[str, Any]]:
         return []
 
 @timeit
-def get_sdn_subnets(proxmox_client: Any, vnet: str) -> List[Dict[str, Any]]:
+def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
     """
     Get all subnets for a specific VNet.
 
@@ -67,7 +65,7 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> List[Dict[str, Any]]:
         return []
 
 @timeit
-def get_sdn_controllers(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_sdn_controllers(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all SDN controllers from the cluster.
 
@@ -81,7 +79,7 @@ def get_sdn_controllers(proxmox_client: Any) -> List[Dict[str, Any]]:
         return []
 
 @timeit
-def get_sdn_ipams(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_sdn_ipams(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all SDN IPAM configurations from the cluster.
 
@@ -96,8 +94,8 @@ def get_sdn_ipams(proxmox_client: Any) -> List[Dict[str, Any]]:
 
 @timeit
 def transform_sdn_zones(
-    zones_data: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    zones_data: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform SDN zone data to match ProxmoxSDNZoneSchema.
 
@@ -137,8 +135,8 @@ def transform_sdn_zones(
 
 @timeit
 def transform_sdn_vnets(
-    vnets_data: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    vnets_data: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform SDN VNet data to match ProxmoxSDNVNetSchema.
 
@@ -168,8 +166,8 @@ def transform_sdn_vnets(
 
 @timeit
 def transform_sdn_subnets(
-    subnets_data: List[Dict[str, Any]], vnet_id: str, cluster_id: str
-) -> List[Dict[str, Any]]:
+    subnets_data: list[dict[str, Any]], vnet_id: str, cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform SDN subnet data to match ProxmoxSDNSubnetSchema.
 
@@ -203,8 +201,8 @@ def transform_sdn_subnets(
 
 @timeit
 def transform_sdn_controllers(
-    controllers_data: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    controllers_data: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform SDN controller data to match ProxmoxSDNControllerSchema.
 
@@ -236,8 +234,8 @@ def transform_sdn_controllers(
 
 @timeit
 def transform_sdn_ipams(
-    ipams_data: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    ipams_data: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform SDN IPAM data to match ProxmoxSDNIPAMSchema.
 
@@ -268,9 +266,9 @@ def transform_sdn_ipams(
 @timeit
 def load_sdn_zones(
     neo4j_session: neo4j.Session,
-    zones: List[Dict[str, Any]],
+    zones: list[dict[str, Any]],
     cluster_id: str,
-    proxmox_update_tag: int,
+    update_tag: int,
 ) -> None:
     """
     Load SDN zones into Neo4j.
@@ -278,22 +276,22 @@ def load_sdn_zones(
     :param neo4j_session: Neo4j session
     :param zones: Transformed zone data
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     load(
         neo4j_session,
         ProxmoxSDNZoneSchema(),
         zones,
-        lastupdated=proxmox_update_tag,
+        lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
 
 @timeit
 def load_sdn_vnets(
     neo4j_session: neo4j.Session,
-    vnets: List[Dict[str, Any]],
+    vnets: list[dict[str, Any]],
     cluster_id: str,
-    proxmox_update_tag: int,
+    update_tag: int,
 ) -> None:
     """
     Load SDN VNets into Neo4j.
@@ -301,22 +299,22 @@ def load_sdn_vnets(
     :param neo4j_session: Neo4j session
     :param vnets: Transformed VNet data
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     load(
         neo4j_session,
         ProxmoxSDNVNetSchema(),
         vnets,
-        lastupdated=proxmox_update_tag,
+        lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
 
 @timeit
 def load_sdn_subnets(
     neo4j_session: neo4j.Session,
-    subnets: List[Dict[str, Any]],
+    subnets: list[dict[str, Any]],
     cluster_id: str,
-    proxmox_update_tag: int,
+    update_tag: int,
 ) -> None:
     """
     Load SDN subnets into Neo4j.
@@ -324,22 +322,22 @@ def load_sdn_subnets(
     :param neo4j_session: Neo4j session
     :param subnets: Transformed subnet data
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     load(
         neo4j_session,
         ProxmoxSDNSubnetSchema(),
         subnets,
-        lastupdated=proxmox_update_tag,
+        lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
 
 @timeit
 def load_sdn_controllers(
     neo4j_session: neo4j.Session,
-    controllers: List[Dict[str, Any]],
+    controllers: list[dict[str, Any]],
     cluster_id: str,
-    proxmox_update_tag: int,
+    update_tag: int,
 ) -> None:
     """
     Load SDN controllers into Neo4j.
@@ -347,22 +345,22 @@ def load_sdn_controllers(
     :param neo4j_session: Neo4j session
     :param controllers: Transformed controller data
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     load(
         neo4j_session,
         ProxmoxSDNControllerSchema(),
         controllers,
-        lastupdated=proxmox_update_tag,
+        lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
 
 @timeit
 def load_sdn_ipams(
     neo4j_session: neo4j.Session,
-    ipams: List[Dict[str, Any]],
+    ipams: list[dict[str, Any]],
     cluster_id: str,
-    proxmox_update_tag: int,
+    update_tag: int,
 ) -> None:
     """
     Load SDN IPAMs into Neo4j.
@@ -370,23 +368,23 @@ def load_sdn_ipams(
     :param neo4j_session: Neo4j session
     :param ipams: Transformed IPAM data
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     load(
         neo4j_session,
         ProxmoxSDNIPAMSchema(),
         ipams,
-        lastupdated=proxmox_update_tag,
+        lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
 
 @timeit
-def sync_sdn(
+def sync(
     neo4j_session: neo4j.Session,
     proxmox_client: Any,
     cluster_id: str,
-    proxmox_update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    update_tag: int,
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync all SDN resources for a Proxmox cluster.
@@ -394,19 +392,19 @@ def sync_sdn(
     :param neo4j_session: Neo4j session
     :param proxmox_client: Proxmoxer API client
     :param cluster_id: Cluster identifier
-    :param proxmox_update_tag: Update tag for cleanup
+    :param update_tag: Update tag for cleanup
     """
     logger.info(f"Syncing SDN resources for cluster {cluster_id}")
 
     # Sync SDN zones
     zones_data = get_sdn_zones(proxmox_client)
     zones = transform_sdn_zones(zones_data, cluster_id)
-    load_sdn_zones(neo4j_session, zones, cluster_id, proxmox_update_tag)
+    load_sdn_zones(neo4j_session, zones, cluster_id, update_tag)
 
     # Sync SDN VNets
     vnets_data = get_sdn_vnets(proxmox_client)
     vnets = transform_sdn_vnets(vnets_data, cluster_id)
-    load_sdn_vnets(neo4j_session, vnets, cluster_id, proxmox_update_tag)
+    load_sdn_vnets(neo4j_session, vnets, cluster_id, update_tag)
 
     # Sync SDN subnets (for each VNet)
     all_subnets = []
@@ -416,28 +414,28 @@ def sync_sdn(
             subnets_data = get_sdn_subnets(proxmox_client, vnet_id)
             subnets = transform_sdn_subnets(subnets_data, vnet_id, cluster_id)
             all_subnets.extend(subnets)
-    load_sdn_subnets(neo4j_session, all_subnets, cluster_id, proxmox_update_tag)
+    load_sdn_subnets(neo4j_session, all_subnets, cluster_id, update_tag)
 
     # Sync SDN controllers
     controllers_data = get_sdn_controllers(proxmox_client)
     controllers = transform_sdn_controllers(controllers_data, cluster_id)
-    load_sdn_controllers(neo4j_session, controllers, cluster_id, proxmox_update_tag)
+    load_sdn_controllers(neo4j_session, controllers, cluster_id, update_tag)
 
     # Sync SDN IPAMs
     ipams_data = get_sdn_ipams(proxmox_client)
     ipams = transform_sdn_ipams(ipams_data, cluster_id)
-    load_sdn_ipams(neo4j_session, ipams, cluster_id, proxmox_update_tag)
+    load_sdn_ipams(neo4j_session, ipams, cluster_id, update_tag)
 
     logger.info(
         f"Synced {len(zones)} zones, {len(vnets)} VNets, {len(all_subnets)} subnets, "
         f"{len(controllers)} controllers, {len(ipams)} IPAMs"
     )
 
-    cleanup_sdn(neo4j_session, common_job_parameters)
+    cleanup(neo4j_session, common_job_parameters)
 
-def cleanup_sdn(
+def cleanup(
     neo4j_session: neo4j.Session,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Remove stale SDN data.

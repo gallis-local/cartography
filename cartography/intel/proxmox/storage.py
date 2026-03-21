@@ -4,8 +4,6 @@ Sync Proxmox storage resources.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_storage(proxmox_client: Any) -> List[Dict[str, Any]]:
+def get_storage(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     Get all storage definitions from Proxmox.
 
@@ -31,7 +29,7 @@ def get_storage(proxmox_client: Any) -> List[Dict[str, Any]]:
     return proxmox_client.storage.get()
 
 @timeit
-def get_storage_status(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
+def get_storage_status(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
     Get storage status for a specific node.
 
@@ -44,10 +42,10 @@ def get_storage_status(proxmox_client: Any, node_name: str) -> List[Dict[str, An
 
 
 def transform_storage_data(
-    storage_list: List[Dict[str, Any]],
-    storage_status_map: Dict[str, List[Dict[str, Any]]],
+    storage_list: list[dict[str, Any]],
+    storage_status_map: dict[str, list[dict[str, Any]]],
     cluster_id: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Transform storage data into standard format.
 
@@ -109,7 +107,7 @@ def transform_storage_data(
 
 def load_storage(
     neo4j_session: neo4j.Session,
-    storage_list: List[Dict[str, Any]],
+    storage_list: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -131,7 +129,7 @@ def load_storage(
 
 def load_storage_node_relationships(
     neo4j_session: neo4j.Session,
-    storage_list: List[Dict[str, Any]],
+    storage_list: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -172,7 +170,6 @@ def load_storage_node_relationships(
         _sub_resource_id=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -180,7 +177,7 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Sync storage resources.
@@ -219,7 +216,7 @@ def sync(
 
 def cleanup(
     neo4j_session: neo4j.Session,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
     cluster_id: str,
     update_tag: int,
 ) -> None:

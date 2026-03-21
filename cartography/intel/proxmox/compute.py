@@ -4,8 +4,6 @@ Sync Proxmox VMs and LXC containers.
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 import neo4j
 
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-def get_vms_for_node(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]]:
+def get_vms_for_node(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
     Get all QEMU VMs on a node.
 
@@ -38,7 +36,7 @@ def get_vms_for_node(proxmox_client: Any, node_name: str) -> List[Dict[str, Any]
 @timeit
 def get_containers_for_node(
     proxmox_client: Any, node_name: str
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get all LXC containers on a node.
 
@@ -56,7 +54,7 @@ def get_containers_for_node(
 @timeit
 def get_vm_config(
     proxmox_client: Any, node_name: str, vmid: int, vm_type: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get detailed configuration for a VM or container.
 
@@ -75,7 +73,7 @@ def get_vm_config(
 @timeit
 def get_guest_agent_info(
     proxmox_client: Any, node_name: str, vmid: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get guest agent information for a VM.
 
@@ -89,7 +87,7 @@ def get_guest_agent_info(
     """
     from proxmoxer.core import ResourceException
 
-    guest_data: Dict[str, Any] = {}
+    guest_data: dict[str, Any] = {}
 
     try:
         # Get OS information
@@ -139,8 +137,8 @@ def get_guest_agent_info(
 
 
 def transform_vm_data(
-    vms: List[Dict[str, Any]], cluster_id: str
-) -> List[Dict[str, Any]]:
+    vms: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
     """
     Transform VM and container data into standard format.
 
@@ -235,7 +233,7 @@ def transform_vm_data(
 
     return transformed_vms
 
-def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, Any]]:
+def extract_disk_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str, Any]]:
     """
     Extract disk configurations from VM config.
 
@@ -398,7 +396,7 @@ def extract_disk_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, An
 
     return disks
 
-def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str, Any]]:
+def extract_network_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str, Any]]:
     """
     Extract network interface configurations from VM config.
 
@@ -492,8 +490,8 @@ def extract_network_data(vm_config: Dict[str, Any], vmid: str) -> List[Dict[str,
     return interfaces
 
 def enrich_interfaces_with_guest_data(
-    interfaces: List[Dict[str, Any]],
-    guest_network_interfaces: List[Dict[str, Any]],
+    interfaces: list[dict[str, Any]],
+    guest_network_interfaces: list[dict[str, Any]],
 ) -> None:
     """
     Enrich configured network interfaces with actual IP addresses from guest agent.
@@ -507,7 +505,7 @@ def enrich_interfaces_with_guest_data(
         return
 
     # Build a map of MAC address to guest interface data
-    guest_ifaces_by_mac: Dict[str, Dict[str, Any]] = {}
+    guest_ifaces_by_mac: dict[str, dict[str, Any]] = {}
     for guest_iface in guest_network_interfaces:
         mac = guest_iface.get("hardware-address", "").lower()
         if mac:
@@ -550,7 +548,7 @@ def enrich_interfaces_with_guest_data(
 
 def load_vms(
     neo4j_session: neo4j.Session,
-    vms: List[Dict[str, Any]],
+    vms: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -572,7 +570,7 @@ def load_vms(
 
 def load_disks(
     neo4j_session: neo4j.Session,
-    disks: List[Dict[str, Any]],
+    disks: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -597,7 +595,7 @@ def load_disks(
 
 def load_network_interfaces(
     neo4j_session: neo4j.Session,
-    interfaces: List[Dict[str, Any]],
+    interfaces: list[dict[str, Any]],
     cluster_id: str,
     update_tag: int,
 ) -> None:
@@ -620,7 +618,6 @@ def load_network_interfaces(
         CLUSTER_ID=cluster_id,
     )
 
-# SYNC function
 
 @timeit
 def sync(
@@ -628,9 +625,9 @@ def sync(
     proxmox_client: Any,
     cluster_id: str,
     update_tag: int,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
     enable_guest_agent: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Sync VM and container compute resources.
 
@@ -781,7 +778,7 @@ def sync(
 
 def cleanup(
     neo4j_session: neo4j.Session,
-    common_job_parameters: Dict[str, Any],
+    common_job_parameters: dict[str, Any],
 ) -> None:
     """
     Remove stale compute resource data.
