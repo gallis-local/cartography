@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 @timeit
 async def get(controller: Controller) -> list[dict[str, Any]]:
     """
-    Get system information from UniFi controller
+    Retrieve system information from the UniFi controller.
+
+    :param controller: Controller instance
+    :return: List of system info data
     """
     logger.debug("Fetching UniFi system information")
     await controller.system_information.update()
@@ -35,6 +38,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "ubnt_device_type": info.device_type,
             }
         )
+    logger.debug("Fetched %d UniFi system info", len(system_info))
     return system_info
 
 
@@ -46,8 +50,14 @@ def load_system_info(
     update_tag: int,
 ) -> None:
     """
-    Load system information into the graph
+    Load UniFi system information into Neo4j.
+
+    :param neo4j_session: Neo4j session
+    :param data: List of system info data
+    :param site_id: Site ID for the system info
+    :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi system info records to the graph.", len(data))
     load(
         neo4j_session,
         UnifiSystemInfoSchema(),
@@ -62,7 +72,10 @@ def cleanup(
     neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
 ) -> None:
     """
-    Remove system information that was not updated in this run
+    Clean up stale UniFi system information from Neo4j.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common job parameters
     """
     logger.debug("Running UniFi system info cleanup job")
     GraphJob.from_node_schema(UnifiSystemInfoSchema(), common_job_parameters).run(
@@ -77,7 +90,11 @@ async def sync(
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
-    Sync system information from UniFi controller to Neo4j
+    Sync UniFi system information.
+
+    :param neo4j_session: Neo4j session
+    :param controller: Controller instance
+    :param common_job_parameters: Common job parameters
     """
     site_id = common_job_parameters["site_id"]
     system_info = await get(controller)

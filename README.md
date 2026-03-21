@@ -117,6 +117,7 @@ See [the rules docs](https://cartography-cncf.github.io/cartography/usage/rules.
 - [SubImage](https://cartography-cncf.github.io/cartography/modules/subimage/index.html) - Tenant, TeamMember, APIKey, Neo4jUser, Module, Framework
 - [Tailscale](https://cartography-cncf.github.io/cartography/modules/tailscale/index.html) - Tailnet, Users, Devices, Groups, Tags, PostureIntegrations, DevicePostures, DevicePostureConditions, device posture compliance relationships
 - [Trivy Scanner](https://cartography-cncf.github.io/cartography/modules/trivy/index.html) - AWS ECR Images
+- [UniFi](https://cartography-cncf.github.io/cartography/modules/unifi/index.html) - Site, Device, Client, WLAN, Port, PortForward, TrafficRule, TrafficRoute, DPIGroup, DPIApp, FirewallPolicy, FirewallZone, Voucher, SystemInfo, Admin
 
 </details>
 

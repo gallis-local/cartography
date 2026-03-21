@@ -45,6 +45,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "destination_zone_id": destination.get("zone_id"),
             }
         )
+    logger.debug("Fetched %d UniFi firewall policies", len(firewall_policies))
     return firewall_policies
 
 
@@ -62,6 +63,7 @@ def load_firewall_policies(
     :param data: List of firewall policy data
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi firewall policies to the graph.", len(data))
     load(
         neo4j_session,
         UnifiFirewallPolicySchema(),
@@ -81,6 +83,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi firewall policy cleanup job")
     GraphJob.from_node_schema(UnifiFirewallPolicySchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -91,14 +94,13 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi firewall policies.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of firewall policy data
     """
     site_id = common_job_parameters["site_id"]
     firewall_policies = await get(controller)
@@ -106,4 +108,3 @@ async def sync(
         neo4j_session, firewall_policies, site_id, common_job_parameters["UPDATE_TAG"]
     )
     cleanup(neo4j_session, common_job_parameters)
-    return firewall_policies

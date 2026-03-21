@@ -53,7 +53,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "last_site_name": admin.raw.get("last_site_name"),
             }
         )
-    logger.info("Fetched %d UniFi admins", len(admins))
+    logger.debug("Fetched %d UniFi admins", len(admins))
     return admins
 
 
@@ -72,6 +72,7 @@ def load_admins(
     :param site_id: Site ID for the admins
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi admins to the graph.", len(data))
     load(
         neo4j_session,
         UnifiAdminSchema(),

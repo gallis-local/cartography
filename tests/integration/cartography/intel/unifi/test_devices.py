@@ -15,16 +15,6 @@ from tests.integration.util import check_rels
 TEST_UPDATE_TAG = 123456789
 
 
-def _ensure_local_neo4j_has_test_devices(neo4j_session):
-    """Load test UniFi devices into Neo4j."""
-    cartography.intel.unifi.devices.load_devices(
-        neo4j_session,
-        tests.data.unifi.UNIFI_DEVICES,
-        "default",  # site_id
-        TEST_UPDATE_TAG,
-    )
-
-
 @pytest.mark.asyncio
 @patch.object(
     cartography.intel.unifi.devices,

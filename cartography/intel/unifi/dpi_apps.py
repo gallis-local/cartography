@@ -34,6 +34,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "log": app.log,
             }
         )
+    logger.debug("Fetched %d UniFi DPI apps", len(dpi_apps))
     return dpi_apps
 
 
@@ -49,8 +50,10 @@ def load_dpi_apps(
 
     :param neo4j_session: Neo4j session
     :param data: List of DPI app data
+    :param site_id: Site ID for the DPI apps
     :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi DPI apps to the graph.", len(data))
     load(
         neo4j_session,
         UnifiDPIAppSchema(),
@@ -70,6 +73,7 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
+    logger.debug("Running UniFi DPI app cleanup job")
     GraphJob.from_node_schema(UnifiDPIAppSchema(), common_job_parameters).run(
         neo4j_session
     )
@@ -80,17 +84,15 @@ async def sync(
     neo4j_session: neo4j.Session,
     controller: Controller,
     common_job_parameters: dict[str, Any],
-) -> list[dict]:
+) -> None:
     """
     Sync UniFi DPI apps.
 
     :param neo4j_session: Neo4j session
     :param controller: Controller instance
     :param common_job_parameters: Common job parameters
-    :return: List of DPI app data
     """
     site_id = common_job_parameters["site_id"]
     dpi_apps = await get(controller)
     load_dpi_apps(neo4j_session, dpi_apps, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
-    return dpi_apps

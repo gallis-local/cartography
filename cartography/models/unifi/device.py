@@ -21,7 +21,7 @@ class UnifiDeviceNodeProperties(CartographyNodeProperties):
     type: PropertyRef = PropertyRef("type")
     model: PropertyRef = PropertyRef("model")
     name: PropertyRef = PropertyRef("name")
-    ip: PropertyRef = PropertyRef("ip")
+    ip: PropertyRef = PropertyRef("ip", extra_index=True)
     version: PropertyRef = PropertyRef("version")
     state: PropertyRef = PropertyRef("state")
     uptime: PropertyRef = PropertyRef("uptime")

@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 @timeit
 async def get(controller: Controller) -> list[dict[str, Any]]:
     """
-    Get vouchers from UniFi controller
+    Retrieve UniFi vouchers from the controller.
+
+    :param controller: Controller instance
+    :return: List of voucher data
     """
     logger.debug("Fetching UniFi vouchers")
     await controller.vouchers.update()
@@ -44,6 +47,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "status_expires": voucher.raw.get("status_expires"),
             }
         )
+    logger.debug("Fetched %d UniFi vouchers", len(vouchers))
     return vouchers
 
 
@@ -55,8 +59,14 @@ def load_vouchers(
     update_tag: int,
 ) -> None:
     """
-    Load vouchers into the graph
+    Load UniFi vouchers into Neo4j.
+
+    :param neo4j_session: Neo4j session
+    :param data: List of voucher data
+    :param site_id: Site ID for the vouchers
+    :param update_tag: Update tag for the sync
     """
+    logger.debug("Loading %d UniFi vouchers to the graph.", len(data))
     load(
         neo4j_session,
         UnifiVoucherSchema(),
@@ -71,7 +81,10 @@ def cleanup(
     neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
 ) -> None:
     """
-    Remove vouchers that were not updated in this run
+    Clean up stale UniFi vouchers from Neo4j.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common job parameters
     """
     logger.debug("Running UniFi voucher cleanup job")
     GraphJob.from_node_schema(UnifiVoucherSchema(), common_job_parameters).run(
@@ -86,7 +99,11 @@ async def sync(
     common_job_parameters: dict[str, Any],
 ) -> None:
     """
-    Sync vouchers from UniFi controller to Neo4j
+    Sync UniFi vouchers.
+
+    :param neo4j_session: Neo4j session
+    :param controller: Controller instance
+    :param common_job_parameters: Common job parameters
     """
     site_id = common_job_parameters["site_id"]
     vouchers = await get(controller)
