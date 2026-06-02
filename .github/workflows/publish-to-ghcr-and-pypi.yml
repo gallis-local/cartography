@@ -76,8 +76,12 @@ jobs:
             type=pep440,pattern={{major}}.{{minor}},enable=${{ !github.event.release.prerelease }}
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
-      # Install QEMU for multi-architecture builds
+      # Only register QEMU/binfmt on GitHub-hosted runners. Self-hosted ARC
+      # runners already have host-level binfmt from the cluster extension;
+      # registering it again inside the pod fails ("no such file or directory")
+      # and can panic the node. runner.environment == 'self-hosted' there.
       - name: Set up QEMU
+        if: runner.environment == 'github-hosted'
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
       - name: Set up Docker Buildx
