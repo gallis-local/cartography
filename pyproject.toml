@@ -26,15 +26,13 @@ classifiers = [
   'Natural Language :: English',
   'Programming Language :: Python',
   'Programming Language :: Python :: 3',
-  'Programming Language :: Python :: 3.10',
-  'Programming Language :: Python :: 3.11',
   'Programming Language :: Python :: 3.12',
   'Programming Language :: Python :: 3.13',
   'Topic :: Security',
   'Topic :: Software Development :: Libraries',
   'Topic :: Software Development :: Libraries :: Python Modules',
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 # By convention (per pip/uv recommendations), dependencies should use a loose
 # lower bound and no upper bound unless explicitly needed. Exact pinning is
 # handled by the lockfile (uv.lock).
@@ -106,10 +104,12 @@ dependencies = [
     "azure-mgmt-synapse>=2.0.0",
     "azure-synapse-artifacts>=0.17.0",
     "slack-sdk>=3.37.0",
+    "proxmoxer>=2.0.1",
     "workos>=6.0.5",
     # tomllib is stdlib on 3.11+; tomli provides it on 3.10 (used by the GitHub
     # lockfile fallback parser).
     "tomli>=2.0.0; python_version < '3.11'",
+    "aiounifi>=81",
 ]
 # Comes from Git tag
 dynamic = [ "version" ]
@@ -127,6 +127,23 @@ dev = [
     "types-PyYAML>=6.0.0",
     "black>=26.0.0",
     "types-requests>=2.32.0",
+    "azure-mgmt-web>=7.0.0",
+    "azure-mgmt-eventgrid>=10.0.0",
+    "azure-mgmt-logic>=10.0.0",
+    "azure-mgmt-eventhub>=10.1.0",
+    "azure-mgmt-keyvault>=10.0.0",
+    "azure-keyvault-secrets>=4.0.0",
+    "azure-keyvault-keys>=4.0.0",
+    "azure-keyvault-certificates>=4.0.0",
+    "azure-mgmt-datafactory>=8.0.0",
+    "azure-mgmt-containerservice>=30.0.0",
+    "azure-mgmt-containerinstance>=10.0.0",
+    "azure-mgmt-synapse>=2.0.0",
+    "azure-synapse-artifacts>=0.17.0",
+    "azure-mgmt-network>=25.0.0",
+    "azure-mgmt-security>=5.0.0",
+    "azure-mgmt-monitor>=3.0.0",
+    "flake8>=7.3.0",
 ]
 doc = [
     "myst-parser[linkify]>=4.0.1",

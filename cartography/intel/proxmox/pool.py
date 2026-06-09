@@ -1,0 +1,217 @@
+"""
+Sync Proxmox resource pools.
+"""
+
+import logging
+from typing import Any
+
+import neo4j
+
+from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
+from cartography.graph.job import GraphJob
+from cartography.models.proxmox.pool import ProxmoxPoolSchema
+from cartography.models.proxmox.pool import ProxmoxPoolToStorageMatchLink
+from cartography.models.proxmox.pool import ProxmoxPoolToVMMatchLink
+from cartography.util import timeit
+
+logger = logging.getLogger(__name__)
+
+
+@timeit
+def get_pools(proxmox_client: Any) -> list[dict[str, Any]]:
+    """
+    Get all resource pools in the cluster.
+
+    :param proxmox_client: Proxmox API client
+    :return: List of pool dicts
+    :raises: Exception if API call fails
+    """
+    return proxmox_client.pools.get()
+
+@timeit
+def get_pool_details(proxmox_client: Any, poolid: str) -> dict[str, Any]:
+    """
+    Get detailed information about a specific pool.
+
+    :param proxmox_client: Proxmox API client
+    :param poolid: Pool ID
+    :return: Pool details dict
+    :raises: Exception if API call fails
+    """
+    return proxmox_client.pools(poolid).get()
+
+
+def transform_pool_data(
+    pools: list[dict[str, Any]],
+    cluster_id: str,
+) -> list[dict[str, Any]]:
+    """
+    Transform pool data into standard format.
+
+    :param pools: Raw pool data from API
+    :param cluster_id: Parent cluster ID
+    :return: List of transformed pool dicts
+    """
+    transformed_pools = []
+
+    for pool in pools:
+        poolid = pool["poolid"]
+        transformed_pools.append(
+            {
+                "id": f"{cluster_id}/pool/{poolid}",
+                "poolid": poolid,
+                "comment": pool.get("comment"),
+                "cluster_id": cluster_id,
+            }
+        )
+
+    return transformed_pools
+
+
+def load_pools(
+    neo4j_session: neo4j.Session,
+    pools: list[dict[str, Any]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Load pool data into Neo4j using modern data model.
+
+    :param neo4j_session: Neo4j session
+    :param pools: List of transformed pool dicts
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    """
+    load(
+        neo4j_session,
+        ProxmoxPoolSchema(),
+        pools,
+        lastupdated=update_tag,
+        CLUSTER_ID=cluster_id,
+    )
+
+def load_pool_member_relationships(
+    neo4j_session: neo4j.Session,
+    pool_members: list[dict[str, Any]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Create relationships between pools and their member resources (VMs, storage).
+
+    Pool members can include VMs/containers and storage resources.
+    Uses MatchLinks to connect pools to VMs and storage.
+
+    :param neo4j_session: Neo4j session
+    :param pool_members: List of pool-member mappings
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    """
+    if not pool_members:
+        return
+
+    # Separate VM/container members from storage members
+    vm_members = [m for m in pool_members if m["type"] in ("qemu", "lxc")]
+    storage_members = [m for m in pool_members if m["type"] == "storage"]
+
+    # Create relationships to VMs/containers
+    if vm_members:
+        load_matchlinks(
+            neo4j_session,
+            ProxmoxPoolToVMMatchLink(),
+            vm_members,
+            lastupdated=update_tag,
+            _sub_resource_label="ProxmoxCluster",
+            _sub_resource_id=cluster_id,
+        )
+
+    # Create relationships to storage
+    if storage_members:
+        load_matchlinks(
+            neo4j_session,
+            ProxmoxPoolToStorageMatchLink(),
+            storage_members,
+            lastupdated=update_tag,
+            _sub_resource_label="ProxmoxCluster",
+            _sub_resource_id=cluster_id,
+        )
+
+
+@timeit
+def sync(
+    neo4j_session: neo4j.Session,
+    proxmox_client: Any,
+    cluster_id: str,
+    update_tag: int,
+    common_job_parameters: dict[str, Any],
+) -> None:
+    """
+    Sync pool data.
+
+    :param neo4j_session: Neo4j session
+    :param proxmox_client: Proxmox API client
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    :param common_job_parameters: Common parameters
+    """
+    logger.info("Syncing Proxmox resource pools")
+
+    pools = get_pools(proxmox_client)
+
+    # Collect pool member information
+    pool_members = []
+    for pool in pools:
+        poolid = pool["poolid"]
+        details = get_pool_details(proxmox_client, poolid)
+
+        # Extract members from pool details
+        if "members" in details:
+            for member in details["members"]:
+                member_data = {
+                    "pool_id": poolid,  # Bare pool ID retained for reference
+                    "pool_full_id": f"{cluster_id}/pool/{poolid}",  # Full cluster-scoped ID for MatchLink source matching
+                    "type": member.get("type"),
+                }
+
+                if member.get("type") in ("qemu", "lxc"):
+                    # For VMs/containers, use integer VMID and cluster_id (MatchLink matches on both)
+                    member_data["vmid"] = member.get("vmid")
+                    member_data["cluster_id"] = cluster_id
+                elif member.get("type") == "storage":
+                    # For storage, build full storage ID using new pattern
+                    # MatchLink will match on the full storage ID
+                    storage_name = member.get("storage")
+                    member_data["storage_id"] = f"{cluster_id}/storage/{storage_name}"
+
+                pool_members.append(member_data)
+
+    transformed_pools = transform_pool_data(pools, cluster_id)
+
+    load_pools(neo4j_session, transformed_pools, cluster_id, update_tag)
+    load_pool_member_relationships(neo4j_session, pool_members, cluster_id, update_tag)
+
+    logger.info(
+        f"Synced {len(transformed_pools)} resource pools with {len(pool_members)} members"
+    )
+
+    cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
+
+def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any], cluster_id: str, update_tag: int) -> None:
+    """
+    Remove stale pool data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    :param cluster_id: Cluster ID for MatchLink cleanup scoping
+    :param update_tag: Sync timestamp for MatchLink cleanup
+    """
+    GraphJob.from_node_schema(ProxmoxPoolSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_matchlink(
+        ProxmoxPoolToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        ProxmoxPoolToStorageMatchLink(), "ProxmoxCluster", cluster_id, update_tag
+    ).run(neo4j_session)

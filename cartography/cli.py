@@ -69,7 +69,9 @@ PANEL_WORKOS = "WorkOS Options"
 PANEL_JUMPCLOUD = "JumpCloud Options"
 PANEL_SOCKETDEV = "Socket.dev Options"
 PANEL_VERCEL = "Vercel Options"
+PANEL_UNIFI = "UniFi Options"
 PANEL_STATSD = "StatsD Metrics"
+PANEL_PROXMOX = "Proxmox Options"
 PANEL_ANALYSIS = "Analysis Options"
 
 # Mapping of module names to their help panels
@@ -121,6 +123,8 @@ MODULE_PANELS = {
     "spacelift": PANEL_SPACELIFT,
     "workos": PANEL_WORKOS,
     "vercel": PANEL_VERCEL,
+    "proxmox": PANEL_PROXMOX,
+    "unifi": PANEL_UNIFI,
     "analysis": PANEL_ANALYSIS,
 }
 
@@ -1112,6 +1116,73 @@ class CLI:
                 ),
             ] = None,
             # =================================================================
+            # UniFi Options
+            # =================================================================
+            unifi_host: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-host",
+                    help="IP address or hostname of the UniFi controller. Enables the UniFi module.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_user: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-user",
+                    help="Username for UniFi controller authentication.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_user_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-user-env-var",
+                    help="Environment variable name containing the UniFi username.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_password_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-password-env-var",
+                    help="Environment variable name containing the UniFi password.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_site: Annotated[
+                str,
+                typer.Option(
+                    "--unifi-site",
+                    help="UniFi site name to sync.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = "default",
+            unifi_port: Annotated[
+                int,
+                typer.Option(
+                    "--unifi-port",
+                    help="UniFi controller HTTPS port.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = 443,
+            unifi_verify_ssl: Annotated[
+                bool,
+                typer.Option(
+                    "--unifi-verify-ssl/--no-unifi-verify-ssl",
+                    help="Verify SSL certificates when connecting to the UniFi controller. "
+                    "Disabled by default to support self-signed certificates.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = False,
+            # =================================================================
             # Duo Options
             # =================================================================
             duo_api_key_env_var: Annotated[
@@ -1897,6 +1968,100 @@ class CLI:
                 ),
             ] = "https://api.vercel.com",
             # =================================================================
+            # Proxmox Options
+            # =================================================================
+            proxmox_host: Annotated[
+                str | None,
+                typer.Option(
+                    "--proxmox-host",
+                    help=(
+                        "Proxmox host to sync (e.g., proxmox.example.com). "
+                        "Required if you are using the Proxmox intel module. Ignored otherwise."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = None,
+            proxmox_port: Annotated[
+                int,
+                typer.Option(
+                    "--proxmox-port",
+                    help="Proxmox API port (default: 8006).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = 8006,
+            proxmox_user: Annotated[
+                str,
+                typer.Option(
+                    "--proxmox-user",
+                    help="Proxmox user (default: root@pam).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = "root@pam",
+            proxmox_token_name_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--proxmox-token-name-env-var",
+                    help=(
+                        "The name of an environment variable containing the Proxmox API token name. "
+                        "Example: --proxmox-token-name-env-var PROXMOX_TOKEN_NAME. "
+                        "Use with --proxmox-token-value-env-var for token-based authentication."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = None,
+            proxmox_token_value_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--proxmox-token-value-env-var",
+                    help=(
+                        "The name of an environment variable containing the Proxmox API token value. "
+                        "Example: --proxmox-token-value-env-var PROXMOX_TOKEN_VALUE. "
+                        "Use with --proxmox-token-name-env-var for token-based authentication."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = None,
+            proxmox_password_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--proxmox-password-env-var",
+                    help=(
+                        "The name of an environment variable containing the Proxmox password. "
+                        "Alternative to token-based authentication. "
+                        "Example: --proxmox-password-env-var PROXMOX_PASSWORD"
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = None,
+            proxmox_verify_ssl: Annotated[
+                bool,
+                typer.Option(
+                    "--proxmox-verify-ssl",
+                    help="Verify SSL certificates when connecting to Proxmox (default: True).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = True,
+            proxmox_enable_guest_agent: Annotated[
+                bool,
+                typer.Option(
+                    "--proxmox-enable-guest-agent",
+                    help=(
+                        "Enable QEMU Guest Agent data collection for VMs. "
+                        "Requires guest agent installed in VMs. "
+                        "Default is False."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = False,
+            # =================================================================
             # StatsD Metrics Options
             # =================================================================
             statsd_enabled: Annotated[
@@ -2193,6 +2358,21 @@ class CLI:
                     bigfix_password_env_var,
                 )
                 bigfix_password = os.environ.get(bigfix_password_env_var)
+
+            # Read UniFi credentials
+            if unifi_user_env_var:
+                logger.debug(
+                    "Reading UniFi username from environment variable %s",
+                    unifi_user_env_var,
+                )
+                unifi_user = os.environ.get(unifi_user_env_var)
+            unifi_password = None
+            if unifi_password_env_var:
+                logger.debug(
+                    "Reading UniFi password from environment variable %s",
+                    unifi_password_env_var,
+                )
+                unifi_password = os.environ.get(unifi_password_env_var)
 
             # Read Duo credentials
             duo_api_key = None
@@ -2585,6 +2765,12 @@ class CLI:
                 bigfix_username=bigfix_username,
                 bigfix_password=bigfix_password,
                 bigfix_root_url=bigfix_root_url,
+                unifi_host=unifi_host,
+                unifi_user=unifi_user,
+                unifi_password=unifi_password,
+                unifi_site=unifi_site,
+                unifi_port=unifi_port,
+                unifi_verify_ssl=unifi_verify_ssl,
                 duo_api_key=duo_api_key,
                 duo_api_secret=duo_api_secret,
                 duo_api_hostname=duo_api_hostname,
@@ -2671,8 +2857,52 @@ class CLI:
                 workos_client_id=workos_client_id,
                 ubuntu_security_enabled=ubuntu_security_enabled,
                 ubuntu_security_api_url=ubuntu_security_api_url,
+                proxmox_host=proxmox_host,
+                proxmox_port=proxmox_port,
+                proxmox_user=proxmox_user,
+                proxmox_token_name_env_var=proxmox_token_name_env_var,
+                proxmox_token_value_env_var=proxmox_token_value_env_var,
+                proxmox_password_env_var=proxmox_password_env_var,
+                proxmox_verify_ssl=proxmox_verify_ssl,
+                proxmox_enable_guest_agent=proxmox_enable_guest_agent,
                 _warn_on_legacy_report_source=False,
             )
+
+            # Read Proxmox credentials
+            if config.proxmox_host:
+                # Token-based authentication (preferred)
+                if (
+                    config.proxmox_token_name_env_var
+                    and config.proxmox_token_value_env_var
+                ):
+                    logger.debug(
+                        f"Reading Proxmox API token from environment variables "
+                        f"{config.proxmox_token_name_env_var} and {config.proxmox_token_value_env_var}",
+                    )
+                    config.proxmox_token_name = os.environ.get(
+                        config.proxmox_token_name_env_var
+                    )
+                    config.proxmox_token_value = os.environ.get(
+                        config.proxmox_token_value_env_var
+                    )
+                else:
+                    config.proxmox_token_name = None
+                    config.proxmox_token_value = None
+
+                # Password-based authentication (alternative)
+                if config.proxmox_password_env_var:
+                    logger.debug(
+                        f"Reading Proxmox password from environment variable {config.proxmox_password_env_var}",
+                    )
+                    config.proxmox_password = os.environ.get(
+                        config.proxmox_password_env_var
+                    )
+                else:
+                    config.proxmox_password = None
+            else:
+                config.proxmox_token_name = None
+                config.proxmox_token_value = None
+                config.proxmox_password = None
 
             # Run the sync
             cartography.sync.run_with_config(sync, config)

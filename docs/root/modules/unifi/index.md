@@ -1,0 +1,6 @@
+# UniFi
+
+```{toctree}
+config
+schema
+```

@@ -74,6 +74,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "digitalocean": _LazyStage(
             "cartography.intel.digitalocean", "start_digitalocean_ingestion"
         ),
+        "proxmox": _LazyStage("cartography.intel.proxmox", "start_proxmox_ingestion"),
         "kandji": _LazyStage("cartography.intel.kandji", "start_kandji_ingestion"),
         "keycloak": _LazyStage(
             "cartography.intel.keycloak", "start_keycloak_ingestion"
@@ -126,6 +127,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
             "cartography.intel.subimage", "start_subimage_ingestion"
         ),
         "vercel": _LazyStage("cartography.intel.vercel", "start_vercel_ingestion"),
+        "unifi": _LazyStage("cartography.intel.unifi", "start_unifi_ingestion"),
         "ontology": _LazyStage("cartography.intel.ontology", "run"),
         # Analysis should be the last stage
         "analysis": _LazyStage("cartography.intel.analysis", "run"),

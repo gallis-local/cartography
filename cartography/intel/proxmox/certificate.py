@@ -1,0 +1,179 @@
+"""
+Sync Proxmox SSL/TLS certificates.
+"""
+
+import logging
+import time
+from typing import Any
+
+import neo4j
+
+from cartography.client.core.tx import load
+from cartography.graph.job import GraphJob
+from cartography.models.proxmox.certificate import ProxmoxCertificateSchema
+from cartography.util import timeit
+
+logger = logging.getLogger(__name__)
+
+
+@timeit
+def get_node_certificates(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
+    """
+    Get SSL certificates for a specific node.
+
+    :param proxmox_client: Proxmox API client
+    :param node_name: Node name
+    :return: List of certificate dicts
+    :raises: Exception if API call fails
+    """
+    return proxmox_client.nodes(node_name).certificates.info.get()
+
+
+def transform_certificate_data(
+    certificates: list[dict[str, Any]],
+    node_name: str,
+    cluster_id: str,
+) -> list[dict[str, Any]]:
+    """
+    Transform certificate data into standard format.
+
+    :param certificates: Raw certificate data from API
+    :param node_name: Node name
+    :param cluster_id: Parent cluster ID
+    :return: List of transformed certificate dicts
+    """
+    transformed_certs = []
+
+    for cert in certificates:
+        # Create unique ID from cluster, node and filename
+        filename = cert.get("filename", "unknown")
+        cert_id = f"{cluster_id}/node/{node_name}/cert/{filename}"
+
+        # Full node ID (cluster_id/node/name) for relationship matching
+        full_node_id = f"{cluster_id}/node/{node_name}"
+
+        # Parse SAN (Subject Alternative Names)
+        san = []
+        if cert.get("san"):
+            # SAN is typically a list or comma-separated string
+            if isinstance(cert["san"], list):
+                san = cert["san"]
+            elif isinstance(cert["san"], str):
+                san = [s.strip() for s in cert["san"].split(",") if s.strip()]
+
+        # Compute expiration properties for easy querying
+        notafter = cert.get("notafter")
+        expires_in_days = None
+        is_expired = None
+        expires_soon = None
+
+        if notafter is not None:
+            # notafter is a Unix timestamp in seconds
+            now = time.time()
+            seconds_until_expiry = notafter - now
+            expires_in_days = int(
+                seconds_until_expiry / 86400
+            )  # 86400 = seconds in a day
+            is_expired = expires_in_days < 0
+            expires_soon = 0 <= expires_in_days < 30  # Expires within 30 days
+
+        transformed_certs.append(
+            {
+                "id": cert_id,
+                "cluster_id": cluster_id,
+                "node_id": full_node_id,  # Full node ID (cluster_id/node/name) for relationship matching
+                "filename": filename,
+                "fingerprint": cert.get("fingerprint"),
+                "issuer": cert.get("issuer"),
+                "subject": cert.get("subject"),
+                "san": san,
+                "notbefore": cert.get("notbefore"),
+                "notafter": notafter,
+                "public_key_type": cert.get("public-key-type"),
+                "public_key_bits": cert.get("public-key-bits"),
+                "pem": cert.get("pem"),
+                # Computed expiration properties
+                "expires_in_days": expires_in_days,
+                "is_expired": is_expired,
+                "expires_soon": expires_soon,
+            }
+        )
+
+    return transformed_certs
+
+
+def load_certificates(
+    neo4j_session: neo4j.Session,
+    certificates: list[dict[str, Any]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Load certificate data into Neo4j using modern data model.
+
+    :param neo4j_session: Neo4j session
+    :param certificates: List of transformed certificate dicts
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    """
+    if not certificates:
+        return
+
+    load(
+        neo4j_session,
+        ProxmoxCertificateSchema(),
+        certificates,
+        lastupdated=update_tag,
+        CLUSTER_ID=cluster_id,
+    )
+
+
+@timeit
+def sync(
+    neo4j_session: neo4j.Session,
+    proxmox_client: Any,
+    cluster_id: str,
+    update_tag: int,
+    common_job_parameters: dict[str, Any],
+) -> None:
+    """
+    Sync SSL/TLS certificates.
+
+    :param neo4j_session: Neo4j session
+    :param proxmox_client: Proxmox API client
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    :param common_job_parameters: Common parameters
+    """
+    logger.info("Syncing Proxmox SSL/TLS certificates")
+
+    all_certificates = []
+
+    nodes = proxmox_client.nodes.get()
+    for node in nodes:
+        node_name = node["node"]
+        certs = get_node_certificates(proxmox_client, node_name)
+
+        # TRANSFORM
+        transformed_certs = transform_certificate_data(certs, node_name, cluster_id)
+        all_certificates.extend(transformed_certs)
+
+    load_certificates(neo4j_session, all_certificates, cluster_id, update_tag)
+
+    logger.info(f"Synced {len(all_certificates)} SSL/TLS certificates")
+
+    cleanup(neo4j_session, common_job_parameters)
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+) -> None:
+    """
+    Remove stale certificate data.
+
+    :param neo4j_session: Neo4j session
+    :param common_job_parameters: Common parameters for GraphJob
+    """
+    GraphJob.from_node_schema(ProxmoxCertificateSchema(), common_job_parameters).run(
+        neo4j_session
+    )

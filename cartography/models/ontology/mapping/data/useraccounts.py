@@ -590,6 +590,40 @@ kubernetes_mapping = OntologyMapping(
         ),
     ],
 )
+unifi_mapping = OntologyMapping(
+    module_name="unifi",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="UnifiAdmin",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="name"),
+            ],
+        ),
+    ],
+)
+
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxUser",
+            fields=[
+                OntologyFieldMapping(ontology_field="email", node_field="email"),
+                OntologyFieldMapping(
+                    ontology_field="username", node_field="userid", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="firstname", node_field="firstname"
+                ),
+                OntologyFieldMapping(ontology_field="lastname", node_field="lastname"),
+                OntologyFieldMapping(ontology_field="active", node_field="enable"),
+            ],
+        ),
+    ],
+)
 
 vercel_mapping = OntologyMapping(
     module_name="vercel",
@@ -621,6 +655,7 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "keycloak": keycloak_mapping,
     "oci": oci_mapping,
     "openai": openai_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "snipeit": snipeit_mapping,
     "tailscale": tailscale_mapping,
@@ -634,6 +669,7 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "sentry": sentry_mapping,
     "subimage": subimage_mapping,
     "kubernetes": kubernetes_mapping,
+    "unifi": unifi_mapping,
     "jumpcloud": jumpcloud_mapping,
     "vercel": vercel_mapping,
 }

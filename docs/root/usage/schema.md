@@ -156,6 +156,9 @@
 ```{include} ../modules/ubuntu/schema.md
 ```
 
+```{include} ../modules/unifi/schema.md
+```
+
 ```{include} ../modules/vercel/schema.md
 ```
 
