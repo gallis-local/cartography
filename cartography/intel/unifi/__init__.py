@@ -70,7 +70,11 @@ async def _sync_unifi(
         await controller.sites.update()
         config_site_name = controller.connectivity.config.site
         site_id = next(
-            (s.site_id for s in controller.sites.values() if s.name == config_site_name),
+            (
+                s.site_id
+                for s in controller.sites.values()
+                if s.name == config_site_name
+            ),
             config_site_name,  # fallback: use slug if no match (should not happen)
         )
 

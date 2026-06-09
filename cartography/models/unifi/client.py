@@ -100,7 +100,9 @@ class UnifiClientToAPSwitchRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "UPLINKED_TO_SWITCH"
-    properties: UnifiClientToAPSwitchRelProperties = UnifiClientToAPSwitchRelProperties()
+    properties: UnifiClientToAPSwitchRelProperties = (
+        UnifiClientToAPSwitchRelProperties()
+    )
 
 
 @dataclass(frozen=True)

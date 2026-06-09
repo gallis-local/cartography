@@ -21,9 +21,7 @@ async def test_load_unifi_wlans(mock_get, neo4j_session):
     Test that we can load UniFi WLANs into Neo4j.
     """
     common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
-    await cartography.intel.unifi.wlans.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.wlans.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the WLANs were loaded
     result = neo4j_session.run(
@@ -59,9 +57,7 @@ async def test_wlan_properties(mock_get, neo4j_session):
     Test that WLAN properties are loaded correctly.
     """
     common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
-    await cartography.intel.unifi.wlans.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.wlans.sync(neo4j_session, None, common_job_parameters)
 
     # Check corporate WLAN security properties
     result = neo4j_session.run(
@@ -97,9 +93,7 @@ async def test_wlan_to_site_relationship(mock_get, neo4j_session):
     )
 
     common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
-    await cartography.intel.unifi.wlans.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.wlans.sync(neo4j_session, None, common_job_parameters)
 
     # Verify the relationship
     result = neo4j_session.run(
@@ -130,9 +124,7 @@ async def test_cleanup_unifi_wlans(mock_get, neo4j_session):
 
     # First sync
     common_job_parameters = {"UPDATE_TAG": 123456789, "site_id": "default"}
-    await cartography.intel.unifi.wlans.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.wlans.sync(neo4j_session, None, common_job_parameters)
 
     # Verify WLANs exist
     result = neo4j_session.run(
@@ -146,9 +138,7 @@ async def test_cleanup_unifi_wlans(mock_get, neo4j_session):
     # Second sync with a new update tag (simulating WLAN removal)
     mock_get.return_value = []
     common_job_parameters = {"UPDATE_TAG": 987654321, "site_id": "default"}
-    await cartography.intel.unifi.wlans.sync(
-        neo4j_session, None, common_job_parameters
-    )
+    await cartography.intel.unifi.wlans.sync(neo4j_session, None, common_job_parameters)
 
     # Verify WLANs were cleaned up
     result = neo4j_session.run(

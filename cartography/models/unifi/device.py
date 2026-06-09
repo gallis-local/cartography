@@ -105,7 +105,9 @@ class UnifiDeviceBroadcastsWlanRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiDeviceSchema(CartographyNodeSchema):
     label: str = "UnifiDevice"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkInfrastructureDevice"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        ["NetworkInfrastructureDevice"]
+    )
     properties: UnifiDeviceNodeProperties = UnifiDeviceNodeProperties()
     sub_resource_relationship: UnifiDeviceToSiteRel = UnifiDeviceToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

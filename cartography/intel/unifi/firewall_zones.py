@@ -94,5 +94,7 @@ async def sync(
     """
     site_id = common_job_parameters["site_id"]
     zones = await get(controller)
-    load_firewall_zones(neo4j_session, zones, site_id, common_job_parameters["UPDATE_TAG"])
+    load_firewall_zones(
+        neo4j_session, zones, site_id, common_job_parameters["UPDATE_TAG"]
+    )
     cleanup(neo4j_session, common_job_parameters)
