@@ -117,6 +117,7 @@ dependencies = [
     "modal>=1.5.3,<2",
     "pydo>=0.40.0",
     "proxmoxer>=2.0.1",
+    "aiounifi>=81",
 ]
 # Comes from Git tag
 dynamic = [ "version" ]
