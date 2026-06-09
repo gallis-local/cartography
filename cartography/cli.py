@@ -69,6 +69,7 @@ PANEL_WORKOS = "WorkOS Options"
 PANEL_JUMPCLOUD = "JumpCloud Options"
 PANEL_SOCKETDEV = "Socket.dev Options"
 PANEL_VERCEL = "Vercel Options"
+PANEL_UNIFI = "UniFi Options"
 PANEL_STATSD = "StatsD Metrics"
 PANEL_ANALYSIS = "Analysis Options"
 
@@ -121,6 +122,7 @@ MODULE_PANELS = {
     "spacelift": PANEL_SPACELIFT,
     "workos": PANEL_WORKOS,
     "vercel": PANEL_VERCEL,
+    "unifi": PANEL_UNIFI,
     "analysis": PANEL_ANALYSIS,
 }
 
@@ -310,25 +312,6 @@ class CLI:
             no_args_is_help=False,
             add_completion=True,
             context_settings={"help_option_names": ["-h", "--help"]},
-        )
-        parser.add_argument(
-            "--unifi-port",
-            type=int,
-            default=8443,
-            help=(
-                "UniFi controller port (default: 8443). "
-                "Optional. Only used if UniFi module is enabled."
-            ),
-        )
-        parser.add_argument(
-            "--unifi-verify-ssl",
-            action="store_true",
-            default=False,
-            help=(
-                "Verify SSL certificates when connecting to UniFi controller (default: False). "
-                "Many UniFi controllers use self-signed certificates, so verification is disabled by default. "
-                "Optional. Only used if UniFi module is enabled."
-            ),
         )
 
         # Store reference to self for use in the command function
@@ -1130,6 +1113,73 @@ class CLI:
                     hidden=PANEL_BIGFIX not in visible_panels,
                 ),
             ] = None,
+            # =================================================================
+            # UniFi Options
+            # =================================================================
+            unifi_host: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-host",
+                    help="IP address or hostname of the UniFi controller. Enables the UniFi module.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_user: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-user",
+                    help="Username for UniFi controller authentication.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_user_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-user-env-var",
+                    help="Environment variable name containing the UniFi username.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_password_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--unifi-password-env-var",
+                    help="Environment variable name containing the UniFi password.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
+            unifi_site: Annotated[
+                str,
+                typer.Option(
+                    "--unifi-site",
+                    help="UniFi site name to sync.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = "default",
+            unifi_port: Annotated[
+                int,
+                typer.Option(
+                    "--unifi-port",
+                    help="UniFi controller HTTPS port.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = 443,
+            unifi_verify_ssl: Annotated[
+                bool,
+                typer.Option(
+                    "--unifi-verify-ssl/--no-unifi-verify-ssl",
+                    help="Verify SSL certificates when connecting to the UniFi controller. "
+                    "Disabled by default to support self-signed certificates.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = False,
             # =================================================================
             # Duo Options
             # =================================================================
@@ -2213,6 +2263,21 @@ class CLI:
                 )
                 bigfix_password = os.environ.get(bigfix_password_env_var)
 
+            # Read UniFi credentials
+            if unifi_user_env_var:
+                logger.debug(
+                    "Reading UniFi username from environment variable %s",
+                    unifi_user_env_var,
+                )
+                unifi_user = os.environ.get(unifi_user_env_var)
+            unifi_password = None
+            if unifi_password_env_var:
+                logger.debug(
+                    "Reading UniFi password from environment variable %s",
+                    unifi_password_env_var,
+                )
+                unifi_password = os.environ.get(unifi_password_env_var)
+
             # Read Duo credentials
             duo_api_key = None
             duo_api_secret = None
@@ -2604,6 +2669,12 @@ class CLI:
                 bigfix_username=bigfix_username,
                 bigfix_password=bigfix_password,
                 bigfix_root_url=bigfix_root_url,
+                unifi_host=unifi_host,
+                unifi_user=unifi_user,
+                unifi_password=unifi_password,
+                unifi_site=unifi_site,
+                unifi_port=unifi_port,
+                unifi_verify_ssl=unifi_verify_ssl,
                 duo_api_key=duo_api_key,
                 duo_api_secret=duo_api_secret,
                 duo_api_hostname=duo_api_hostname,

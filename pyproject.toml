@@ -26,15 +26,13 @@ classifiers = [
   'Natural Language :: English',
   'Programming Language :: Python',
   'Programming Language :: Python :: 3',
-  'Programming Language :: Python :: 3.10',
-  'Programming Language :: Python :: 3.11',
   'Programming Language :: Python :: 3.12',
   'Programming Language :: Python :: 3.13',
   'Topic :: Security',
   'Topic :: Software Development :: Libraries',
   'Topic :: Software Development :: Libraries :: Python Modules',
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 # By convention (per pip/uv recommendations), dependencies should use a loose
 # lower bound and no upper bound unless explicitly needed. Exact pinning is
 # handled by the lockfile (uv.lock).
@@ -107,6 +105,7 @@ dependencies = [
     "azure-synapse-artifacts>=0.17.0",
     "slack-sdk>=3.37.0",
     "workos>=6.0.5",
+    "aiounifi>=81",
 ]
 # Comes from Git tag
 dynamic = [ "version" ]

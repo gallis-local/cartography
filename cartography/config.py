@@ -179,6 +179,18 @@ class Config:
     :param bigfix_password: The password to authenticate to BigFix. Optional.
     :type bigfix_root_url: str
     :param bigfix_root_url: The API URL to use for BigFix, e.g. "https://example.com:52311". Optional.
+    :type unifi_host: str
+    :param unifi_host: The IP address or hostname of the UniFi controller. Optional.
+    :type unifi_user: str
+    :param unifi_user: The username to authenticate to the UniFi controller. Optional.
+    :type unifi_password: str
+    :param unifi_password: The password to authenticate to the UniFi controller. Optional.
+    :type unifi_site: str
+    :param unifi_site: The UniFi site name to sync. Optional.
+    :type unifi_port: int
+    :param unifi_port: The UniFi controller HTTPS port. Optional.
+    :type unifi_verify_ssl: bool
+    :param unifi_verify_ssl: Whether to verify SSL certificates when connecting to the UniFi controller. Optional.
     :type duo_api_key: str
     :param duo_api_key: The Duo api key. Optional.
     :type duo_api_key: str
@@ -414,6 +426,12 @@ class Config:
         bigfix_username=None,
         bigfix_password=None,
         bigfix_root_url=None,
+        unifi_host=None,
+        unifi_user=None,
+        unifi_password=None,
+        unifi_site=None,
+        unifi_port=None,
+        unifi_verify_ssl=False,
         duo_api_key=None,
         duo_api_secret=None,
         duo_api_hostname=None,
@@ -583,6 +601,12 @@ class Config:
         self.bigfix_username = bigfix_username
         self.bigfix_password = bigfix_password
         self.bigfix_root_url = bigfix_root_url
+        self.unifi_host = unifi_host
+        self.unifi_user = unifi_user
+        self.unifi_password = unifi_password
+        self.unifi_site = unifi_site
+        self.unifi_port = unifi_port
+        self.unifi_verify_ssl = unifi_verify_ssl
         self.duo_api_key = duo_api_key
         self.duo_api_secret = duo_api_secret
         self.duo_api_hostname = duo_api_hostname

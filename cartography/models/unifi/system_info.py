@@ -34,14 +34,14 @@ class UnifiSystemInfoToSiteRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:UnifiSite)-[:HAS_SYSTEM_INFO]->(:UnifiSystemInfo)
+# (:UnifiSite)-[:RESOURCE]->(:UnifiSystemInfo)
 class UnifiSystemInfoToSiteRel(CartographyRelSchema):
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
     )
     direction: LinkDirection = LinkDirection.INWARD
-    rel_label: str = "HAS_SYSTEM_INFO"
+    rel_label: str = "RESOURCE"
     properties: UnifiSystemInfoToSiteRelProperties = (
         UnifiSystemInfoToSiteRelProperties()
     )

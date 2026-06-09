@@ -291,6 +291,10 @@ unifi_mapping = OntologyMapping(
     nodes=[
         OntologyNodeMapping(
             node_label="UnifiDevice",
+            # UniFi devices are keyed by MAC, not serial_number (the canonical
+            # Device id), so they cannot be a canonical source. They are still
+            # linked to existing Device nodes via the OBSERVED_AS relationship.
+            eligible_for_source=False,
             fields=[
                 OntologyFieldMapping(
                     ontology_field="hostname", node_field="name", required=True

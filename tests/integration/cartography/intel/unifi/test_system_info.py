@@ -30,9 +30,7 @@ async def test_sync_system_info(mock_get, neo4j_session):
     common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     # Act
-    await sync(
-        neo4j_session, controller, common_job_parameters
-    )
+    await sync(neo4j_session, controller, common_job_parameters)
 
     # Assert
     expected_nodes = {
@@ -71,11 +69,9 @@ async def test_sync_system_info_relationships(mock_get, neo4j_session):
     common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": TEST_SITE_ID}
 
     # Act
-    await sync(
-        neo4j_session, controller, common_job_parameters
-    )
+    await sync(neo4j_session, controller, common_job_parameters)
 
-    # Assert - Check HAS_SYSTEM_INFO relationships (UnifiSite)-[:HAS_SYSTEM_INFO]->(UnifiSystemInfo)
+    # Assert - Check RESOURCE relationships (UnifiSite)-[:RESOURCE]->(UnifiSystemInfo)
     expected_rels = {
         ("controller_001", TEST_SITE_ID),
     }
@@ -86,7 +82,7 @@ async def test_sync_system_info_relationships(mock_get, neo4j_session):
             "id",
             "UnifiSite",
             "id",
-            "HAS_SYSTEM_INFO",
+            "RESOURCE",
             rel_direction_right=False,
         )
         == expected_rels
