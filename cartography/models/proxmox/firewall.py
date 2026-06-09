@@ -1,0 +1,283 @@
+"""
+Data models for Proxmox firewall configurations.
+
+Follows Cartography's modern data model pattern.
+"""
+
+from dataclasses import dataclass
+
+from cartography.models.core.common import PropertyRef
+from cartography.models.core.nodes import CartographyNodeProperties
+from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.relationships import CartographyRelProperties
+from cartography.models.core.relationships import CartographyRelSchema
+from cartography.models.core.relationships import LinkDirection
+from cartography.models.core.relationships import make_source_node_matcher
+from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import SourceNodeMatcher
+from cartography.models.core.relationships import TargetNodeMatcher
+
+# ProxmoxFirewallRule Node Schema
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleNodeProperties(CartographyNodeProperties):
+    """
+    Properties for a ProxmoxFirewallRule node.
+
+    Represents firewall rules at cluster, node, or VM level.
+    """
+
+    id: PropertyRef = PropertyRef("id")
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    scope: PropertyRef = PropertyRef("scope", extra_index=True)
+    scope_id: PropertyRef = PropertyRef("scope_id")
+    pos: PropertyRef = PropertyRef(
+        "pos", extra_index=True
+    )
+    type: PropertyRef = PropertyRef("type")
+    action: PropertyRef = PropertyRef(
+        "action", extra_index=True
+    )
+    enable: PropertyRef = PropertyRef("enable", extra_index=True)
+    iface: PropertyRef = PropertyRef("iface")
+    source: PropertyRef = PropertyRef(
+        "source", extra_index=True
+    )
+    dest: PropertyRef = PropertyRef(
+        "dest", extra_index=True
+    )
+    proto: PropertyRef = PropertyRef(
+        "proto", extra_index=True
+    )
+    sport: PropertyRef = PropertyRef("sport")
+    dport: PropertyRef = PropertyRef("dport", extra_index=True)
+    comment: PropertyRef = PropertyRef("comment")
+    macro: PropertyRef = PropertyRef("macro")
+    log: PropertyRef = PropertyRef("log")
+    # IPSet references extracted from source/dest (prefixed with +)
+    source_ipsets: PropertyRef = PropertyRef("source_ipsets")
+    dest_ipsets: PropertyRef = PropertyRef("dest_ipsets")
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToClusterRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallRule)
+
+    Firewall rules belong to clusters.
+    """
+
+    target_node_label: str = "ProxmoxCluster"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
+        }
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "RESOURCE"
+    properties: ProxmoxFirewallRuleToClusterRelProperties = (
+        ProxmoxFirewallRuleToClusterRelProperties()
+    )
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleSchema(CartographyNodeSchema):
+    """
+    Schema for ProxmoxFirewallRule.
+
+    Firewall rules controlling network traffic.
+    """
+
+    label: str = "ProxmoxFirewallRule"
+    properties: ProxmoxFirewallRuleNodeProperties = ProxmoxFirewallRuleNodeProperties()
+    sub_resource_relationship: ProxmoxFirewallRuleToClusterRel = (
+        ProxmoxFirewallRuleToClusterRel()
+    )
+
+# ProxmoxFirewallIPSet Node Schema
+
+@dataclass(frozen=True)
+class ProxmoxFirewallIPSetNodeProperties(CartographyNodeProperties):
+    """
+    Properties for a ProxmoxFirewallIPSet node.
+
+    Represents IP sets (address groups) used in firewall rules.
+    """
+
+    id: PropertyRef = PropertyRef("id")
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    name: PropertyRef = PropertyRef("name", extra_index=True)
+    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    scope: PropertyRef = PropertyRef("scope")
+    scope_id: PropertyRef = PropertyRef("scope_id")
+    comment: PropertyRef = PropertyRef("comment")
+    cidrs: PropertyRef = PropertyRef("cidrs")
+
+@dataclass(frozen=True)
+class ProxmoxFirewallIPSetToClusterRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+@dataclass(frozen=True)
+class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
+    """
+    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallIPSet)
+
+    IP sets belong to clusters.
+    """
+
+    target_node_label: str = "ProxmoxCluster"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("CLUSTER_ID", set_in_kwargs=True),
+        }
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "RESOURCE"
+    properties: ProxmoxFirewallIPSetToClusterRelProperties = (
+        ProxmoxFirewallIPSetToClusterRelProperties()
+    )
+
+@dataclass(frozen=True)
+class ProxmoxFirewallIPSetSchema(CartographyNodeSchema):
+    """
+    Schema for ProxmoxFirewallIPSet.
+
+    IP address sets for use in firewall rules.
+    """
+
+    label: str = "ProxmoxFirewallIPSet"
+    properties: ProxmoxFirewallIPSetNodeProperties = (
+        ProxmoxFirewallIPSetNodeProperties()
+    )
+    sub_resource_relationship: ProxmoxFirewallIPSetToClusterRel = (
+        ProxmoxFirewallIPSetToClusterRel()
+    )
+
+# MatchLink Schemas for Firewall Relationships
+# These MatchLinks connect firewall rules to their scope (nodes/VMs) and IPSets.
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToNodeMatchLinkProperties(CartographyRelProperties):
+    """
+    Properties for firewall rule to node APPLIES_TO_NODE relationship.
+    """
+
+    # Required for all MatchLinks
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    _sub_resource_label: PropertyRef = PropertyRef(
+        "_sub_resource_label", set_in_kwargs=True
+    )
+    _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToNodeMatchLink(CartographyRelSchema):
+    """
+    MatchLink: (:ProxmoxFirewallRule)-[:APPLIES_TO_NODE]->(:ProxmoxNode)
+
+    Connects node-scoped firewall rules to the nodes they apply to.
+    """
+
+    target_node_label: str = "ProxmoxNode"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("scope_id"),  # Node ID/name
+        }
+    )
+    source_node_label: str = "ProxmoxFirewallRule"
+    source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
+        {
+            "id": PropertyRef("id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_NODE"
+    properties: ProxmoxFirewallRuleToNodeMatchLinkProperties = (
+        ProxmoxFirewallRuleToNodeMatchLinkProperties()
+    )
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToVMMatchLinkProperties(CartographyRelProperties):
+    """
+    Properties for firewall rule to VM APPLIES_TO_VM relationship.
+    """
+
+    # Required for all MatchLinks
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    _sub_resource_label: PropertyRef = PropertyRef(
+        "_sub_resource_label", set_in_kwargs=True
+    )
+    _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToVMMatchLink(CartographyRelSchema):
+    """
+    MatchLink: (:ProxmoxFirewallRule)-[:APPLIES_TO_VM]->(:ProxmoxVM)
+
+    Connects VM-scoped firewall rules to the VMs they apply to.
+    """
+
+    target_node_label: str = "ProxmoxVM"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "vmid": PropertyRef("vmid_int"),  # Integer VMID
+            "cluster_id": PropertyRef("cluster_id"),  # Scope to same cluster
+        }
+    )
+    source_node_label: str = "ProxmoxFirewallRule"
+    source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
+        {
+            "id": PropertyRef("id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_VM"
+    properties: ProxmoxFirewallRuleToVMMatchLinkProperties = (
+        ProxmoxFirewallRuleToVMMatchLinkProperties()
+    )
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToIPSetMatchLinkProperties(CartographyRelProperties):
+    """
+    Properties for firewall rule to IPSet USES_IPSET relationship.
+    """
+
+    # Required for all MatchLinks
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    _sub_resource_label: PropertyRef = PropertyRef(
+        "_sub_resource_label", set_in_kwargs=True
+    )
+    _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
+    # Usage context
+    in_source: PropertyRef = PropertyRef("in_source")
+    in_dest: PropertyRef = PropertyRef("in_dest")
+
+@dataclass(frozen=True)
+class ProxmoxFirewallRuleToIPSetMatchLink(CartographyRelSchema):
+    """
+    MatchLink: (:ProxmoxFirewallRule)-[:USES_IPSET]->(:ProxmoxFirewallIPSet)
+
+    Connects firewall rules to the IPSets they reference in source/dest fields.
+    """
+
+    target_node_label: str = "ProxmoxFirewallIPSet"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "name": PropertyRef("ipset_name"),
+            "cluster_id": PropertyRef("cluster_id"),
+        }
+    )
+    source_node_label: str = "ProxmoxFirewallRule"
+    source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
+        {
+            "id": PropertyRef("id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "USES_IPSET"
+    properties: ProxmoxFirewallRuleToIPSetMatchLinkProperties = (
+        ProxmoxFirewallRuleToIPSetMatchLinkProperties()
+    )

@@ -241,6 +241,32 @@ okta_mapping = OntologyMapping(
     ],
 )
 
+# Proxmox
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxRole",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="roleid", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="type",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "custom"},
+                ),
+                OntologyFieldMapping(
+                    ontology_field="scope",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "cluster"},
+                ),
+            ],
+        ),
+    ],
+)
 
 # Scaleway
 scaleway_mapping = OntologyMapping(
@@ -323,4 +349,5 @@ ROLES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "okta": okta_mapping,
     "scaleway": scaleway_mapping,
     "workos": workos_mapping,
+    "proxmox": proxmox_mapping,
 }

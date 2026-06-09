@@ -194,10 +194,47 @@ github_mapping = OntologyMapping(
     ],
 )
 
+openai_mapping = OntologyMapping(
+    module_name="openai",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OpenAIAPIKey",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                OntologyFieldMapping(ontology_field="type", node_field="key_kind"),
+                OntologyFieldMapping(
+                    ontology_field="created_at", node_field="created_timestamp"
+                ),
+                # last_used_at: Not available from OpenAI API
+            ],
+        ),
+    ],
+)
+
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxAPIToken",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="tokenid", required=True
+                ),
+                OntologyFieldMapping(ontology_field="expires_at", node_field="expire"),
+                # created_at: Not available
+                # last_used_at: Not available
+            ],
+        ),
+    ],
+)
+
 APIKEYS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "anthropic": anthropic_mapping,
     "github": github_mapping,
     "openai": openai_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "workos": workos_apikeys_mapping,
     "subimage": subimage_mapping,
