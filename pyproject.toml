@@ -75,7 +75,7 @@ dependencies = [
     "azure-keyvault-keys>=4.0.0",
     "azure-keyvault-certificates>=4.0.0",
     "azure-mgmt-datafactory>=8.0.0",
-    "azure-mgmt-containerservice>=30.0.0",
+    "azure-mgmt-containerservice>=41.0.0",
     "azure-mgmt-network>=25.0.0",
     "azure-mgmt-security>=5.0.0",
     "azure-mgmt-monitor>=3.0.0",
@@ -106,6 +106,9 @@ dependencies = [
     "slack-sdk>=3.37.0",
     "proxmoxer>=2.0.1",
     "workos>=6.0.5",
+    # tomllib is stdlib on 3.11+; tomli provides it on 3.10 (used by the GitHub
+    # lockfile fallback parser).
+    "tomli>=2.0.0; python_version < '3.11'",
     "aiounifi>=81",
 ]
 # Comes from Git tag
