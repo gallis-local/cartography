@@ -28,7 +28,9 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     """
     logger.debug("Fetching UniFi admins")
     try:
-        response = await controller.request(ApiRequest(method="get", path="/rest/admin"))
+        response = await controller.request(
+            ApiRequest(method="get", path="/rest/admin")
+        )
     except AiounifiException as exc:
         # aiounifi raises LoginRequired (401), NoPermission (403), or
         # ResponseError (429) when the account lacks super-admin privileges

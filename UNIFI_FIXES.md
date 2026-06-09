@@ -11,7 +11,7 @@ This document describes the fixes applied to the UniFi integration to resolve cr
 - All imports (asyncio, neo4j, etc.) are present and properly formatted
 - No stray `start = time.time()` code exists
 
-### 2. ✅ Missing Imports (NONE FOUND)  
+### 2. ✅ Missing Imports (NONE FOUND)
 **Status:** No issues found
 - `os` module is already imported in `cartography/cli.py` (line 4)
 - `asyncio` module is already imported in `cartography/intel/unifi/__init__.py` (line 1)
@@ -50,14 +50,14 @@ class UnifiDPIAppNodeProperties(CartographyNodeProperties):
 - No fixes required
 
 ### 6. ✅ System Info Schema (VERIFIED CORRECT)
-**Status:** No issues found  
+**Status:** No issues found
 - The `UnifiSystemInfoToSiteRel` correctly uses `SITE_ID` in uppercase
 - The loader in `system_info.py` correctly passes `SITE_ID=site_id`
 - No fixes required
 
 ### 7. ✅ SSL Verification Hard-coded (FIXED)
 **Status:** Fixed with configurable flag
-**Files:** 
+**Files:**
 - `cartography/config.py`
 - `cartography/cli.py`
 - `cartography/intel/unifi/util.py`
