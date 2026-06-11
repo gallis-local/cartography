@@ -29,6 +29,17 @@ class UnifiDeviceNodeProperties(CartographyNodeProperties):
     upgradable: PropertyRef = PropertyRef("upgradable")
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
+    # Security-relevant properties
+    last_wan_ip: PropertyRef = PropertyRef("last_wan_ip", extra_index=True)
+    uplink_depth: PropertyRef = PropertyRef("uplink_depth")
+    user_num_sta: PropertyRef = PropertyRef("user_num_sta")
+    overheating: PropertyRef = PropertyRef("overheating")
+    upgrade_to_firmware: PropertyRef = PropertyRef("upgrade_to_firmware")
+    outlet_ac_power_budget: PropertyRef = PropertyRef("outlet_ac_power_budget")
+    outlet_ac_power_consumption: PropertyRef = PropertyRef(
+        "outlet_ac_power_consumption"
+    )
+
 
 @dataclass(frozen=True)
 class UnifiDeviceToSiteRelProperties(CartographyRelProperties):
@@ -103,6 +114,25 @@ class UnifiDeviceBroadcastsWlanRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiDeviceToOntologyDeviceRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiDevice)-[:OBSERVED_AS]->(:Device) via hostname
+class UnifiDeviceToOntologyDeviceRel(CartographyRelSchema):
+    target_node_label: str = "Device"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"hostname": PropertyRef("name")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "OBSERVED_AS"
+    properties: UnifiDeviceToOntologyDeviceRelProperties = (
+        UnifiDeviceToOntologyDeviceRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiDeviceSchema(CartographyNodeSchema):
     label: str = "UnifiDevice"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
@@ -115,5 +145,6 @@ class UnifiDeviceSchema(CartographyNodeSchema):
             UnifiDeviceToUplinkRel(),
             UnifiDeviceToUplinkPortRel(),
             UnifiDeviceBroadcastsWlanRel(),
+            UnifiDeviceToOntologyDeviceRel(),
         ],
     )

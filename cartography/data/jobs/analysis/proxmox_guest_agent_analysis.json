@@ -1,0 +1,29 @@
+{
+  "name": "Proxmox guest agent analysis",
+  "statements": [
+    {
+      "__comment": "Flag running VMs without QEMU guest agent enabled",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND v.status = 'running' AND (v.agent_enabled IS NULL OR v.agent_enabled = false) SET v.agent_risk = true",
+      "iterative": false,
+      "name": "Mark running VMs without guest agent"
+    },
+    {
+      "__comment": "Flag VMs with guest agent but no data reported (agent not running inside VM)",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND v.agent_enabled = true AND (v.guest_hostname IS NULL OR v.guest_hostname = '') SET v.agent_risk = true",
+      "iterative": false,
+      "name": "Mark VMs with guest agent enabled but not responding"
+    },
+    {
+      "__comment": "Flag VMs with outdated guest OS (no OS info from agent)",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND v.agent_enabled = true AND (v.guest_os_name IS NULL OR v.guest_os_name = '') SET v.os_risk = true",
+      "iterative": false,
+      "name": "Mark VMs without guest OS info"
+    },
+    {
+      "__comment": "Flag VMs with deprecated/unsupported guest OS versions",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.guest_os_name IN ['windows 7', 'windows 8', 'windows 2008', 'windows 2012', 'centos 7', 'ubuntu 16.04', 'ubuntu 18.04', 'debian 9', 'debian 10'] SET v.os_risk = true",
+      "iterative": false,
+      "name": "Mark VMs with EOL guest OS"
+    }
+  ]
+}

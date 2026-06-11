@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -16,6 +17,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxAuthRealm Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmNodeProperties(CartographyNodeProperties):
@@ -34,9 +36,11 @@ class ProxmoxAuthRealmNodeProperties(CartographyNodeProperties):
     default: PropertyRef = PropertyRef("default")
     tfa: PropertyRef = PropertyRef("tfa")
 
+
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
@@ -54,7 +58,10 @@ class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxAuthRealmToClusterRelProperties = ProxmoxAuthRealmToClusterRelProperties()
+    properties: ProxmoxAuthRealmToClusterRelProperties = (
+        ProxmoxAuthRealmToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxAuthRealmSchema(CartographyNodeSchema):
@@ -66,4 +73,7 @@ class ProxmoxAuthRealmSchema(CartographyNodeSchema):
 
     label: str = "ProxmoxAuthRealm"
     properties: ProxmoxAuthRealmNodeProperties = ProxmoxAuthRealmNodeProperties()
-    sub_resource_relationship: ProxmoxAuthRealmToClusterRel = ProxmoxAuthRealmToClusterRel()
+    sub_resource_relationship: ProxmoxAuthRealmToClusterRel = (
+        ProxmoxAuthRealmToClusterRel()
+    )
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["IdentityProvider"])

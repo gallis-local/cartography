@@ -1,0 +1,35 @@
+{
+  "name": "Proxmox storage analysis",
+  "statements": [
+    {
+      "__comment": "Flag storage with >90% utilization",
+      "query": "MATCH (s:ProxmoxStorage {cluster_id: $CLUSTER_ID}) WHERE s.total > 0 AND (s.used * 1.0 / s.total) > 0.9 SET s.storage_risk = true, s.storage_status = 'critical'",
+      "iterative": false,
+      "name": "Mark critically full storage"
+    },
+    {
+      "__comment": "Flag storage with >80% utilization",
+      "query": "MATCH (s:ProxmoxStorage {cluster_id: $CLUSTER_ID}) WHERE s.total > 0 AND (s.used * 1.0 / s.total) > 0.8 AND (s.used * 1.0 / s.total) <= 0.9 SET s.storage_risk = true, s.storage_status = 'warning'",
+      "iterative": false,
+      "name": "Mark nearly full storage"
+    },
+    {
+      "__comment": "Flag disabled storage",
+      "query": "MATCH (s:ProxmoxStorage {cluster_id: $CLUSTER_ID}) WHERE s.enabled = false SET s.storage_risk = true, s.storage_status = 'disabled'",
+      "iterative": false,
+      "name": "Mark disabled storage"
+    },
+    {
+      "__comment": "Flag nodes with no available storage",
+      "query": "MATCH (n:ProxmoxNode {cluster_id: $CLUSTER_ID}) WHERE NOT EXISTS { MATCH (s:ProxmoxStorage {cluster_id: $CLUSTER_ID})-[:AVAILABLE_ON]->(n) } SET n.storage_risk = true",
+      "iterative": false,
+      "name": "Mark nodes without available storage"
+    },
+    {
+      "__comment": "Flag shared storage that is only available on one node (not truly shared)",
+      "query": "MATCH (s:ProxmoxStorage {cluster_id: $CLUSTER_ID}) WHERE s.shared = true AND COUNT { MATCH (s)-[:AVAILABLE_ON]->() } = 1 SET s.storage_risk = true, s.storage_status = 'shared_single_node'",
+      "iterative": false,
+      "name": "Mark shared storage on single node"
+    }
+  ]
+}

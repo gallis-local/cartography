@@ -1,0 +1,42 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiNetworkConfig) WHERE n.audit_score IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.audit_score, n.audit_issues, n.audit_tier",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.enabled = false SET c.audit_issues = COALESCE(c.audit_issues, []) + 'disabled_config'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.secure_enabled = true AND (c.secure_firewall_rules IS NULL OR c.secure_firewall_rules = []) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'secure_no_firewall_rules'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.qos_enabled = true AND (c.qos_bandwidth_limit IS NULL OR c.qos_bandwidth_limit <= 0) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'qos_no_bandwidth_limit'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.route_enabled = true AND (c.route_nexthop IS NULL OR c.route_network IS NULL) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'route_incomplete'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE size(COALESCE(c.targets, [])) = 0 SET c.audit_issues = COALESCE(c.audit_issues, []) + 'no_targets'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) SET c.audit_score = CASE WHEN size(COALESCE(c.audit_issues, [])) = 0 THEN 100 WHEN size(COALESCE(c.audit_issues, [])) = 1 THEN 80 WHEN size(COALESCE(c.audit_issues, [])) = 2 THEN 60 WHEN size(COALESCE(c.audit_issues, [])) = 3 THEN 40 ELSE 20 END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) SET c.audit_tier = CASE WHEN c.audit_score >= 90 THEN 'compliant' WHEN c.audit_score >= 70 THEN 'minor_issues' WHEN c.audit_score >= 40 THEN 'major_issues' ELSE 'non_compliant' END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.audit_score < 70 RETURN c.name as config, c.audit_score, c.audit_tier, c.audit_issues ORDER BY c.audit_score ASC",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi network configuration audit"
+}

@@ -242,6 +242,26 @@ scaleway_kapsule_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxPool",
+            fields=[
+                OntologyFieldMapping(ontology_field="name", node_field="poolid"),
+                OntologyFieldMapping(
+                    ontology_field="platform",
+                    node_field="cluster_id",
+                    special_handling="static_value",
+                    extra={"value": "proxmox"},
+                ),
+                OntologyFieldMapping(ontology_field="region", node_field="cluster_id"),
+            ],
+            eligible_for_source=True,
+        ),
+    ],
+)
+
 # Snowflake warehouse state. SUSPENDED has no slot in the canonical Cluster set
 # (active/creating/updating/deleting/failed/unknown), so it maps to unknown; the
 # raw value stays on SnowflakeWarehouse.state.
@@ -300,4 +320,5 @@ CLUSTERS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
             ),
         ],
     ),
+    "proxmox": proxmox_mapping,
 }

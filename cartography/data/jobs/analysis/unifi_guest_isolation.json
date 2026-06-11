@@ -1,0 +1,42 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiWlan) WHERE n.guest_isolated IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.guest_isolated, n.guest_isolation_issues",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.is_guest = true SET w.guest_isolated = true",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.is_guest = true AND (w.security = 'open' OR w.security IS NULL) SET w.guest_isolation_issues = COALESCE(w.guest_isolation_issues, []) + 'open_security'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.is_guest = true AND w.mac_filter_enabled = false SET w.guest_isolation_issues = COALESCE(w.guest_isolation_issues, []) + 'no_mac_filter'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.is_guest = true WITH w MATCH (w)-[:RESOURCE]->(s:UnifiSite)<-[:RESOURCE]-(fwz:UnifiFirewallZone) MATCH (fp:UnifiFirewallPolicy) WHERE fp.enabled = true AND fp.action = 'DENY' AND (fp.source_zone_id = fwz.id OR fp.destination_zone_id = fwz.id) SET w.guest_isolation_issues = COALESCE(w.guest_isolation_issues, []) + 'firewall_deny_policy'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (v:UnifiVoucher) WHERE v.for_hotspot = true AND v.status IN ['VALID_MULTI', 'USED_MULTIPLE'] WITH v MATCH (w:UnifiWlan) WHERE w.is_guest = true SET v.guest_network = w.name",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiClient) WHERE c.is_guest = true WITH c MATCH (w:UnifiWlan) WHERE w.is_guest = true AND c.wlanconf_id = w.id SET c.guest_isolated = true",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (c:UnifiClient) WHERE c.is_guest = true WITH c MATCH (w:UnifiWlan) WHERE w.is_guest = false AND c.wlanconf_id = w.id SET c.guest_isolation_issues = 'guest_on_non_guest_wlan'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.is_guest = true AND size(COALESCE(w.guest_isolation_issues, [])) = 0 RETURN w.name as compliant_guest_wlan",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi guest network isolation"
+}

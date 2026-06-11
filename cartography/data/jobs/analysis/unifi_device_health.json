@@ -1,0 +1,39 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiDevice) WHERE n.health_score IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.health_score, n.health_issues, n.temperature_status, n.power_status",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.overheating = true SET d.temperature_status = 'overheating', d.health_issues = COALESCE(d.health_issues, []) + 'overheating'",
+      "iterative": false
+    },
+
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.outlet_ac_power_consumption IS NOT NULL AND d.outlet_ac_power_budget IS NOT NULL AND toFloat(d.outlet_ac_power_consumption) > toFloat(d.outlet_ac_power_budget) * 0.9 SET d.power_status = 'near_capacity', d.health_issues = COALESCE(d.health_issues, []) + 'power_near_capacity'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.upgradable = true SET d.health_issues = COALESCE(d.health_issues, []) + 'firmware_outdated'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.state = 'DISCONNECTED' OR d.state = 'ISOLATED' SET d.health_issues = COALESCE(d.health_issues, []) + 'disconnected'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.uplink_depth IS NOT NULL AND d.uplink_depth > 3 SET d.health_issues = COALESCE(d.health_issues, []) + 'deep_uplink_topology'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) SET d.health_score = CASE WHEN size(COALESCE(d.health_issues, [])) = 0 THEN 100 WHEN size(COALESCE(d.health_issues, [])) = 1 THEN 80 WHEN size(COALESCE(d.health_issues, [])) = 2 THEN 60 WHEN size(COALESCE(d.health_issues, [])) = 3 THEN 40 ELSE 20 END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.health_score < 60 WITH d MATCH (s:UnifiSite)-[:RESOURCE]->(d) RETURN s.id as site_id, d.name as device, d.health_score, d.health_issues ORDER BY d.health_score ASC",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi device health assessment"
+}

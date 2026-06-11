@@ -5,6 +5,7 @@ import neo4j
 from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import run_write_query
 from cartography.models.unifi.site import UnifiSiteSchema
 from cartography.util import timeit
 
@@ -75,7 +76,8 @@ def cleanup(
     :param common_job_parameters: Common job parameters
     """
     logger.debug("Running UniFi site cleanup job")
-    neo4j_session.run(
+    run_write_query(
+        neo4j_session,
         "MATCH (s:UnifiSite) WHERE s.lastupdated <> $UPDATE_TAG DETACH DELETE s",
         UPDATE_TAG=common_job_parameters["UPDATE_TAG"],
     )

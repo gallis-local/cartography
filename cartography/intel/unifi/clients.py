@@ -7,9 +7,11 @@ from aiounifi.controller import Controller
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
 from cartography.models.unifi.client import UnifiClientSchema
+from cartography.stats import get_stats_client
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
+stat_handler = get_stats_client(__name__)
 
 
 @timeit
@@ -67,6 +69,31 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "sw_port": sw_port,
                 "port_id": port_id,
                 "ap_switch_mac": ap_switch_mac,
+                # Security-relevant properties
+                "first_seen": client.raw.get("first_seen"),
+                "fixed_ip": client.raw.get("fixed_ip"),
+                "idle_time": client.raw.get("idletime"),
+                "latest_association_time": client.raw.get("latest_assoc_time"),
+                "rx_bytes": client.raw.get("rx_bytes"),
+                "rx_bytes_r": client.raw.get("rx_bytes-r"),
+                "tx_bytes": client.raw.get("tx_bytes"),
+                "tx_bytes_r": client.raw.get("tx_bytes-r"),
+                "wired_rx_bytes": client.raw.get("wired-rx_bytes"),
+                "wired_rx_bytes_r": client.raw.get("wired-rx_bytes-r"),
+                "wired_tx_bytes": client.raw.get("wired-tx_bytes"),
+                "wired_tx_bytes_r": client.raw.get("wired-tx_bytes-r"),
+                "wired_rate_mbps": client.raw.get("wired_rate_mbps"),
+                "uptime_by_access_point": client.raw.get("_uptime_by_uap"),
+                "uptime_by_gateway": client.raw.get("_uptime_by_ugw"),
+                "uptime_by_switch": client.raw.get("_uptime_by_usw"),
+                "switch_depth": client.raw.get("sw_depth"),
+                "powersave_enabled": client.raw.get("powersave_enabled"),
+                "device_name": client.raw.get("device_name"),
+                "firmware_version": client.raw.get("fw_version"),
+                "association_time": client.raw.get("assoc_time"),
+                "last_seen_by_access_point": client.raw.get("_last_seen_by_uap"),
+                "last_seen_by_gateway": client.raw.get("_last_seen_by_ugw"),
+                "last_seen_by_switch": client.raw.get("_last_seen_by_usw"),
             }
         )
     logger.debug("Fetched %d UniFi clients", len(clients))
@@ -131,3 +158,5 @@ async def sync(
     clients = await get(controller)
     load_clients(neo4j_session, clients, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
+
+    stat_handler.incr("unifi_clients_synced", len(clients))

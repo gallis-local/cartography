@@ -1,18 +1,23 @@
 import asyncio
 import logging
+from typing import Any
 
 import neo4j
 
 import cartography.intel.unifi.admins
 import cartography.intel.unifi.clients
+import cartography.intel.unifi.clients_all
 import cartography.intel.unifi.devices
 import cartography.intel.unifi.dpi_apps
 import cartography.intel.unifi.dpi_groups
 import cartography.intel.unifi.firewall_policies
 import cartography.intel.unifi.firewall_zones
+import cartography.intel.unifi.network_configs
+import cartography.intel.unifi.outlets
 import cartography.intel.unifi.port_forwards
 import cartography.intel.unifi.ports
 import cartography.intel.unifi.sites
+import cartography.intel.unifi.speedtests
 import cartography.intel.unifi.system_info
 import cartography.intel.unifi.traffic_routes
 import cartography.intel.unifi.traffic_rules
@@ -21,9 +26,59 @@ import cartography.intel.unifi.wlans
 from cartography.config import Config
 from cartography.intel.unifi.util import close_controller
 from cartography.intel.unifi.util import create_unifi_controller
+from cartography.util import merge_module_sync_metadata
+from cartography.util import run_analysis_and_ensure_deps
 from cartography.util import timeit
+from cartography.stats import get_stats_client
 
 logger = logging.getLogger(__name__)
+stat_handler = get_stats_client(__name__)
+
+# Module sync order - matches the order in _sync_unifi()
+# This defines dependencies between modules
+UNIFI_MODULE_DEPENDENCIES = {
+    "wlans": ["sites"],
+    "devices": ["sites", "wlans"],
+    "ports": ["sites", "devices"],
+    "clients": ["sites", "devices", "wlans", "ports"],
+    "clients_all": ["sites", "devices", "wlans", "ports"],
+    "port_forwards": ["sites"],
+    "traffic_rules": ["sites"],
+    "traffic_routes": ["sites"],
+    "dpi_apps": ["sites"],
+    "dpi_groups": ["sites", "dpi_apps"],
+    "firewall_zones": ["sites"],
+    "firewall_policies": ["sites", "firewall_zones"],
+    "system_info": ["sites"],
+    "vouchers": ["sites"],
+    "admins": ["sites"],
+    "network_configs": ["sites", "firewall_zones"],
+    "outlets": ["sites", "devices"],
+    "speedtests": ["sites", "devices"],
+}
+
+# Analysis job requirements - which modules must be synced before running each analysis
+UNIFI_ANALYSIS_REQUIREMENTS = {
+    "unifi_internet_exposure.json": {
+        "port_forwards",
+        "devices",
+        "wlans",
+        "firewall_zones",
+        "firewall_policies",
+    },
+    "unifi_firmware_compliance.json": {"devices"},
+    "unifi_guest_isolation.json": {
+        "wlans",
+        "firewall_policies",
+        "firewall_zones",
+        "vouchers",
+        "clients",
+    },
+    "unifi_device_health.json": {"devices"},
+    "unifi_network_config_audit.json": {"network_configs"},
+    "unifi_power_monitoring.json": {"outlets"},
+    "unifi_wan_performance.json": {"speedtests"},
+}
 
 
 @timeit
@@ -119,74 +174,115 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 6. Port forwards
+        # 6. Historical clients (depends on devices for ap_switch_mac)
+        await cartography.intel.unifi.clients_all.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
+
+        # 7. Port forwards
         await cartography.intel.unifi.port_forwards.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 7. Traffic rules
+        # 8. Traffic rules
         await cartography.intel.unifi.traffic_rules.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 8. Traffic routes
+        # 9. Traffic routes
         await cartography.intel.unifi.traffic_routes.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 9. DPI apps — must come BEFORE DPI groups (groups reference app IDs)
+        # 10. DPI apps — must come BEFORE DPI groups (groups reference app IDs)
         await cartography.intel.unifi.dpi_apps.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 10. DPI groups (depend on DPI apps)
+        # 11. DPI groups (depend on DPI apps)
         await cartography.intel.unifi.dpi_groups.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 11. Firewall zones — must come BEFORE firewall policies
+        # 12. Firewall zones — must come BEFORE firewall policies
         await cartography.intel.unifi.firewall_zones.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 12. Firewall policies (depend on firewall zones)
+        # 13. Firewall policies (depend on firewall zones)
         await cartography.intel.unifi.firewall_policies.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 13. System information
+        # 14. Network configurations (depend on firewall zones for secure group references)
+        await cartography.intel.unifi.network_configs.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
+
+        # 15. Outlets/power monitoring (depend on devices)
+        await cartography.intel.unifi.outlets.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
+
+        # 16. Speedtests/WAN performance (depend on devices for gateway)
+        await cartography.intel.unifi.speedtests.sync(
+            neo4j_session,
+            controller,
+            common_job_parameters,
+        )
+
+        # 17. System information
         await cartography.intel.unifi.system_info.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 14. Vouchers
+        # 18. Vouchers
         await cartography.intel.unifi.vouchers.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 15. Admins (requires super-admin privileges; returns empty list gracefully if not available)
+        # 19. Admins (requires super-admin privileges; returns empty list gracefully if not available)
         await cartography.intel.unifi.admins.sync(
             neo4j_session,
             controller,
             common_job_parameters,
+        )
+
+        # Run post-ingestion analysis jobs
+        await _run_unifi_analysis(common_job_parameters, neo4j_session)
+
+        # Record successful sync metadata
+        merge_module_sync_metadata(
+            neo4j_session,
+            group_type="UnifiSite",
+            group_id=site_id,
+            synced_type="UnifiSite",
+            update_tag=update_tag,
+            stat_handler=stat_handler,
         )
 
         logger.info("Completed UniFi ingestion for host %s, site %s", host, site)
@@ -194,6 +290,82 @@ async def _sync_unifi(
     finally:
         if controller:
             await close_controller(controller)
+
+
+async def _run_unifi_analysis(
+    common_job_parameters: dict[str, Any],
+    neo4j_session: neo4j.Session,
+) -> None:
+    """
+    Run post-ingestion analysis jobs for UniFi.
+
+    :param common_job_parameters: Common job parameters
+    :param neo4j_session: Neo4j session
+    """
+    logger.debug("Running UniFi post-ingestion analysis jobs")
+
+    # Internet exposure analysis
+    run_analysis_and_ensure_deps(
+        "unifi_internet_exposure.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_internet_exposure.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # Firmware compliance analysis
+    run_analysis_and_ensure_deps(
+        "unifi_firmware_compliance.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_firmware_compliance.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # Guest network isolation analysis
+    run_analysis_and_ensure_deps(
+        "unifi_guest_isolation.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_guest_isolation.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # Device health analysis
+    run_analysis_and_ensure_deps(
+        "unifi_device_health.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_device_health.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # Network config audit analysis
+    run_analysis_and_ensure_deps(
+        "unifi_network_config_audit.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_network_config_audit.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # Power monitoring analysis
+    run_analysis_and_ensure_deps(
+        "unifi_power_monitoring.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_power_monitoring.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
+
+    # WAN performance analysis
+    run_analysis_and_ensure_deps(
+        "unifi_wan_performance.json",
+        UNIFI_ANALYSIS_REQUIREMENTS["unifi_wan_performance.json"],
+        set(UNIFI_MODULE_DEPENDENCIES.keys()),
+        common_job_parameters,
+        neo4j_session,
+    )
 
 
 @timeit
@@ -219,15 +391,24 @@ def start_unifi_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
         )
         return
 
-    asyncio.run(
-        _sync_unifi(
-            neo4j_session=neo4j_session,
-            host=config.unifi_host,
-            username=config.unifi_user,
-            password=config.unifi_password,
-            site=config.unifi_site,
-            port=config.unifi_port,
-            verify_ssl=config.unifi_verify_ssl,
-            update_tag=config.update_tag,
+    # Default values for optional config parameters
+    unifi_port = config.unifi_port or 443
+    update_tag = config.update_tag or int(__import__("time").time())
+
+    # Determine sites to sync
+    sites_to_sync = config.unifi_sites or [config.unifi_site or "default"]
+
+    for site in sites_to_sync:
+        logger.info("Syncing UniFi site: %s", site)
+        asyncio.run(
+            _sync_unifi(
+                neo4j_session=neo4j_session,
+                host=config.unifi_host,
+                username=config.unifi_user,
+                password=config.unifi_password,
+                site=site,
+                port=unifi_port,
+                verify_ssl=config.unifi_verify_ssl,
+                update_tag=update_tag,
+            )
         )
-    )

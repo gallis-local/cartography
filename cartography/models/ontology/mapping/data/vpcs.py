@@ -80,9 +80,27 @@ scaleway_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxSDNZone",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="zone", required=True
+                ),
+                # _ont_cidr: not mapped. SDN Zones define network isolation domains
+                # (VLAN, VXLAN, EVPN, QinQ) but do not carry CIDR blocks.
+                # _ont_region: not applicable - SDN Zones are cluster-scoped.
+            ],
+        ),
+    ],
+)
+
 VPCS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "gcp": gcp_mapping,
     "azure": azure_mapping,
     "scaleway": scaleway_mapping,
+    "proxmox": proxmox_mapping,
 }

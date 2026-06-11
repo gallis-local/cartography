@@ -1,0 +1,34 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiOutlet) WHERE n.power_status IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.power_status, n.power_issues, n.power_tier",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) WHERE o.has_metering = true AND o.power IS NOT NULL AND o.voltage IS NOT NULL AND o.current IS NOT NULL WITH o, toFloat(o.power) as power_w, toFloat(o.voltage) as voltage_v, toFloat(o.current) as current_a WHERE power_w > 1000 SET o.power_issues = COALESCE(o.power_issues, []) + 'high_power_draw'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) WHERE o.has_relay = true AND o.relay_state = false SET o.power_issues = COALESCE(o.power_issues, []) + 'outlet_off'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) WHERE o.caps IS NOT NULL AND o.caps >= 3 AND o.has_metering = false SET o.power_issues = COALESCE(o.power_issues, []) + 'metering_capable_but_disabled'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) WHERE o.has_metering = true AND o.power_factor IS NOT NULL AND toFloat(o.power_factor) < 0.8 SET o.power_issues = COALESCE(o.power_issues, []) + 'poor_power_factor'",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) SET o.power_status = CASE WHEN size(COALESCE(o.power_issues, [])) = 0 THEN 'healthy' WHEN size(COALESCE(o.power_issues, [])) = 1 THEN 'warning' ELSE 'critical' END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (o:UnifiOutlet) WHERE o.power_status = 'critical' WITH o MATCH (d:UnifiDevice)-[:HAS_OUTLET]->(o) RETURN d.name as device, o.name as outlet, o.power, o.voltage, o.current, o.power_factor, o.power_issues",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi power monitoring"
+}

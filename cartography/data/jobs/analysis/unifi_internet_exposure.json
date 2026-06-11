@@ -1,0 +1,44 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiDevice) WHERE n.exposed_internet IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.exposed_internet, n.exposed_internet_type",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (n:UnifiWlan) WHERE n.exposed_internet IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.exposed_internet, n.exposed_internet_type",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (n:UnifiPortForward) WHERE n.exposed_internet IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.exposed_internet, n.exposed_internet_type",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.last_wan_ip IS NOT NULL AND (d.exposed_internet_type IS NULL OR NOT 'wan_ip' IN d.exposed_internet_type) SET d.exposed_internet = true, d.exposed_internet_type = CASE WHEN d.exposed_internet_type IS NULL THEN ['wan_ip'] WHEN NOT 'wan_ip' IN d.exposed_internet_type THEN d.exposed_internet_type + ['wan_ip'] ELSE d.exposed_internet_type END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (pf:UnifiPortForward) WHERE pf.enabled = true AND pf.forward_ip IS NOT NULL WITH pf MATCH (d:UnifiDevice {ip: pf.forward_ip}) WHERE (d.exposed_internet_type IS NULL OR NOT 'port_forward' IN d.exposed_internet_type) SET d.exposed_internet = true, d.exposed_internet_type = CASE WHEN d.exposed_internet_type IS NULL THEN ['port_forward'] WHEN NOT 'port_forward' IN d.exposed_internet_type THEN d.exposed_internet_type + ['port_forward'] ELSE d.exposed_internet_type END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (pf:UnifiPortForward) WHERE pf.enabled = true AND pf.forward_ip IS NOT NULL SET pf.exposed_internet = true, pf.exposed_internet_type = ['port_forward']",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.enabled = true AND (w.security = 'open' OR w.security IS NULL) AND (w.exposed_internet_type IS NULL OR NOT 'open_wlan' IN w.exposed_internet_type) SET w.exposed_internet = true, w.exposed_internet_type = CASE WHEN w.exposed_internet_type IS NULL THEN ['open_wlan'] WHEN NOT 'open_wlan' IN w.exposed_internet_type THEN w.exposed_internet_type + ['open_wlan'] ELSE w.exposed_internet_type END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (w:UnifiWlan) WHERE w.enabled = true AND w.is_guest = true AND (w.exposed_internet_type IS NULL OR NOT 'guest_wlan' IN w.exposed_internet_type) SET w.exposed_internet = true, w.exposed_internet_type = CASE WHEN w.exposed_internet_type IS NULL THEN ['guest_wlan'] WHEN NOT 'guest_wlan' IN w.exposed_internet_type THEN w.exposed_internet_type + ['guest_wlan'] ELSE w.exposed_internet_type END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice)-[:BROADCASTS]->(w:UnifiWlan) WHERE w.exposed_internet = true AND (d.exposed_internet_type IS NULL OR NOT 'broadcasts_exposed_wlan' IN d.exposed_internet_type) SET d.exposed_internet = true, d.exposed_internet_type = CASE WHEN d.exposed_internet_type IS NULL THEN ['broadcasts_exposed_wlan'] WHEN NOT 'broadcasts_exposed_wlan' IN d.exposed_internet_type THEN d.exposed_internet_type + ['broadcasts_exposed_wlan'] ELSE d.exposed_internet_type END",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi asset internet exposure"
+}

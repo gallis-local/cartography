@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ConditionalNodeLabel
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -18,6 +20,7 @@ from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxStorage Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxStorageNodeProperties(CartographyNodeProperties):
@@ -37,9 +40,11 @@ class ProxmoxStorageNodeProperties(CartographyNodeProperties):
     used: PropertyRef = PropertyRef("used")
     available: PropertyRef = PropertyRef("available")
 
+
 @dataclass(frozen=True)
 class ProxmoxStorageToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxStorageToClusterRel(CartographyRelSchema):
@@ -61,6 +66,7 @@ class ProxmoxStorageToClusterRel(CartographyRelSchema):
         ProxmoxStorageToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxStorageSchema(CartographyNodeSchema):
     """
@@ -72,8 +78,27 @@ class ProxmoxStorageSchema(CartographyNodeSchema):
     label: str = "ProxmoxStorage"
     properties: ProxmoxStorageNodeProperties = ProxmoxStorageNodeProperties()
     sub_resource_relationship: ProxmoxStorageToClusterRel = ProxmoxStorageToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [
+            # Block storage types
+            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "lvm"}),
+            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "lvmthin"}),
+            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "rbd"}),
+            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "iscsi"}),
+            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "zfs"}),
+            # File storage types
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "dir"}),
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "zfspool"}),
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "cephfs"}),
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "nfs"}),
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "cifs"}),
+            ConditionalNodeLabel(label="FileStorage", conditions={"type": "glusterfs"}),
+        ]
+    )
+
 
 # MatchLink Schema for Storage Availability Relationships
+
 
 @dataclass(frozen=True)
 class ProxmoxStorageToNodeMatchLinkProperties(CartographyRelProperties):
@@ -87,6 +112,7 @@ class ProxmoxStorageToNodeMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxStorageToNodeMatchLink(CartographyRelSchema):

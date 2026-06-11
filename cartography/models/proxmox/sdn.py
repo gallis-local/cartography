@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -17,6 +18,7 @@ from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxSDNZone Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneNodeProperties(CartographyNodeProperties):
@@ -59,9 +61,11 @@ class ProxmoxSDNZoneNodeProperties(CartographyNodeProperties):
     # QinQ specific
     service_vlan: PropertyRef = PropertyRef("service_vlan")
 
+
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
@@ -79,7 +83,10 @@ class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSDNZoneToClusterRelProperties = ProxmoxSDNZoneToClusterRelProperties()
+    properties: ProxmoxSDNZoneToClusterRelProperties = (
+        ProxmoxSDNZoneToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNZoneSchema(CartographyNodeSchema):
@@ -92,8 +99,11 @@ class ProxmoxSDNZoneSchema(CartographyNodeSchema):
     label: str = "ProxmoxSDNZone"
     properties: ProxmoxSDNZoneNodeProperties = ProxmoxSDNZoneNodeProperties()
     sub_resource_relationship: ProxmoxSDNZoneToClusterRel = ProxmoxSDNZoneToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["VirtualNetwork"])
+
 
 # ProxmoxSDNVNet Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetNodeProperties(CartographyNodeProperties):
@@ -118,9 +128,11 @@ class ProxmoxSDNVNetNodeProperties(CartographyNodeProperties):
     # Additional configuration
     mac: PropertyRef = PropertyRef("mac")
 
+
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNVNet)
@@ -133,11 +145,15 @@ class ProxmoxSDNVNetToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSDNVNetToClusterRelProperties = ProxmoxSDNVNetToClusterRelProperties()
+    properties: ProxmoxSDNVNetToClusterRelProperties = (
+        ProxmoxSDNVNetToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToZoneRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToZoneRel(CartographyRelSchema):
@@ -158,6 +174,7 @@ class ProxmoxSDNVNetToZoneRel(CartographyRelSchema):
     rel_label: str = "BELONGS_TO"
     properties: ProxmoxSDNVNetToZoneRelProperties = ProxmoxSDNVNetToZoneRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxSDNVNetSchema(CartographyNodeSchema):
     """
@@ -169,13 +186,16 @@ class ProxmoxSDNVNetSchema(CartographyNodeSchema):
     label: str = "ProxmoxSDNVNet"
     properties: ProxmoxSDNVNetNodeProperties = ProxmoxSDNVNetNodeProperties()
     sub_resource_relationship: ProxmoxSDNVNetToClusterRel = ProxmoxSDNVNetToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Subnet"])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxSDNVNetToZoneRel(),
         ]
     )
 
+
 # ProxmoxSDNSubnet Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
@@ -201,9 +221,11 @@ class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
     # DNS configuration
     dnszoneprefix: PropertyRef = PropertyRef("dnszoneprefix")
 
+
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNSubnet)
@@ -216,11 +238,15 @@ class ProxmoxSDNSubnetToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSDNSubnetToClusterRelProperties = ProxmoxSDNSubnetToClusterRelProperties()
+    properties: ProxmoxSDNSubnetToClusterRelProperties = (
+        ProxmoxSDNSubnetToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToVNetRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToVNetRel(CartographyRelSchema):
@@ -239,7 +265,10 @@ class ProxmoxSDNSubnetToVNetRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "BELONGS_TO"
-    properties: ProxmoxSDNSubnetToVNetRelProperties = ProxmoxSDNSubnetToVNetRelProperties()
+    properties: ProxmoxSDNSubnetToVNetRelProperties = (
+        ProxmoxSDNSubnetToVNetRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetSchema(CartographyNodeSchema):
@@ -251,14 +280,18 @@ class ProxmoxSDNSubnetSchema(CartographyNodeSchema):
 
     label: str = "ProxmoxSDNSubnet"
     properties: ProxmoxSDNSubnetNodeProperties = ProxmoxSDNSubnetNodeProperties()
-    sub_resource_relationship: ProxmoxSDNSubnetToClusterRel = ProxmoxSDNSubnetToClusterRel()
+    sub_resource_relationship: ProxmoxSDNSubnetToClusterRel = (
+        ProxmoxSDNSubnetToClusterRel()
+    )
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxSDNSubnetToVNetRel(),
         ]
     )
 
+
 # ProxmoxSDNController Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerNodeProperties(CartographyNodeProperties):
@@ -282,11 +315,15 @@ class ProxmoxSDNControllerNodeProperties(CartographyNodeProperties):
     # Additional EVPN configuration
     ebgp: PropertyRef = PropertyRef("ebgp")
     loopback: PropertyRef = PropertyRef("loopback")
-    bgp_multipath_as_path_relax: PropertyRef = PropertyRef("bgp_multipath_as_path_relax")
+    bgp_multipath_as_path_relax: PropertyRef = PropertyRef(
+        "bgp_multipath_as_path_relax"
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNController)
@@ -299,7 +336,10 @@ class ProxmoxSDNControllerToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSDNControllerToClusterRelProperties = ProxmoxSDNControllerToClusterRelProperties()
+    properties: ProxmoxSDNControllerToClusterRelProperties = (
+        ProxmoxSDNControllerToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNControllerSchema(CartographyNodeSchema):
@@ -310,10 +350,16 @@ class ProxmoxSDNControllerSchema(CartographyNodeSchema):
     """
 
     label: str = "ProxmoxSDNController"
-    properties: ProxmoxSDNControllerNodeProperties = ProxmoxSDNControllerNodeProperties()
-    sub_resource_relationship: ProxmoxSDNControllerToClusterRel = ProxmoxSDNControllerToClusterRel()
+    properties: ProxmoxSDNControllerNodeProperties = (
+        ProxmoxSDNControllerNodeProperties()
+    )
+    sub_resource_relationship: ProxmoxSDNControllerToClusterRel = (
+        ProxmoxSDNControllerToClusterRel()
+    )
+
 
 # ProxmoxSDNIPAM Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
@@ -335,9 +381,11 @@ class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
     token: PropertyRef = PropertyRef("token")
     section: PropertyRef = PropertyRef("section")
 
+
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNIPAM)
@@ -350,7 +398,10 @@ class ProxmoxSDNIPAMToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSDNIPAMToClusterRelProperties = ProxmoxSDNIPAMToClusterRelProperties()
+    properties: ProxmoxSDNIPAMToClusterRelProperties = (
+        ProxmoxSDNIPAMToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSDNIPAMSchema(CartographyNodeSchema):

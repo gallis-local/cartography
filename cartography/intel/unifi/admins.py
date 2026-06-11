@@ -4,6 +4,8 @@ from typing import Any
 import neo4j
 from aiounifi.controller import Controller
 from aiounifi.errors import AiounifiException
+from aiounifi.errors import LoginRequired
+from aiounifi.errors import NoPermission
 from aiounifi.models.api import ApiRequest
 
 from cartography.client.core.tx import load
@@ -31,14 +33,22 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
         response = await controller.request(
             ApiRequest(method="get", path="/rest/admin")
         )
-    except AiounifiException as exc:
-        # aiounifi raises LoginRequired (401), NoPermission (403), or
-        # ResponseError (429) when the account lacks super-admin privileges
-        # or the login rate limit has been hit.
+    except NoPermission:
         logger.warning(
-            "UniFi admin listing unavailable (requires super-admin privileges). "
-            "Skipping admin sync: %s. "
+            "UniFi admin listing requires super-admin (System Admin) privileges. "
             "Grant super-admin access to the cartography service account to enable this.",
+        )
+        return []
+    except LoginRequired:
+        logger.warning(
+            "UniFi admin listing failed: session expired or credentials rejected (LoginRequired). "
+            "Check that the service account credentials are valid.",
+        )
+        return []
+    except AiounifiException as exc:
+        logger.warning(
+            "UniFi admin listing failed with unexpected API error (%s: %s). Skipping admin sync.",
+            type(exc).__name__,
             exc,
         )
         return []
