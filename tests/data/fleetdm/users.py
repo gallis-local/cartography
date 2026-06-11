@@ -1,0 +1,30 @@
+MOCK_USERS_RESPONSE = {
+    "users": [
+        {
+            "created_at": "2024-01-10T09:00:00Z",
+            "updated_at": "2024-05-15T14:00:00Z",
+            "id": 1,
+            "name": "Admin User",
+            "email": "admin@example.com",
+            "force_password_reset": False,
+            "gravatar_url": "",
+            "sso_enabled": False,
+            "mfa_enabled": True,
+            "global_role": "admin",
+            "api_only": False,
+        },
+        {
+            "created_at": "2024-02-01T10:00:00Z",
+            "updated_at": "2024-05-20T11:00:00Z",
+            "id": 2,
+            "name": "Read Only User",
+            "email": "readonly@example.com",
+            "force_password_reset": False,
+            "gravatar_url": "",
+            "sso_enabled": True,
+            "mfa_enabled": False,
+            "global_role": "observer",
+            "api_only": False,
+        },
+    ],
+}

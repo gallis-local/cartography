@@ -173,6 +173,10 @@ class Config:
     :param lastpass_cid: Lastpass account ID. Optional.
     :type lastpass_provhash: str
     :param lastpass_provhash: Lastpass API KEY. Optional.
+    :type fleetdm_base_url: str
+    :param fleetdm_base_url: FleetDM server base URL, e.g. https://fleet.example.com. Optional.
+    :type fleetdm_api_token: str
+    :param fleetdm_api_token: FleetDM API token for Bearer authentication. Optional.
     :type bigfix_username: str
     :param bigfix_username: The username to authenticate to BigFix. Optional.
     :type bigfix_password: str
@@ -186,7 +190,9 @@ class Config:
     :type unifi_password: str
     :param unifi_password: The password to authenticate to the UniFi controller. Optional.
     :type unifi_site: str
-    :param unifi_site: The UniFi site name to sync. Optional.
+    :param unifi_site: The UniFi site name to sync (single site). Optional.
+    :type unifi_sites: list[str]
+    :param unifi_sites: List of UniFi site names to sync (multi-site). Optional.
     :type unifi_port: int
     :param unifi_port: The UniFi controller HTTPS port. Optional.
     :type unifi_verify_ssl: bool
@@ -367,6 +373,14 @@ class Config:
     :param proxmox_password_env_var: Environment variable containing Proxmox password. Optional.
     :type proxmox_verify_ssl: bool
     :param proxmox_verify_ssl: Verify SSL certificates when connecting to Proxmox (default: True). Optional.
+    :type proxmox_timeout: int
+    :param proxmox_timeout: Proxmox API request timeout in seconds (default: 30). Optional.
+    :type proxmox_best_effort_mode: bool
+    :param proxmox_best_effort_mode: If True, Proxmox sync will not raise exceptions on sync failures, just log them. If False (default), exceptions will be raised. Optional.
+    :type proxmox_max_retries: int
+    :param proxmox_max_retries: Maximum number of retries for Proxmox API requests (default: 3). Optional.
+    :type proxmox_retry_backoff: float
+    :param proxmox_retry_backoff: Base backoff factor in seconds for Proxmox API retries (default: 1.0). Optional.
     :type proxmox_enable_guest_agent: bool
     :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
     """
@@ -439,6 +453,8 @@ class Config:
         googleworkspace_config=None,
         lastpass_cid=None,
         lastpass_provhash=None,
+        fleetdm_base_url=None,
+        fleetdm_api_token=None,
         bigfix_username=None,
         bigfix_password=None,
         bigfix_root_url=None,
@@ -446,6 +462,7 @@ class Config:
         unifi_user=None,
         unifi_password=None,
         unifi_site=None,
+        unifi_sites=None,
         unifi_port=None,
         unifi_verify_ssl=False,
         duo_api_key=None,
@@ -518,6 +535,10 @@ class Config:
         proxmox_token_value_env_var=None,
         proxmox_password_env_var=None,
         proxmox_verify_ssl=True,
+        proxmox_timeout=30,
+        proxmox_best_effort_mode=False,
+        proxmox_max_retries=3,
+        proxmox_retry_backoff=1.0,
         proxmox_enable_guest_agent=False,
         slack_token=None,
         slack_teams=None,
@@ -622,6 +643,8 @@ class Config:
         self.googleworkspace_config = googleworkspace_config
         self.lastpass_cid = lastpass_cid
         self.lastpass_provhash = lastpass_provhash
+        self.fleetdm_base_url = fleetdm_base_url
+        self.fleetdm_api_token = fleetdm_api_token
         self.bigfix_username = bigfix_username
         self.bigfix_password = bigfix_password
         self.bigfix_root_url = bigfix_root_url
@@ -629,6 +652,7 @@ class Config:
         self.unifi_user = unifi_user
         self.unifi_password = unifi_password
         self.unifi_site = unifi_site
+        self.unifi_sites = unifi_sites
         self.unifi_port = unifi_port
         self.unifi_verify_ssl = unifi_verify_ssl
         self.duo_api_key = duo_api_key
@@ -716,6 +740,10 @@ class Config:
         self.proxmox_token_value_env_var = proxmox_token_value_env_var
         self.proxmox_password_env_var = proxmox_password_env_var
         self.proxmox_verify_ssl = proxmox_verify_ssl
+        self.proxmox_timeout = proxmox_timeout
+        self.proxmox_best_effort_mode = proxmox_best_effort_mode
+        self.proxmox_max_retries = proxmox_max_retries
+        self.proxmox_retry_backoff = proxmox_retry_backoff
         self.proxmox_enable_guest_agent = proxmox_enable_guest_agent
         self.proxmox_token_name = None
         self.proxmox_token_value = None

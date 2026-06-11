@@ -42,6 +42,7 @@ PANEL_CVE = "CVE Options"
 PANEL_CVE_METADATA = "CVE Metadata Options"
 PANEL_PAGERDUTY = "PagerDuty Options"
 PANEL_LASTPASS = "LastPass Options"
+PANEL_FLEETDM = "FleetDM Options"
 PANEL_BIGFIX = "BigFix Options"
 PANEL_DUO = "Duo Options"
 PANEL_WORKDAY = "Workday Options"
@@ -98,6 +99,7 @@ MODULE_PANELS = {
     "jumpcloud": PANEL_JUMPCLOUD,
     "socketdev": PANEL_SOCKETDEV,
     "lastpass": PANEL_LASTPASS,
+    "fleetdm": PANEL_FLEETDM,
     "bigfix": PANEL_BIGFIX,
     "duo": PANEL_DUO,
     "workday": PANEL_WORKDAY,
@@ -1053,6 +1055,27 @@ class CLI:
                 ),
             ] = None,
             # =================================================================
+            # FleetDM Options
+            # =================================================================
+            fleetdm_base_url_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--fleetdm-base-url-env-var",
+                    help="Environment variable name containing FleetDM server base URL.",
+                    rich_help_panel=PANEL_FLEETDM,
+                    hidden=PANEL_FLEETDM not in visible_panels,
+                ),
+            ] = None,
+            fleetdm_api_token_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--fleetdm-api-token-env-var",
+                    help="Environment variable name containing FleetDM API token.",
+                    rich_help_panel=PANEL_FLEETDM,
+                    hidden=PANEL_FLEETDM not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # JumpCloud Options
             # =================================================================
             jumpcloud_api_key_env_var: Annotated[
@@ -1158,11 +1181,20 @@ class CLI:
                 str,
                 typer.Option(
                     "--unifi-site",
-                    help="UniFi site name to sync.",
+                    help="UniFi site name to sync (single site).",
                     rich_help_panel=PANEL_UNIFI,
                     hidden=PANEL_UNIFI not in visible_panels,
                 ),
             ] = "default",
+            unifi_sites: Annotated[
+                list[str] | None,
+                typer.Option(
+                    "--unifi-sites",
+                    help="UniFi site names to sync (multi-site, repeatable). Overrides --unifi-site if provided.",
+                    rich_help_panel=PANEL_UNIFI,
+                    hidden=PANEL_UNIFI not in visible_panels,
+                ),
+            ] = None,
             unifi_port: Annotated[
                 int,
                 typer.Option(
@@ -2061,6 +2093,45 @@ class CLI:
                     hidden=PANEL_PROXMOX not in visible_panels,
                 ),
             ] = False,
+            proxmox_timeout: Annotated[
+                int,
+                typer.Option(
+                    "--proxmox-timeout",
+                    help="Proxmox API request timeout in seconds (default: 30).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = 30,
+            proxmox_best_effort_mode: Annotated[
+                bool,
+                typer.Option(
+                    "--proxmox-best-effort-mode",
+                    help=(
+                        "If True, Proxmox sync will not raise exceptions on sync failures, "
+                        "just log them. If False (default), exceptions will be raised."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = False,
+            proxmox_max_retries: Annotated[
+                int,
+                typer.Option(
+                    "--proxmox-max-retries",
+                    help="Maximum number of retries for Proxmox API requests (default: 3).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = 3,
+            proxmox_retry_backoff: Annotated[
+                float,
+                typer.Option(
+                    "--proxmox-retry-backoff",
+                    help="Base backoff factor in seconds for Proxmox API retries (default: 1.0).",
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = 1.0,
             # =================================================================
             # StatsD Metrics Options
             # =================================================================
@@ -2349,6 +2420,23 @@ class CLI:
                     lastpass_provhash_env_var,
                 )
                 lastpass_provhash = os.environ.get(lastpass_provhash_env_var)
+
+            # Read FleetDM credentials
+            fleetdm_base_url = None
+            if fleetdm_base_url_env_var:
+                logger.debug(
+                    "Reading FleetDM base URL from environment variable %s",
+                    fleetdm_base_url_env_var,
+                )
+                fleetdm_base_url = os.environ.get(fleetdm_base_url_env_var)
+
+            fleetdm_api_token = None
+            if fleetdm_api_token_env_var:
+                logger.debug(
+                    "Reading FleetDM API token from environment variable %s",
+                    fleetdm_api_token_env_var,
+                )
+                fleetdm_api_token = os.environ.get(fleetdm_api_token_env_var)
 
             # Read BigFix password
             bigfix_password = None
@@ -2762,6 +2850,8 @@ class CLI:
                 socketdev_token=socketdev_token,
                 lastpass_cid=lastpass_cid,
                 lastpass_provhash=lastpass_provhash,
+                fleetdm_base_url=fleetdm_base_url,
+                fleetdm_api_token=fleetdm_api_token,
                 bigfix_username=bigfix_username,
                 bigfix_password=bigfix_password,
                 bigfix_root_url=bigfix_root_url,
@@ -2864,6 +2954,10 @@ class CLI:
                 proxmox_token_value_env_var=proxmox_token_value_env_var,
                 proxmox_password_env_var=proxmox_password_env_var,
                 proxmox_verify_ssl=proxmox_verify_ssl,
+                proxmox_timeout=proxmox_timeout,
+                proxmox_best_effort_mode=proxmox_best_effort_mode,
+                proxmox_max_retries=proxmox_max_retries,
+                proxmox_retry_backoff=proxmox_retry_backoff,
                 proxmox_enable_guest_agent=proxmox_enable_guest_agent,
                 _warn_on_legacy_report_source=False,
             )

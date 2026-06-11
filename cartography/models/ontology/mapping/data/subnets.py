@@ -78,8 +78,28 @@ azure_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxSDNVNet",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="vnet", required=True
+                ),
+                # _ont_cidr_block: not mapped. SDN VNets are L2 network segments
+                # presented as Linux bridges; CIDR assignment is handled by
+                # SDNSubnet IPAM records, not the VNet itself.
+                # _ont_availability_zone: not applicable.
+                # _ont_region: not applicable - SDN VNets are cluster-scoped.
+            ],
+        ),
+    ],
+)
+
 SUBNETS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "gcp": gcp_mapping,
     "azure": azure_mapping,
+    "proxmox": proxmox_mapping,
 }

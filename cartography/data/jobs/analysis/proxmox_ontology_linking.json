@@ -1,0 +1,20 @@
+{
+  "name": "Proxmox - Ontology relationship linking",
+  "statements": [
+    {
+      "__comment": "Link ProxmoxAPIToken to canonical User via the owning ProxmoxUser. This creates (:User)-[:OWNS]->(:ProxmoxAPIToken) enabling cross-provider queries like 'find all API keys owned by this user across all platforms'.",
+      "query": "MATCH (key:ProxmoxAPIToken {cluster_id: $CLUSTER_ID})-[:BELONGS_TO]->(pu:ProxmoxUser {cluster_id: $CLUSTER_ID}) MATCH (u:User)-[:HAS_ACCOUNT]->(pu) MERGE (u)-[r:OWNS]->(key) ON CREATE SET r.firstseen = timestamp() SET r.lastupdated = $UPDATE_TAG",
+      "iterative": false
+    },
+    {
+      "__comment": "Link ProxmoxCertificate to canonical Device via the ProxmoxNode. This creates (:Device)<-[:HAS_CERTIFICATE]-(:ProxmoxCertificate) enabling queries like 'find all devices with expiring certificates' across providers.",
+      "query": "MATCH (cert:ProxmoxCertificate {cluster_id: $CLUSTER_ID})<-[:HAS_CERTIFICATE]-(pn:ProxmoxNode {cluster_id: $CLUSTER_ID}) MATCH (d:Device)-[:OBSERVED_AS]->(pn) MERGE (cert)-[r:HAS_CERTIFICATE]->(d) ON CREATE SET r.firstseen = timestamp() SET r.lastupdated = $UPDATE_TAG",
+      "iterative": false
+    },
+    {
+      "__comment": "Link ProxmoxCertificate to canonical User via ProxmoxUser with administrator-level access to the node. This creates (:User)-[:OWNS]->(:ProxmoxCertificate) enabling 'find certificates owned by this user' queries.",
+      "query": "MATCH (cert:ProxmoxCertificate {cluster_id: $CLUSTER_ID})<-[:HAS_CERTIFICATE]-(pn:ProxmoxNode {cluster_id: $CLUSTER_ID}) MATCH (pn)<-[:GRANTS_ACCESS_TO]-(acl:ProxmoxACL {cluster_id: $CLUSTER_ID}) MATCH (acl)-[:APPLIES_TO_USER]->(pu:ProxmoxUser {cluster_id: $CLUSTER_ID}) MATCH (u:User)-[:HAS_ACCOUNT]->(pu) MERGE (u)-[r:OWNS]->(cert) ON CREATE SET r.firstseen = timestamp() SET r.lastupdated = $UPDATE_TAG",
+      "iterative": false
+    }
+  ]
+}

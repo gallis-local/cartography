@@ -9,6 +9,7 @@ import neo4j
 import pytest
 
 from cartography.intel.proxmox import sdn
+
 CLUSTER_ID = "test-cluster"
 
 
@@ -229,10 +230,11 @@ def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
     # Create cluster node so RESOURCE relationship can be attached
     neo4j_session.run(
         "MERGE (c:ProxmoxCluster {id: $id}) SET c.lastupdated = $tag",
-        id=CLUSTER_ID, tag=update_tag,
+        id=CLUSTER_ID,
+        tag=update_tag,
     )
 
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
@@ -271,7 +273,7 @@ def test_sync_sdn_vnets(neo4j_session: neo4j.Session, proxmox_client_mock):
     update_tag = 12345
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
@@ -311,7 +313,7 @@ def test_sync_sdn_subnets(neo4j_session: neo4j.Session, proxmox_client_mock):
     update_tag = 12345
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
@@ -353,7 +355,7 @@ def test_sync_sdn_controllers(neo4j_session: neo4j.Session, proxmox_client_mock)
     update_tag = 12345
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
@@ -384,10 +386,11 @@ def test_sync_sdn_ipams(neo4j_session: neo4j.Session, proxmox_client_mock):
     # Create cluster node so RESOURCE relationship can be attached
     neo4j_session.run(
         "MERGE (c:ProxmoxCluster {id: $id}) SET c.lastupdated = $tag",
-        id=CLUSTER_ID, tag=update_tag,
+        id=CLUSTER_ID,
+        tag=update_tag,
     )
 
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         proxmox_client_mock,
         CLUSTER_ID,
@@ -424,7 +427,7 @@ def test_sdn_api_error_handling(neo4j_session: neo4j.Session):
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
     # Should not raise exception
-    sdn.sync_sdn(
+    sdn.sync(
         neo4j_session,
         mock_client,
         CLUSTER_ID,

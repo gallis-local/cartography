@@ -1,0 +1,41 @@
+{
+  "name": "Proxmox certificate analysis",
+  "statements": [
+    {
+      "__comment": "Flag expired certificates",
+      "query": "MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID}) WHERE c.is_expired = true SET c.cert_risk = true, c.cert_status = 'expired'",
+      "iterative": false,
+      "name": "Mark expired certificates"
+    },
+    {
+      "__comment": "Flag certificates expiring within 30 days",
+      "query": "MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID}) WHERE c.expires_soon = true SET c.cert_risk = true, c.cert_status = 'expiring_soon'",
+      "iterative": false,
+      "name": "Mark soon-to-expire certificates"
+    },
+    {
+      "__comment": "Flag certificates expiring within 90 days",
+      "query": "MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID}) WHERE c.expires_in_days <= 90 AND c.expires_in_days > 30 SET c.cert_status = 'expiring_within_90d'",
+      "iterative": false,
+      "name": "Mark certificates expiring within 90 days"
+    },
+    {
+      "__comment": "Flag certificates using weak key sizes (< 2048 bits for RSA)",
+      "query": "MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID}) WHERE c.public_key_type = 'RSA' AND c.public_key_bits < 2048 SET c.cert_risk = true, c.cert_weak_key = true",
+      "iterative": false,
+      "name": "Mark certificates with weak key sizes"
+    },
+    {
+      "__comment": "Flag certificates using deprecated algorithms",
+      "query": "MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID}) WHERE c.public_key_type IN ['DSA', 'DSS'] SET c.cert_risk = true, c.cert_deprecated_algo = true",
+      "iterative": false,
+      "name": "Mark certificates with deprecated algorithms"
+    },
+    {
+      "__comment": "Flag nodes with no certificates (unsecured web interfaces)",
+      "query": "MATCH (n:ProxmoxNode {cluster_id: $CLUSTER_ID}) WHERE NOT EXISTS { MATCH (c:ProxmoxCertificate {cluster_id: $CLUSTER_ID})-[:HAS_CERTIFICATE]->(n) } SET n.cert_risk = true",
+      "iterative": false,
+      "name": "Mark nodes without certificates"
+    }
+  ]
+}

@@ -301,6 +301,29 @@ unifi_mapping = OntologyMapping(
                 ),
                 OntologyFieldMapping(ontology_field="model", node_field="model"),
                 OntologyFieldMapping(ontology_field="platform", node_field="type"),
+                OntologyFieldMapping(ontology_field="os_version", node_field="version"),
+                OntologyFieldMapping(ontology_field="manufacturer", node_field="model"),
+            ],
+        ),
+    ],
+)
+
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxNode",
+            # Proxmox nodes are keyed by hostname, not serial_number (the canonical
+            # Device id), so they cannot be a canonical source. They are still
+            # linked to existing Device nodes via the OBSERVED_AS relationship.
+            eligible_for_source=False,
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="hostname", node_field="hostname", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="platform", node_field="pveversion"
+                ),
             ],
         ),
     ],
@@ -319,4 +342,5 @@ DEVICES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "snipeit": snipeit_mapping,
     "tailscale": tailscale_mapping,
     "unifi": unifi_mapping,
+    "proxmox": proxmox_mapping,
 }

@@ -1,0 +1,30 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiSpeedtest) WHERE n.performance_score IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.performance_score, n.performance_issues, n.performance_tier",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (s:UnifiSpeedtest) WHERE s.download < 25 OR s.upload < 5 OR s.ping > 100 SET s.performance_issues = COALESCE(s.performance_issues, []) + CASE WHEN s.download < 25 THEN ['low_download'] ELSE [] END + CASE WHEN s.upload < 5 THEN ['low_upload'] ELSE [] END + CASE WHEN s.ping > 100 THEN ['high_latency'] ELSE [] END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (s:UnifiSpeedtest) WHERE s.performance_issues IS NULL SET s.performance_issues = []",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (s:UnifiSpeedtest) SET s.performance_score = CASE WHEN size(COALESCE(s.performance_issues, [])) = 0 THEN 100 WHEN size(COALESCE(s.performance_issues, [])) = 1 THEN 70 WHEN size(COALESCE(s.performance_issues, [])) = 2 THEN 40 ELSE 20 END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (s:UnifiSpeedtest) SET s.performance_tier = CASE WHEN s.performance_score >= 90 THEN 'excellent' WHEN s.performance_score >= 70 THEN 'good' WHEN s.performance_score >= 40 THEN 'fair' ELSE 'poor' END",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (s:UnifiSpeedtest) WHERE s.performance_score < 70 WITH s MATCH (d:UnifiDevice)-[:MEASURED_BY]->(s) RETURN d.name as gateway, s.interface_name as interface, s.download, s.upload, s.ping, s.performance_score, s.performance_tier ORDER BY s.performance_score ASC",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi WAN performance analysis"
+}

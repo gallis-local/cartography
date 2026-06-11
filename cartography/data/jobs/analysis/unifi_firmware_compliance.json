@@ -1,0 +1,22 @@
+{
+  "statements": [
+    {
+      "query": "MATCH (n:UnifiDevice) WHERE n.firmware_compliant IS NOT NULL WITH n LIMIT $LIMIT_SIZE REMOVE n.firmware_compliant, n.firmware_version_current, n.firmware_version_latest",
+      "iterative": true,
+      "iterationsize": 1000
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.upgradable = true AND d.version IS NOT NULL AND d.upgrade_to_firmware IS NOT NULL AND d.version <> d.upgrade_to_firmware SET d.firmware_compliant = false, d.firmware_version_current = d.version, d.firmware_version_latest = d.upgrade_to_firmware",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.upgradable = false OR d.version IS NULL OR d.upgrade_to_firmware IS NULL OR d.version = d.upgrade_to_firmware SET d.firmware_compliant = true, d.firmware_version_current = d.version, d.firmware_version_latest = d.upgrade_to_firmware",
+      "iterative": false
+    },
+    {
+      "query": "MATCH (d:UnifiDevice) WHERE d.firmware_compliant = false WITH d MATCH (s:UnifiSite)-[:RESOURCE]->(d) RETURN s.id as site_id, count(d) as non_compliant_count, collect(d.name) as devices",
+      "iterative": false
+    }
+  ],
+  "name": "UniFi firmware compliance"
+}

@@ -8,9 +8,11 @@ from aiounifi.models.device import DeviceState
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
 from cartography.models.unifi.device import UnifiDeviceSchema
+from cartography.stats import get_stats_client
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
+stat_handler = get_stats_client(__name__)
 
 
 @timeit
@@ -67,6 +69,16 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                     else None
                 ),
                 "wlan_ids": list(wlan_id_set) or None,
+                # Security-relevant properties
+                "last_wan_ip": device.raw.get("last_wan_ip"),
+                "uplink_depth": device.raw.get("uplink_depth"),
+                "user_num_sta": device.raw.get("user-num_sta"),
+                "overheating": device.raw.get("overheating", False),
+                "upgrade_to_firmware": device.raw.get("upgrade_to_firmware"),
+                "outlet_ac_power_budget": device.raw.get("outlet_ac_power_budget"),
+                "outlet_ac_power_consumption": device.raw.get(
+                    "outlet_ac_power_consumption"
+                ),
             }
         )
     logger.debug("Fetched %d UniFi devices", len(devices))
@@ -131,3 +143,5 @@ async def sync(
     devices = await get(controller)
     load_devices(neo4j_session, devices, site_id, common_job_parameters["UPDATE_TAG"])
     cleanup(neo4j_session, common_job_parameters)
+
+    stat_handler.incr("unifi_devices_synced", len(devices))

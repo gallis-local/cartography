@@ -602,6 +602,23 @@ unifi_mapping = OntologyMapping(
                 OntologyFieldMapping(ontology_field="username", node_field="name"),
             ],
         ),
+        OntologyNodeMapping(
+            node_label="UnifiClient",
+            # UniFi clients don't have email addresses, so they cannot create
+            # canonical User nodes. They are linked via HAS_ACCOUNT to UserAccount
+            # using hostname matching in analysis jobs.
+            eligible_for_source=False,
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="username", node_field="hostname", required=True
+                ),
+                OntologyFieldMapping(ontology_field="model", node_field="device_name"),
+                OntologyFieldMapping(ontology_field="platform", node_field="oui"),
+                OntologyFieldMapping(
+                    ontology_field="lastactivity", node_field="last_seen"
+                ),
+            ],
+        ),
     ],
 )
 

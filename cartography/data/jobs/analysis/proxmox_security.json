@@ -1,17 +1,17 @@
 {
   "statements": [
     {
-      "query": "MATCH (v:ProxmoxVM) WHERE v.template = false SET v.exposed_internet = false",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false SET v.exposed_internet = false",
       "iterative": false,
       "name": "Initialize exposed_internet flag"
     },
     {
-      "query": "MATCH (v:ProxmoxVM)-[:HAS_NETWORK_INTERFACE]->(i:ProxmoxNetworkInterface) WHERE i.bridge = 'vmbr0' AND v.status = 'running' SET v.exposed_internet = true",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID})-[:HAS_NETWORK_INTERFACE]->(i:ProxmoxNetworkInterface {cluster_id: $CLUSTER_ID}) WHERE i.bridge = 'vmbr0' AND v.status = 'running' SET v.exposed_internet = true",
       "iterative": false,
       "name": "Mark VMs with internet-facing interfaces"
     },
     {
-      "query": "MATCH (n:ProxmoxNode) WHERE n.status <> 'online' SET n.availability_risk = true",
+      "query": "MATCH (n:ProxmoxNode {cluster_id: $CLUSTER_ID}) WHERE n.status <> 'online' SET n.availability_risk = true",
       "iterative": false,
       "name": "Mark offline nodes as availability risk"
     }

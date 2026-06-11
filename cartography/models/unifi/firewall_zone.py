@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -44,5 +45,6 @@ class UnifiFirewallZoneToSiteRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiFirewallZoneSchema(CartographyNodeSchema):
     label: str = "UnifiFirewallZone"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkZone"])
     properties: UnifiFirewallZoneNodeProperties = UnifiFirewallZoneNodeProperties()
     sub_resource_relationship: UnifiFirewallZoneToSiteRel = UnifiFirewallZoneToSiteRel()

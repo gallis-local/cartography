@@ -17,11 +17,15 @@ graph LR
     Site -- RESOURCE --> FwZone(UnifiFirewallZone)
     Site -- RESOURCE --> Voucher(UnifiVoucher)
     Site -- RESOURCE --> Admin(UnifiAdmin)
+    Site -- RESOURCE --> NetConfig(UnifiNetworkConfig)
+    Site -- RESOURCE --> Outlet(UnifiOutlet)
+    Site -- RESOURCE --> Speedtest(UnifiSpeedtest)
 
     Dev -- UPLINK_TO --> Dev
     Dev -- UPLINK_VIA_PORT --> Port
     Dev -- BROADCASTS --> Wlan
     Dev -- HAS_PORT --> Port
+    Dev -- HAS_OUTLET --> Outlet
     Client -- CONNECTED_TO_AP --> Dev
     Client -- CONNECTED_TO_SWITCH --> Dev
     Client -- UPLINKED_TO_SWITCH --> Dev
@@ -35,11 +39,15 @@ graph LR
     TR -- APPLIES_TO_APP --> DPIApp
     TR -- APPLIES_TO_CLIENT --> Client
     TRoute -- APPLIES_TO_CLIENT --> Client
+    NetConfig -- REFERENCES_ZONE --> FwZone
+    Speedtest -- MEASURED_BY --> Dev
 ```
 
 ### UnifiSite
 
 Representation of a [UniFi site](https://help.ui.com/hc/en-us/articles/360012888634-UniFi-How-to-Set-Up-a-UniFi-Network-on-the-UniFi-OS-Console), the top-level organizational unit in a UniFi deployment.
+
+> **Ontology Mapping**: This node has the extra label `Tenant` to enable cross-platform queries for organizational tenants across different systems (e.g., OktaOrganization, AzureTenant, GCPOrganization).
 
 | Field | Description |
 |-------|-------------|
@@ -136,6 +144,8 @@ Representation of a [UniFi site](https://help.ui.com/hc/en-us/articles/360012888
 
 Representation of a UniFi network device (access point, switch, gateway, etc.).
 
+> **Ontology Mapping**: This node has the extra label `NetworkInfrastructureDevice` to enable cross-platform queries for network infrastructure devices across different systems. It also links to the canonical `Device` ontology node via the `OBSERVED_AS` relationship using hostname matching.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -212,6 +222,8 @@ Representation of a UniFi network device (access point, switch, gateway, etc.).
 
 Representation of a client currently connected to the UniFi network.
 
+> **Ontology Mapping**: This node has the extra label `NetworkEndpoint` to enable cross-platform queries for network endpoints across different systems. It also links to the semantic `UserAccount` ontology label via the `HAS_ACCOUNT` relationship using hostname matching.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -281,6 +293,8 @@ Representation of a client currently connected to the UniFi network.
 
 Representation of a UniFi wireless network (SSID) configuration.
 
+> **Ontology Mapping**: This node has the extra label `NetworkAccessPoint` to enable cross-platform queries for wireless access points across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -328,6 +342,8 @@ Representation of a UniFi wireless network (SSID) configuration.
 ### UnifiPort
 
 Representation of a physical switch port on a UniFi device.
+
+> **Ontology Mapping**: This node has the extra label `NetworkInterface` to enable cross-platform queries for network interfaces across different systems.
 
 | Field | Description |
 |-------|-------------|
@@ -377,6 +393,8 @@ Representation of a physical switch port on a UniFi device.
 
 Representation of a NAT port forwarding rule on the UniFi gateway.
 
+> **Ontology Mapping**: This node has the extra label `NetworkAddressTranslation` to enable cross-platform queries for NAT/port forwarding rules across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -404,6 +422,8 @@ Representation of a NAT port forwarding rule on the UniFi gateway.
 ### UnifiTrafficRule
 
 Representation of a UniFi traffic management rule (QoS, blocking, application control, etc.).
+
+> **Ontology Mapping**: This node has the extra label `NetworkRoutingRule` to enable cross-platform queries for network routing and traffic management rules across different systems.
 
 | Field | Description |
 |-------|-------------|
@@ -449,6 +469,8 @@ Representation of a UniFi traffic management rule (QoS, blocking, application co
 
 Representation of a policy-based routing rule on the UniFi gateway.
 
+> **Ontology Mapping**: This node has the extra label `NetworkRoutingRule` to enable cross-platform queries for network routing and traffic management rules across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -483,6 +505,8 @@ Representation of a policy-based routing rule on the UniFi gateway.
 
 Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 
+> **Ontology Mapping**: This node has the extra label `NetworkSecurityPolicy` to enable cross-platform queries for network security policies across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -512,6 +536,8 @@ Representation of a Deep Packet Inspection (DPI) application group in UniFi.
 ### UnifiDPIApp
 
 Representation of a Deep Packet Inspection (DPI) application restriction in UniFi.
+
+> **Ontology Mapping**: This node has the extra label `NetworkSecurityPolicy` to enable cross-platform queries for network security policies across different systems.
 
 | Field | Description |
 |-------|-------------|
@@ -547,6 +573,8 @@ Representation of a Deep Packet Inspection (DPI) application restriction in UniF
 ### UnifiFirewallPolicy
 
 Representation of a firewall policy rule in UniFi.
+
+> **Ontology Mapping**: This node has the extra label `NetworkAccessControl` to enable cross-platform queries for network access control policies across different systems.
 
 | Field | Description |
 |-------|-------------|
@@ -592,6 +620,8 @@ Representation of a firewall policy rule in UniFi.
 
 Representation of a network security zone in UniFi.
 
+> **Ontology Mapping**: This node has the extra label `NetworkZone` to enable cross-platform queries for network security zones across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -630,6 +660,8 @@ Representation of a network security zone in UniFi.
 
 Representation of UniFi controller metadata and version information.
 
+> **Ontology Mapping**: This node has the extra label `NetworkController` to enable cross-platform queries for network controllers across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -659,6 +691,8 @@ Representation of UniFi controller metadata and version information.
 
 Representation of a guest network hotspot voucher in UniFi.
 
+> **Ontology Mapping**: This node has the extra label `NetworkGuestAccess` to enable cross-platform queries for guest network access mechanisms across different systems.
+
 | Field | Description |
 |-------|-------------|
 | firstseen | Timestamp of when a sync job first discovered this node |
@@ -687,4 +721,150 @@ Representation of a guest network hotspot voucher in UniFi.
 
     ```
     (UnifiSite)-[RESOURCE]->(UnifiVoucher)
+    ```
+
+---
+
+### UnifiAdmin
+
+Representation of a UniFi controller administrator account.
+
+> **Ontology Mapping**: This node has the extra label `UserAccount` to enable cross-platform queries for user accounts across different systems (e.g., OktaUser, EntraUser, GSuiteUser). It also links to the semantic `UserAccount` ontology label via the `HAS_ACCOUNT` relationship using email matching.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Admin unique ID |
+| name | Admin username |
+| **email** | Admin email address (indexed for quick lookup) |
+| role | Admin role (e.g. `admin`, `readonly`) |
+| is_super_admin | Whether this admin has super-admin privileges |
+| last_site_name | Last site this admin accessed |
+
+#### Relationships
+
+- A UnifiAdmin belongs to a UnifiSite
+
+    ```
+    (UnifiSite)-[RESOURCE]->(UnifiAdmin)
+    ```
+
+- A UnifiAdmin has a UserAccount via email
+
+    ```
+    (UnifiAdmin)-[HAS_ACCOUNT]->(UserAccount)
+    ```
+
+---
+
+### UnifiNetworkConfig
+
+Representation of a UniFi object-oriented network configuration (QoS, routing, security policies).
+
+> **Ontology Mapping**: This node has the extra labels `NetworkQoSPolicy`, `NetworkSecurityPolicy`, `NetworkRoutingPolicy` to enable cross-platform queries for network policies across different systems.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Network configuration unique ID |
+| **name** | Configuration name |
+| enabled | Whether this configuration is active |
+| target_type | Target type (e.g. `network`, `client`, `wlan`) |
+| targets | List of target IDs this configuration applies to |
+| secure_enabled | Whether security/firewall rules are enabled |
+| secure_firewall_rules | Firewall rule IDs for secure configuration |
+| secure_group_ids | Firewall zone IDs for secure configuration |
+| qos_enabled | Whether QoS is enabled |
+| qos_bandwidth_limit | Bandwidth limit in Kbps |
+| qos_dscp | DSCP marking value |
+| route_enabled | Whether policy-based routing is enabled |
+| route_nexthop | Next-hop IP for routing |
+| route_network | Network CIDR for routing |
+
+#### Relationships
+
+- A UnifiNetworkConfig belongs to a UnifiSite
+
+    ```
+    (UnifiSite)-[RESOURCE]->(UnifiNetworkConfig)
+    ```
+
+- A UnifiNetworkConfig references UnifiFirewallZones for secure configuration
+
+    ```
+    (UnifiNetworkConfig)-[REFERENCES_ZONE]->(UnifiFirewallZone)
+    ```
+
+---
+
+### UnifiOutlet
+
+Representation of a power outlet on a UniFi PDU (Power Distribution Unit) or switch with PoE outlets.
+
+> **Ontology Mapping**: This node has the extra labels `PowerOutlet`, `IoTDevice` to enable cross-platform queries for power outlets and IoT devices across different systems.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Composite ID (`<device_mac>_<index>`) |
+| name | Outlet name/label |
+| index | Outlet index on the device |
+| has_relay | Whether this outlet has a controllable relay |
+| relay_state | Whether the outlet relay is on (powered) |
+| cycle_enabled | Whether power cycling is enabled |
+| has_metering | Whether power metering is supported |
+| caps | Outlet capabilities bitmask (1=relay, 3=relay+metering) |
+| voltage | Voltage reading in volts |
+| current | Current draw in amps |
+| power | Power consumption in watts |
+| power_factor | Power factor (0.0-1.0) |
+
+#### Relationships
+
+- A UnifiOutlet belongs to a UnifiSite
+
+    ```
+    (UnifiSite)-[RESOURCE]->(UnifiOutlet)
+    ```
+
+- A UnifiOutlet is on a UnifiDevice (PDU or switch)
+
+    ```
+    (UnifiDevice)-[HAS_OUTLET]->(UnifiOutlet)
+    ```
+
+---
+
+### UnifiSpeedtest
+
+Representation of a WAN speedtest result from the UniFi gateway.
+
+> **Ontology Mapping**: This node has the extra label `NetworkPerformanceTest` to enable cross-platform queries for network performance tests across different systems.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Interface name (e.g. `wan1`, `wan2`) |
+| interface_name | WAN interface name |
+| download | Download speed in Mbps |
+| upload | Upload speed in Mbps |
+| ping | Latency in milliseconds |
+| timestamp | Unix timestamp of the test |
+
+#### Relationships
+
+- A UnifiSpeedtest belongs to a UnifiSite
+
+    ```
+    (UnifiSite)-[RESOURCE]->(UnifiSpeedtest)
+    ```
+
+- A UnifiSpeedtest was measured by a UnifiDevice (gateway)
+
+    ```
+    (UnifiSpeedtest)-[MEASURED_BY]->(UnifiDevice)
     ```

@@ -19,6 +19,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxCluster Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxClusterNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
@@ -52,6 +53,7 @@ class ProxmoxClusterNodeProperties(CartographyNodeProperties):
     totem_secauth: PropertyRef = PropertyRef("totem_secauth")
     totem_version: PropertyRef = PropertyRef("totem_version")
 
+
 @dataclass(frozen=True)
 class ProxmoxClusterSchema(CartographyNodeSchema):
     """
@@ -67,7 +69,9 @@ class ProxmoxClusterSchema(CartographyNodeSchema):
     # No sub_resource_relationship - this is the tenant-like root entity
     sub_resource_relationship: None = None
 
+
 # ProxmoxNode Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxNodeNodeProperties(CartographyNodeProperties):
@@ -103,9 +107,11 @@ class ProxmoxNodeNodeProperties(CartographyNodeProperties):
     cpuinfo: PropertyRef = PropertyRef("cpuinfo")
     idle: PropertyRef = PropertyRef("idle")
 
+
 @dataclass(frozen=True)
 class ProxmoxNodeToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxNodeToClusterRel(CartographyRelSchema):
@@ -123,6 +129,7 @@ class ProxmoxNodeToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxNodeToClusterRelProperties = ProxmoxNodeToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxNodeSchema(CartographyNodeSchema):
     """
@@ -134,8 +141,11 @@ class ProxmoxNodeSchema(CartographyNodeSchema):
     label: str = "ProxmoxNode"
     properties: ProxmoxNodeNodeProperties = ProxmoxNodeNodeProperties()
     sub_resource_relationship: ProxmoxNodeToClusterRel = ProxmoxNodeToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["DeviceInstance"])
+
 
 # ProxmoxNodeNetworkInterface Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
@@ -147,9 +157,7 @@ class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
 
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef(
-        "name", extra_index=True
-    )
+    name: PropertyRef = PropertyRef("name", extra_index=True)
     node_id: PropertyRef = PropertyRef("node_id")
     type: PropertyRef = PropertyRef("type")
     address: PropertyRef = PropertyRef("address")
@@ -173,9 +181,11 @@ class ProxmoxNodeNetworkInterfaceNodeProperties(CartographyNodeProperties):
     method6: PropertyRef = PropertyRef("method6")
     comments: PropertyRef = PropertyRef("comments")
 
+
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNodeNetworkInterface)
@@ -192,9 +202,11 @@ class ProxmoxNodeNetworkInterfaceToClusterRel(CartographyRelSchema):
         ProxmoxNodeNetworkInterfaceToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
@@ -215,6 +227,7 @@ class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
     properties: ProxmoxNodeNetworkInterfaceToNodeRelProperties = (
         ProxmoxNodeNetworkInterfaceToNodeRelProperties()
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceSchema(CartographyNodeSchema):

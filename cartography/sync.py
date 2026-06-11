@@ -86,6 +86,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "lastpass": _LazyStage(
             "cartography.intel.lastpass", "start_lastpass_ingestion"
         ),
+        "fleetdm": _LazyStage("cartography.intel.fleetdm", "start_fleetdm_ingestion"),
         "bigfix": _LazyStage("cartography.intel.bigfix", "start_bigfix_ingestion"),
         "duo": _LazyStage("cartography.intel.duo", "start_duo_ingestion"),
         "workday": _LazyStage("cartography.intel.workday", "start_workday_ingestion"),

@@ -1,0 +1,41 @@
+{
+  "name": "Proxmox HA analysis",
+  "statements": [
+    {
+      "__comment": "Flag HA resources that are not in a running state",
+      "query": "MATCH (hr:ProxmoxHAResource {cluster_id: $CLUSTER_ID}) WHERE hr.state <> 'started' AND hr.state <> 'running' SET hr.ha_risk = true",
+      "iterative": false,
+      "name": "Mark HA resources not running"
+    },
+    {
+      "__comment": "Flag HA groups with restricted mode but no nodes configured",
+      "query": "MATCH (hg:ProxmoxHAGroup {cluster_id: $CLUSTER_ID}) WHERE hg.restricted = true AND NOT EXISTS { MATCH (hg)<-[:MEMBER_OF_HA_GROUP]-() } SET hg.ha_risk = true",
+      "iterative": false,
+      "name": "Mark restricted HA groups with no resources"
+    },
+    {
+      "__comment": "Flag HA resources with max_relocate = 0 (no failover allowed)",
+      "query": "MATCH (hr:ProxmoxHAResource {cluster_id: $CLUSTER_ID}) WHERE hr.max_relocate = 0 SET hr.ha_risk = true",
+      "iterative": false,
+      "name": "Mark HA resources with no failover allowed"
+    },
+    {
+      "__comment": "Flag HA resources with max_restart = 0 (no restart on failure)",
+      "query": "MATCH (hr:ProxmoxHAResource {cluster_id: $CLUSTER_ID}) WHERE hr.max_restart = 0 SET hr.ha_risk = true",
+      "iterative": false,
+      "name": "Mark HA resources with no restart on failure"
+    },
+    {
+      "__comment": "Flag VMs with HA configured but not protected by any HA resource",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND NOT EXISTS { MATCH (hr:ProxmoxHAResource {cluster_id: $CLUSTER_ID})-[:PROTECTS]->(v) } SET v.ha_risk = true",
+      "iterative": false,
+      "name": "Mark VMs without HA protection"
+    },
+    {
+      "__comment": "Flag HA groups with nofailback that have resources that could fail back",
+      "query": "MATCH (hg:ProxmoxHAGroup {cluster_id: $CLUSTER_ID}) WHERE hg.nofailback = true AND EXISTS { MATCH (hg)<-[:MEMBER_OF_HA_GROUP]-(hr:ProxmoxHAResource {cluster_id: $CLUSTER_ID}) WHERE hr.state = 'started' } SET hg.ha_risk = true",
+      "iterative": false,
+      "name": "Mark HA groups with nofailback that have running resources"
+    }
+  ]
+}

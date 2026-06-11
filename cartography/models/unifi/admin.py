@@ -8,6 +8,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -41,8 +42,32 @@ class UnifiAdminToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiAdminToUserAccountRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiAdmin)-[:HAS_ACCOUNT]->(:UserAccount) via email
+class UnifiAdminToUserAccountRel(CartographyRelSchema):
+    target_node_label: str = "UserAccount"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"email": PropertyRef("email")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_ACCOUNT"
+    properties: UnifiAdminToUserAccountRelProperties = (
+        UnifiAdminToUserAccountRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiAdminSchema(CartographyNodeSchema):
     label: str = "UnifiAdmin"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserAccount"])
     properties: UnifiAdminNodeProperties = UnifiAdminNodeProperties()
     sub_resource_relationship: UnifiAdminToSiteRel = UnifiAdminToSiteRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            UnifiAdminToUserAccountRel(),
+        ],
+    )

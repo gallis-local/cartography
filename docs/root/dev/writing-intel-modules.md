@@ -623,6 +623,122 @@ the AWS EC2 instance example [here](https://github.com/cartography-cncf/cartogra
 representations are OK provided they are consistent over time. For example, we don't sync 100% of AWS resources but the
 resources that exist in the graph don't change across syncs.
 
+## Proxmox Intel Module Reference
+
+The Proxmox module (`cartography/intel/proxmox/`) demonstrates best practices for a single-tenant virtualization platform. Key patterns:
+
+### Sync Entry Point
+```python
+# cartography/intel/proxmox/__init__.py
+def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
+    # Configuration validation
+    if not config.proxmox_host:
+        logger.info("Proxmox host not configured, skipping Proxmox sync")
+        return
+
+    common_job_parameters = {"UPDATE_TAG": config.update_tag}
+    proxmox_client = _get_proxmox_client(config)
+
+    # Dependency-ordered sync (comments explain ordering)
+    cluster_data = cluster.sync(...)
+    cluster_id = cluster_data["cluster_id"]
+    common_job_parameters["CLUSTER_ID"] = cluster_id
+
+    # Best-effort mode for resilience
+    _best_effort_wrapper(config, sdn.sync, ...)
+    _best_effort_wrapper(config, storage.sync, ...)  # Must run before compute
+    vms = _best_effort_wrapper(config, compute.sync, ...)
+    _best_effort_wrapper(config, snapshot.sync, ..., vms)
+    # ... other modules
+
+    # Analysis jobs
+    analysis.run_effective_permissions(...)
+    analysis.run_has_role_relationships(...)
+    run_analysis_job("proxmox_ontology_linking.json", ...)
+    # ... 6 Proxmox-specific analysis jobs
+
+    # Centralized cleanup
+    run_cleanup_job("proxmox_import_cleanup.json", ...)
+    merge_module_sync_metadata(...)
+```
+
+### Configuration (cartography/config.py)
+```python
+# Proxmox-specific config fields
+proxmox_host: str | None = None
+proxmox_port: int = 8006
+proxmox_user: str = "root@pam"
+proxmox_token_name_env_var: str | None = None
+proxmox_token_value_env_var: str | None = None
+proxmox_password_env_var: str | None = None
+proxmox_verify_ssl: bool = True
+proxmox_timeout: int = 30
+proxmox_best_effort_mode: bool = False
+proxmox_max_retries: int = 3
+proxmox_retry_backoff: float = 1.0
+proxmox_enable_guest_agent: bool = False
+```
+
+CLI options in `cartography/cli.py`:
+- `--proxmox-host` / `--proxmox-port` / `--proxmox-user`
+- `--proxmox-token-name-env-var` / `--proxmox-token-value-env-var` (token auth, preferred)
+- `--proxmox-password-env-var` (password auth fallback)
+- `--proxmox-verify-ssl` / `--proxmox-timeout`
+- `--proxmox-best-effort-mode` / `--proxmox-max-retries` / `--proxmox-retry-backoff`
+- `--proxmox-enable-guest-agent`
+
+### Data Models (cartography/models/proxmox/)
+Organized by domain:
+- `cluster.py` - Cluster, Node, NetworkInterface
+- `compute.py` - VM, Container, Disk, NetworkInterface (dual-stack)
+- `storage.py` - Storage with conditional BlockStorage/FileStorage labels
+- `pool.py` - Pool with ComputeCluster label + MatchLinks
+- `sdn.py` - SDNZone (VirtualNetwork), SDNVNet (Subnet)
+- `access.py` - User, Group, Role, ACL with ontology labels
+- `backup.py` / `replication.py` / `ha.py` - DR resources
+- `authrealm.py` - AuthRealm with IdentityProvider label
+- `apitoken.py` - APIToken with APIKey label
+- `certificate.py` - Certificate with Certificate label
+- `firewall.py` / `firewalloptions.py` - Firewall rules
+
+### Key Patterns
+1. **Conditional semantic labels** - `ProxmoxStorage` uses `ConditionalNodeLabel` for BlockStorage/FileStorage based on `type` field
+2. **MatchLinks for cross-module references** - ACL→VM/Storage/Node/Pool/Cluster, Pool→VM/Storage, HA→VM
+3. **Ontology integration** - UserAccount, UserGroup, PermissionRole, IdentityProvider, ComputeInstance, ComputeCluster, Tenant, VirtualNetwork, Subnet, DeviceInstance, APIKey, Certificate
+4. **Analysis jobs** - 7 jobs: ontology linking + backup/replication/HA/cert/guest agent/storage/security
+5. **Scoped cleanup** - `CLUSTER_ID` parameter prevents cross-cluster data loss in multi-cluster setups
+6. **Retry/backoff** - `_with_proxmox_retry()` decorator with exponential backoff
+7. **Best-effort mode** - `_best_effort_wrapper()` continues on per-module failures when enabled
+
+### Analysis Job Structure
+All analysis jobs in `cartography/data/jobs/analysis/proxmox_*.json`:
+```json
+{
+  "name": "Proxmox backup job analysis",
+  "statements": [
+    {"query": "MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID}) ...", "iterative": false}
+  ]
+}
+```
+
+### Tests
+- Unit tests: `tests/unit/cartography/intel/proxmox/test_*.py` (transform logic)
+- Integration tests: `tests/integration/cartography/intel/proxmox/test_*.py` (full sync, cleanup, multi-cluster)
+
+### Schema Documentation
+All node/relationship schemas follow the modern declarative pattern:
+```python
+@dataclass(frozen=True)
+class ProxmoxVMSchema(CartographyNodeSchema):
+    label: str = "ProxmoxVM"
+    properties: ProxmoxVMNodeProperties = ProxmoxVMNodeProperties()
+    sub_resource_relationship: ProxmoxVMToClusterRel = ProxmoxVMToClusterRel()
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeInstance"])
+    other_relationships: OtherRelationships = OtherRelationships([...])
+```
+
+---
+
 - Each intel module offers its own view of the graph
 
     ```{note}

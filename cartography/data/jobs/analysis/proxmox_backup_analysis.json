@@ -1,0 +1,35 @@
+{
+  "name": "Proxmox backup job analysis",
+  "statements": [
+    {
+      "__comment": "Flag backup jobs that are disabled",
+      "query": "MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID}) WHERE b.enabled = false SET b.backup_risk = true",
+      "iterative": false,
+      "name": "Mark disabled backup jobs as risk"
+    },
+    {
+      "__comment": "Flag backup jobs with no retention policy (no prune settings)",
+      "query": "MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID}) WHERE b.prune_keep_last IS NULL AND b.prune_keep_daily IS NULL AND b.prune_keep_weekly IS NULL AND b.prune_keep_monthly IS NULL AND b.prune_keep_yearly IS NULL SET b.retention_risk = true",
+      "iterative": false,
+      "name": "Mark backup jobs without retention policy"
+    },
+    {
+      "__comment": "Flag VMs that are not backed up by any job",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND NOT EXISTS { MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID})-[:BACKS_UP]->(v) } SET v.backup_risk = true",
+      "iterative": false,
+      "name": "Mark VMs without backup job coverage"
+    },
+    {
+      "__comment": "Flag backup jobs targeting storage that is nearly full (>90%)",
+      "query": "MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID})-[:BACKS_UP_TO]->(s:ProxmoxStorage {cluster_id: $CLUSTER_ID}) WHERE s.total > 0 AND (s.used * 1.0 / s.total) > 0.9 SET b.storage_risk = true",
+      "iterative": false,
+      "name": "Mark backup jobs with nearly full target storage"
+    },
+    {
+      "__comment": "Flag backup jobs with no mail notification on failure",
+      "query": "MATCH (b:ProxmoxBackupJob {cluster_id: $CLUSTER_ID}) WHERE b.mailnotification IS NULL OR b.mailnotification = 'never' OR (b.mailnotification = 'failure' AND (b.mailto IS NULL OR b.mailto = '')) SET b.notification_risk = true",
+      "iterative": false,
+      "name": "Mark backup jobs without failure notifications"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Proxmox replication job analysis",
+  "statements": [
+    {
+      "__comment": "Flag replication jobs that are disabled",
+      "query": "MATCH (r:ProxmoxReplicationJob {cluster_id: $CLUSTER_ID}) WHERE r.disable = true SET r.replication_risk = true",
+      "iterative": false,
+      "name": "Mark disabled replication jobs as risk"
+    },
+    {
+      "__comment": "Flag replication jobs with no target node configured",
+      "query": "MATCH (r:ProxmoxReplicationJob {cluster_id: $CLUSTER_ID}) WHERE NOT EXISTS { MATCH (r)-[:REPLICATES_TO]->() } SET r.target_risk = true",
+      "iterative": false,
+      "name": "Mark replication jobs without target node"
+    },
+    {
+      "__comment": "Flag VMs that are not replicated by any job",
+      "query": "MATCH (v:ProxmoxVM {cluster_id: $CLUSTER_ID}) WHERE v.template = false AND NOT EXISTS { MATCH (r:ProxmoxReplicationJob {cluster_id: $CLUSTER_ID})-[:REPLICATES]->(v) } SET v.replication_risk = true",
+      "iterative": false,
+      "name": "Mark VMs without replication coverage"
+    },
+    {
+      "__comment": "Flag replication jobs targeting offline nodes",
+      "query": "MATCH (r:ProxmoxReplicationJob {cluster_id: $CLUSTER_ID})-[:REPLICATES_TO]->(n:ProxmoxNode {cluster_id: $CLUSTER_ID}) WHERE n.status <> 'online' SET r.target_risk = true",
+      "iterative": false,
+      "name": "Mark replication jobs with offline target nodes"
+    },
+    {
+      "__comment": "Flag replication jobs with very high rate limit (no throttle = potential network impact)",
+      "query": "MATCH (r:ProxmoxReplicationJob {cluster_id: $CLUSTER_ID}) WHERE r.rate IS NULL OR r.rate = 0 SET r.network_risk = true",
+      "iterative": false,
+      "name": "Mark replication jobs without rate limiting"
+    }
+  ]
+}

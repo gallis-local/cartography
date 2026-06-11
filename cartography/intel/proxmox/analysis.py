@@ -13,6 +13,7 @@ from cartography.client.core.tx import run_write_query
 
 logger = logging.getLogger(__name__)
 
+
 def run_effective_permissions(
     neo4j_session: neo4j.Session,
     update_tag: int,
@@ -28,7 +29,9 @@ def run_effective_permissions(
     :param update_tag: Sync timestamp
     :param cluster_id: Cluster ID to scope cleanup (prevents cross-cluster edge deletion)
     """
-    logger.info("Running Proxmox effective permissions analysis for cluster %s", cluster_id)
+    logger.info(
+        "Running Proxmox effective permissions analysis for cluster %s", cluster_id
+    )
 
     # Create direct user -> resource permissions (through ACLs)
     query = """
@@ -96,4 +99,47 @@ def run_effective_permissions(
     WHERE r.lastupdated < $UpdateTag
     DELETE r
     """
-    run_write_query(neo4j_session, cleanup_query, UpdateTag=update_tag, ClusterId=cluster_id)
+    run_write_query(
+        neo4j_session, cleanup_query, UpdateTag=update_tag, ClusterId=cluster_id
+    )
+
+
+def run_has_role_relationships(
+    neo4j_session: neo4j.Session,
+    update_tag: int,
+    cluster_id: str,
+) -> None:
+    """
+    Create direct HAS_ROLE relationships from users to roles.
+
+    By default, ProxmoxUser-to-Role connections go through an intermediate
+    ProxmoxACL node. This analysis materializes a direct (:ProxmoxUser)
+    -[:HAS_ROLE]->(:ProxmoxRole) edge for the ontology.
+
+    :param neo4j_session: Neo4j session
+    :param update_tag: Sync timestamp
+    :param cluster_id: Cluster ID to scope cleanup
+    """
+    logger.info("Running Proxmox HAS_ROLE analysis for cluster %s", cluster_id)
+
+    query = """
+    MATCH (u:ProxmoxUser {cluster_id: $ClusterId})
+        <-[:APPLIES_TO_USER]-(acl:ProxmoxACL)-[:GRANTS_ROLE]->(role:ProxmoxRole)
+    WITH DISTINCT u, role, acl.path AS acl_path, acl.propagate AS acl_propagate
+    MERGE (u)-[r:HAS_ROLE]->(role)
+    ON CREATE SET r.firstseen = timestamp()
+    SET r.lastupdated = $UpdateTag,
+        r.path = acl_path,
+        r.propagate = acl_propagate
+    """
+    run_write_query(neo4j_session, query, UpdateTag=update_tag, ClusterId=cluster_id)
+
+    # Clean up stale HAS_ROLE relationships for this cluster
+    cleanup_query = """
+    MATCH (:ProxmoxUser {cluster_id: $ClusterId})-[r:HAS_ROLE]->()
+    WHERE r.lastupdated < $UpdateTag
+    DELETE r
+    """
+    run_write_query(
+        neo4j_session, cleanup_query, UpdateTag=update_tag, ClusterId=cluster_id
+    )

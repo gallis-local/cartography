@@ -34,6 +34,34 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     vlan: PropertyRef = PropertyRef("vlan")
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
+    # Security-relevant properties
+    first_seen: PropertyRef = PropertyRef("first_seen")
+    fixed_ip: PropertyRef = PropertyRef("fixed_ip")
+    idle_time: PropertyRef = PropertyRef("idle_time")
+    latest_association_time: PropertyRef = PropertyRef("latest_association_time")
+    rx_bytes: PropertyRef = PropertyRef("rx_bytes")
+    rx_bytes_r: PropertyRef = PropertyRef("rx_bytes_r")
+    tx_bytes: PropertyRef = PropertyRef("tx_bytes")
+    tx_bytes_r: PropertyRef = PropertyRef("tx_bytes_r")
+    wired_rx_bytes: PropertyRef = PropertyRef("wired_rx_bytes")
+    wired_rx_bytes_r: PropertyRef = PropertyRef("wired_rx_bytes_r")
+    wired_tx_bytes: PropertyRef = PropertyRef("wired_tx_bytes")
+    wired_tx_bytes_r: PropertyRef = PropertyRef("wired_tx_bytes_r")
+    wired_rate_mbps: PropertyRef = PropertyRef("wired_rate_mbps")
+    uptime_by_access_point: PropertyRef = PropertyRef("uptime_by_access_point")
+    uptime_by_gateway: PropertyRef = PropertyRef("uptime_by_gateway")
+    uptime_by_switch: PropertyRef = PropertyRef("uptime_by_switch")
+    switch_depth: PropertyRef = PropertyRef("switch_depth")
+    powersave_enabled: PropertyRef = PropertyRef("powersave_enabled")
+    device_name: PropertyRef = PropertyRef("device_name")
+    firmware_version: PropertyRef = PropertyRef("firmware_version")
+    association_time: PropertyRef = PropertyRef("association_time")
+    last_seen_by_access_point: PropertyRef = PropertyRef("last_seen_by_access_point")
+    last_seen_by_gateway: PropertyRef = PropertyRef("last_seen_by_gateway")
+    last_seen_by_switch: PropertyRef = PropertyRef("last_seen_by_switch")
+    # Historical flag - True for clients from clients_all (historical), False for current clients
+    is_historical: PropertyRef = PropertyRef("is_historical")
+
 
 @dataclass(frozen=True)
 class UnifiClientToSiteRelProperties(CartographyRelProperties):
@@ -140,6 +168,25 @@ class UnifiClientToPortRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiClientToUserAccountRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiClient)-[:HAS_ACCOUNT]->(:UserAccount) via hostname (best effort)
+class UnifiClientToUserAccountRel(CartographyRelSchema):
+    target_node_label: str = "UserAccount"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"name": PropertyRef("hostname")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_ACCOUNT"
+    properties: UnifiClientToUserAccountRelProperties = (
+        UnifiClientToUserAccountRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiClientSchema(CartographyNodeSchema):
     label: str = "UnifiClient"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkEndpoint"])
@@ -152,5 +199,6 @@ class UnifiClientSchema(CartographyNodeSchema):
             UnifiClientToAPSwitchRel(),
             UnifiClientToWlanRel(),
             UnifiClientToPortRel(),
+            UnifiClientToUserAccountRel(),
         ],
     )
