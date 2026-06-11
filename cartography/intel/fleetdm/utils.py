@@ -99,6 +99,7 @@ def _find_resource_key(payload: dict[str, Any]) -> str | None:
         "certificates",
         "activities",
         "software",
+        "software_versions",
         "teams",
     ]
     for key in known_keys:

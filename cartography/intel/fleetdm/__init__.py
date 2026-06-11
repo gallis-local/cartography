@@ -10,6 +10,7 @@ import cartography.intel.fleetdm.policies
 import cartography.intel.fleetdm.software
 import cartography.intel.fleetdm.tenant
 import cartography.intel.fleetdm.users
+import cartography.intel.fleetdm.versions
 from cartography.config import Config
 from cartography.util import timeit
 
@@ -65,6 +66,14 @@ def start_fleetdm_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
     cartography.intel.fleetdm.software.sync(
+        neo4j_session,
+        api_session,
+        base_url,
+        tenant_id,
+        config.update_tag,
+        common_job_parameters,
+    )
+    cartography.intel.fleetdm.versions.sync(
         neo4j_session,
         api_session,
         base_url,
