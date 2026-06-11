@@ -1,14 +1,24 @@
 from unittest.mock import patch
 
+import neo4j
 import requests
 
 import cartography.intel.fleetdm.hosts
+import cartography.intel.fleetdm.tenant
 import tests.data.fleetdm.hosts
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
 TEST_UPDATE_TAG = 123456789
 TEST_TENANT_ID = "https://fleet.example.com"
+
+
+def _create_tenant(neo4j_session: neo4j.Session) -> None:
+    cartography.intel.fleetdm.tenant.load_tenant(
+        neo4j_session,
+        TEST_TENANT_ID,
+        TEST_UPDATE_TAG,
+    )
 
 
 @patch.object(
@@ -18,6 +28,9 @@ TEST_TENANT_ID = "https://fleet.example.com"
 )
 def test_sync_fleetdm_hosts(mock_api, neo4j_session):
     session = requests.Session()
+
+    # Arrange - create tenant node first (sub_resource_relationship uses OPTIONAL MATCH)
+    _create_tenant(neo4j_session)
 
     # Act
     cartography.intel.fleetdm.hosts.sync(
@@ -108,6 +121,9 @@ def test_sync_fleetdm_hosts(mock_api, neo4j_session):
 )
 def test_fleetdm_hosts_cleanup(mock_api, neo4j_session):
     session = requests.Session()
+
+    # Arrange - create tenant node first
+    _create_tenant(neo4j_session)
 
     # Act - load with first update tag
     cartography.intel.fleetdm.hosts.sync(
