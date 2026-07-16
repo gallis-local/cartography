@@ -36,7 +36,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "forward_ip": pf.forward_ip,
                 "protocol": pf.protocol,
                 "interface": pf.port_forward_interface,
-                "source": pf.source,
+                "source": pf.raw.get("src"),
             }
         )
     logger.debug("Fetched %d UniFi port forwards", len(port_forwards))
