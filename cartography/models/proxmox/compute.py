@@ -16,8 +16,10 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_INSTANCE
 
 # ProxmoxVM Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxVMNodeProperties(CartographyNodeProperties):
@@ -96,9 +98,11 @@ class ProxmoxVMNodeProperties(CartographyNodeProperties):
     guest_machine: PropertyRef = PropertyRef("guest_machine")
     agent_enabled: PropertyRef = PropertyRef("agent_enabled")
 
+
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRel(CartographyRelSchema):
@@ -116,9 +120,11 @@ class ProxmoxVMToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxVMToClusterRelProperties = ProxmoxVMToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxVMToNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxVMToNodeRel(CartographyRelSchema):
@@ -138,6 +144,7 @@ class ProxmoxVMToNodeRel(CartographyRelSchema):
     rel_label: str = "HOSTS_VM"
     properties: ProxmoxVMToNodeRelProperties = ProxmoxVMToNodeRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxVMSchema(CartographyNodeSchema):
     """
@@ -149,14 +156,16 @@ class ProxmoxVMSchema(CartographyNodeSchema):
     label: str = "ProxmoxVM"
     properties: ProxmoxVMNodeProperties = ProxmoxVMNodeProperties()
     sub_resource_relationship: ProxmoxVMToClusterRel = ProxmoxVMToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeInstance"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([COMPUTE_INSTANCE])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxVMToNodeRel(),
         ]
     )
 
+
 # ProxmoxDisk Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxDiskNodeProperties(CartographyNodeProperties):
@@ -200,9 +209,11 @@ class ProxmoxDiskNodeProperties(CartographyNodeProperties):
     ro: PropertyRef = PropertyRef("ro")
     detect_zeroes: PropertyRef = PropertyRef("detect_zeroes")
 
+
 @dataclass(frozen=True)
 class ProxmoxDiskToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxDisk)
@@ -217,9 +228,11 @@ class ProxmoxDiskToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxDiskToClusterRelProperties = ProxmoxDiskToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxDiskToVMRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxDiskToVMRel(CartographyRelSchema):
@@ -240,9 +253,11 @@ class ProxmoxDiskToVMRel(CartographyRelSchema):
     rel_label: str = "HAS_DISK"
     properties: ProxmoxDiskToVMRelProperties = ProxmoxDiskToVMRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxDiskToStorageRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxDiskToStorageRel(CartographyRelSchema):
@@ -262,6 +277,7 @@ class ProxmoxDiskToStorageRel(CartographyRelSchema):
     rel_label: str = "STORED_ON"
     properties: ProxmoxDiskToStorageRelProperties = ProxmoxDiskToStorageRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxDiskSchema(CartographyNodeSchema):
     """
@@ -280,7 +296,9 @@ class ProxmoxDiskSchema(CartographyNodeSchema):
         ]
     )
 
+
 # ProxmoxNetworkInterface Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceNodeProperties(CartographyNodeProperties):
@@ -293,17 +311,11 @@ class ProxmoxNetworkInterfaceNodeProperties(CartographyNodeProperties):
     net_id: PropertyRef = PropertyRef("net_id")
     vmid: PropertyRef = PropertyRef("vmid")
     node_name: PropertyRef = PropertyRef("node_name")
-    bridge: PropertyRef = PropertyRef(
-        "bridge", extra_index=True
-    )
+    bridge: PropertyRef = PropertyRef("bridge", extra_index=True)
     mac_address: PropertyRef = PropertyRef("mac_address", extra_index=True)
     model: PropertyRef = PropertyRef("model")
-    firewall: PropertyRef = PropertyRef(
-        "firewall", extra_index=True
-    )
-    vlan_tag: PropertyRef = PropertyRef(
-        "vlan_tag", extra_index=True
-    )
+    firewall: PropertyRef = PropertyRef("firewall", extra_index=True)
+    vlan_tag: PropertyRef = PropertyRef("vlan_tag", extra_index=True)
     # Additional networking properties
     ip: PropertyRef = PropertyRef("ip", extra_index=True)
     ip6: PropertyRef = PropertyRef("ip6")
@@ -321,9 +333,11 @@ class ProxmoxNetworkInterfaceNodeProperties(CartographyNodeProperties):
     actual_ipv6: PropertyRef = PropertyRef("actual_ipv6")
     guest_interface_name: PropertyRef = PropertyRef("guest_interface_name")
 
+
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 # Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNetworkInterface)
@@ -340,6 +354,7 @@ class ProxmoxNetworkInterfaceToClusterRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVMRelProperties(CartographyRelProperties):
     """
@@ -351,6 +366,7 @@ class ProxmoxNetworkInterfaceToVMRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     firewall_enabled: PropertyRef = PropertyRef("firewall")
     interface_slot: PropertyRef = PropertyRef("net_id")
+
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
@@ -373,6 +389,7 @@ class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToVMRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToBridgeRelProperties(CartographyRelProperties):
     """
@@ -383,6 +400,7 @@ class ProxmoxNetworkInterfaceToBridgeRelProperties(CartographyRelProperties):
 
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     vlan_tag: PropertyRef = PropertyRef("vlan_tag")
+
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
@@ -406,6 +424,7 @@ class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
         ProxmoxNetworkInterfaceToBridgeRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
     """
@@ -415,6 +434,7 @@ class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
     """
 
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
@@ -437,6 +457,7 @@ class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
     properties: ProxmoxNetworkInterfaceToVNetRelProperties = (
         ProxmoxNetworkInterfaceToVNetRelProperties()
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceSchema(CartographyNodeSchema):

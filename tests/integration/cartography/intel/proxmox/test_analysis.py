@@ -440,7 +440,7 @@ class TestOntologyLinking:
         c = "test-onto-apitoken"
         create_test_cluster(neo4j_session, c, TEST_UPDATE_TAG)
         neo4j_session.run(
-            "MERGE (key:ProxmoxAPIToken {id: $token_id}) SET key.cluster_id=$c, key.lastupdated=$u MERGE (pu:ProxmoxUser {id: $user_id}) SET pu.cluster_id=$c, pu.lastupdated=$u MERGE (u:User {id: $canonical_id}) MERGE (key)-[:BELONGS_TO]->(pu) MERGE (u)-[:HAS_ACCOUNT]->(pu)",
+            "MERGE (key:ProxmoxAPIToken {id: $token_id}) SET key.cluster_id=$c, key.lastupdated=$u MERGE (pu:ProxmoxUser {id: $user_id}) SET pu.cluster_id=$c, pu.lastupdated=$u MERGE (u:User {id: $canonical_id}) MERGE (key)-[:OWNED_BY]->(pu) MERGE (u)-[:HAS_ACCOUNT]->(pu)",
             token_id=f"{c}/apitoken/test-token",
             user_id=f"{c}/user/root@pam",
             canonical_id="urn:proxmox:user:root@pam",

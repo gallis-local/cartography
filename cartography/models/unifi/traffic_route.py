@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_ROUTING_RULE
 
 
 @dataclass(frozen=True)
@@ -68,7 +69,7 @@ class UnifiTrafficRouteToClientRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiTrafficRouteSchema(CartographyNodeSchema):
     label: str = "UnifiTrafficRoute"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkRoutingRule"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ROUTING_RULE])
     properties: UnifiTrafficRouteNodeProperties = UnifiTrafficRouteNodeProperties()
     sub_resource_relationship: UnifiTrafficRouteToSiteRel = UnifiTrafficRouteToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

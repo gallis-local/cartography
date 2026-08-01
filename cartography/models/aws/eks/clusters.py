@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_EKS_CLUSTER
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -9,6 +10,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_CLUSTER
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,7 @@ class EKSClusterNodeProperties(CartographyNodeProperties):
     rolearn: PropertyRef = PropertyRef("roleArn")
     version: PropertyRef = PropertyRef("version")
     platform_version: PropertyRef = PropertyRef("platformVersion")
+    authentication_mode: PropertyRef = PropertyRef("AuthenticationMode")
     status: PropertyRef = PropertyRef("status")
     audit_logging: PropertyRef = PropertyRef("ClusterLogging")
     certificate_authority_data_present: PropertyRef = PropertyRef(
@@ -84,7 +87,10 @@ class EKSClusterToAWSAccountRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class EKSClusterSchema(CartographyNodeSchema):
-    label: str = "EKSCluster"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeCluster"])
+    label: str = "AWSEKSCluster"
+    # DEPRECATED: legacy EKSCluster node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_EKS_CLUSTER, COMPUTE_CLUSTER]
+    )
     properties: EKSClusterNodeProperties = EKSClusterNodeProperties()
     sub_resource_relationship: EKSClusterToAWSAccountRel = EKSClusterToAWSAccountRel()

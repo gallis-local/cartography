@@ -10,7 +10,7 @@ S -- RESOURCE --> Snapshot
 S -- RESOURCE --> SQL(SQLServer)
 S -- RESOURCE --> SA(StorageAccount)
 S -- RESOURCE --> CA(CosmosDBAccount)
-S -- RESOURCE --> NIC(NetworkInterface)
+S -- RESOURCE --> NIC(AWSNetworkInterface)
 S -- RESOURCE --> PIP(PublicIPAddress)
 S -- RESOURCE --> FW(Firewall)
 S -- RESOURCE --> FWP(FirewallPolicy)
@@ -67,7 +67,7 @@ CM -- CONTAINS --> CosmosDBMongoDBCollection
 ```
 
 :::{note}
-All entities are linked to an AzureSubscription, these relationships are not represented for readability.
+Most Azure resource entities are linked to an AzureSubscription; these relationships are not represented for readability.
 :::
 
 ### AzureTenant
@@ -89,6 +89,47 @@ Representation of an [Azure Tenant](https://docs.microsoft.com/en-us/rest/api/re
     (AzureTenant)-[RESOURCE]->(AzurePrincipal)
     ```
 
+- Azure Tenant contains one or more Management Groups.
+    ```cypher
+    (AzureTenant)-[RESOURCE]->(AzureManagementGroup)
+    ```
+
+### AzureManagementGroup
+
+Representation of an [Azure Management Group](https://learn.microsoft.com/en-us/azure/governance/management-groups/overview).
+
+| Field | Description |
+|-------|-------------|
+|firstseen| Timestamp of when a sync job discovered this node|
+|lastupdated| Timestamp of the last time the node was updated|
+|**id**| The full Azure resource ID for the management group|
+|name| The management group name|
+|displayname| The friendly display name for the management group|
+|tenantid| The Azure Tenant ID that owns the management group|
+|type| The type of the resource (Microsoft.Management/managementGroups)|
+|updatedby| The principal ID that last updated the management group|
+|updatedtime| Timestamp when the management group was last updated|
+|version| The current management group version|
+|parent_tenant_id| The tenant ID when the management group's hierarchy parent is the Azure Tenant|
+|parent_management_group_id| The management group ID when the management group's hierarchy parent is another Azure Management Group|
+
+#### Relationships
+
+- Azure Management Group is part of the Azure Tenant inventory.
+    ```cypher
+    (AzureTenant)-[RESOURCE]->(AzureManagementGroup)
+    ```
+
+- Azure Management Group can have the Azure Tenant as its hierarchy parent.
+    ```cypher
+    (AzureManagementGroup)-[PARENT]->(AzureTenant)
+    ```
+
+- Azure Management Group can have another Azure Management Group as its hierarchy parent.
+    ```cypher
+    (AzureManagementGroup)-[PARENT]->(AzureManagementGroup)
+    ```
+
 ### AzurePrincipal
 
 Representation of an [Azure Principal](https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0)..
@@ -103,7 +144,7 @@ Representation of an [Azure Principal](https://docs.microsoft.com/en-us/graph/ap
 
 - Azure Principal is part of the Azure Account.
     ```cypher
-    (AzurePrincipal)-[RESOURCE]->(AzureTenant)
+    (AzureTenant)-[RESOURCE]->(AzurePrincipal)
     ```
 
 ### AzureSubscription
@@ -120,12 +161,18 @@ Representation of an [Azure Subscription](https://docs.microsoft.com/en-us/rest/
 |name | The friendly name that identifies the subscription|
 |path | The full ID for the Subscription|
 |state| Can be one of ``Enabled \| Disabled \| Deleted \| PastDue \| Warned``|
+|parent_management_group_id| The management group ID when the subscription belongs to an Azure Management Group|
 
 #### Relationships
 
 - Azure Tenant contains one or more Subscriptions.
     ```cypher
     (AzureTenant)-[RESOURCE]->(AzureSubscription)
+    ```
+
+- Azure Subscription can belong to an Azure Management Group in the hierarchy.
+    ```cypher
+    (AzureSubscription)-[PARENT]->(AzureManagementGroup)
     ```
 
 ### AzureRoleAssignment
@@ -142,7 +189,7 @@ Representation of an [Azure Role Assignment](https://learn.microsoft.com/en-us/a
 |principal_id| The principal ID of the assignee (user, group, or service principal)|
 |principal_type| The type of principal (User, Group, ServicePrincipal)|
 |role_definition_id| The ID of the role definition being assigned|
-|scope| The scope at which the role is assigned (subscription, resource group, or resource)|
+|scope| The scope at which the role is assigned (management group, subscription, resource group, or resource)|
 |scope_type| The type of scope|
 |created_on| Timestamp when the role assignment was created|
 |updated_on| Timestamp when the role assignment was last updated|
@@ -152,12 +199,18 @@ Representation of an [Azure Role Assignment](https://learn.microsoft.com/en-us/a
 |description| Description of the role assignment|
 |delegated_managed_identity_resource_id| The delegated managed identity resource ID, if applicable|
 |subscription_id| The Azure subscription ID|
+|management_group_id| The Azure management group ID for management-group-scoped assignments|
 
 #### Relationships
 
 - Azure Subscription contains Role Assignments.
     ```cypher
     (AzureSubscription)-[RESOURCE]->(AzureRoleAssignment)
+    ```
+
+- Azure Management Group contains directly attached Role Assignments.
+    ```cypher
+    (AzureManagementGroup)-[RESOURCE]->(AzureRoleAssignment)
     ```
 
 - Role Assignment references a Role Definition.
@@ -196,11 +249,11 @@ Representation of an [Azure Role Definition](https://learn.microsoft.com/en-us/a
 |role_name| The display name of the role (e.g., "Contributor", "Reader")|
 |description| Description of what the role allows|
 |assignable_scopes| List of scopes where this role can be assigned|
-|subscription_id| The Azure subscription ID|
+|subscription_id| The Azure subscription ID when loaded from a subscription-scoped RBAC sync|
 
 #### Relationships
 
-- Azure Subscription contains Role Definitions.
+- Azure Subscription contains subscription-loaded Role Definitions. Management-group-loaded Role Definitions may be unscoped.
     ```cypher
     (AzureSubscription)-[RESOURCE]->(AzureRoleDefinition)
     ```
@@ -228,11 +281,11 @@ Representation of the permissions within an Azure Role Definition. Each permissi
 |not_actions| List of denied control plane actions|
 |data_actions| List of allowed data plane actions (e.g., "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read")|
 |not_data_actions| List of denied data plane actions|
-|subscription_id| The Azure subscription ID|
+|subscription_id| The Azure subscription ID when loaded from a subscription-scoped RBAC sync|
 
 #### Relationships
 
-- Azure Subscription contains Permissions.
+- Azure Subscription contains subscription-loaded Permissions. Management-group-loaded Permissions may be unscoped.
     ```cypher
     (AzureSubscription)-[RESOURCE]->(AzurePermissions)
     ```
@@ -265,11 +318,11 @@ Representation of the permissions within an Azure Role Definition. Each permissi
     RETURN sp.display_name, rd.role_name, ra.scope
     ```
 
-### VirtualMachine
+### AzureVirtualMachine
 
 Representation of an [Azure Virtual Machine](https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines).
 
-> **Ontology Mapping**: This node has the extra label `ComputeInstance` to enable cross-platform queries for compute instances across different systems (e.g., EC2Instance, GCPInstance, DODroplet).
+> **Ontology Mapping**: This node has the extra label `ComputeInstance` to enable cross-platform queries for compute instances across different systems (e.g., AWSEC2Instance, GCPInstance, DODroplet).
 
 | Field | Description |
 |-------|-------------|
@@ -296,12 +349,22 @@ Representation of an [Azure Virtual Machine](https://docs.microsoft.com/en-us/re
 
 - Azure Subscription contains one or more Virtual Machines.
     ```cypher
-    (AzureSubscription)-[RESOURCE]->(VirtualMachine)
+    (AzureSubscription)-[RESOURCE]->(AzureVirtualMachine)
     ```
 
 - An Azure Virtual Machine can be tagged with Azure Tags.
     ```cypher
     (AzureVirtualMachine)-[:TAGGED]->(AzureTag)
+    ```
+
+- An Azure Virtual Machine runs as its managed identity's service principal (canonical ontology `RUNS_AS` edge).
+    ```cypher
+    (AzureVirtualMachine)-[:RUNS_AS]->(EntraServicePrincipal)
+    ```
+
+- An Azure Virtual Machine assumes the role definitions assigned to its managed identity (canonical ontology `ASSUMES` edge).
+    ```cypher
+    (AzureVirtualMachine)-[:ASSUMES]->(AzureRoleDefinition)
     ```
 
 ### AzureDataDisk
@@ -327,7 +390,7 @@ Representation of an [Azure Data Disk](https://docs.microsoft.com/en-us/rest/api
 
 - Azure Virtual Machines are attached to Data Disks.
     ```cypher
-    (VirtualMachine)-[ATTACHED_TO]->(AzureDataDisk)
+    (AzureVirtualMachine)-[ATTACHED_TO]->(AzureDataDisk)
     ```
 
 - Azure Data Disks belongs to a Subscription.
@@ -339,7 +402,7 @@ Representation of an [Azure Data Disk](https://docs.microsoft.com/en-us/rest/api
 
 Representation of an [Azure Disk](https://docs.microsoft.com/en-us/rest/api/compute/disks).
 
-> **Ontology Mapping**: This node has the extra label `BlockStorage` to enable cross-platform queries for block storage volumes across different systems (e.g., EBSVolume, ScalewayVolume).
+> **Ontology Mapping**: This node has the extra label `BlockStorage` to enable cross-platform queries for block storage volumes across different systems (e.g., AWSEBSVolume, ScalewayVolume).
 
 | Field | Description |
 |-------|-------------|
@@ -371,7 +434,7 @@ Representation of an [Azure Disk](https://docs.microsoft.com/en-us/rest/api/comp
 
 Representation of an [Azure Snapshot](https://docs.microsoft.com/en-us/rest/api/compute/snapshots).
 
-> **Ontology Mapping**: This node has the extra label `Snapshot` and normalized `_ont_*` properties to enable cross-platform queries for volume/database snapshots across different systems (e.g., EBSSnapshot, RDSSnapshot, ScalewayVolumeSnapshot).
+> **Ontology Mapping**: This node has the extra label `Snapshot` and normalized `_ont_*` properties to enable cross-platform queries for volume/database snapshots across different systems (e.g., AWSEBSSnapshot, AWSRDSSnapshot, ScalewayVolumeSnapshot).
 
 | Field | Description |
 |-------|-------------|
@@ -647,7 +710,7 @@ Two distinct cases are worth calling out and should NOT be conflated by downstre
 - **Public-internet exposure**: a rule whose range covers public IP space (for example `start_ip_address = 0.0.0.0` / `end_ip_address = 255.255.255.255`, or any rule whose range overlaps the public internet) lets arbitrary clients on the public internet reach the server.
 - **Allow Azure services**: the special `start_ip_address = 0.0.0.0` / `end_ip_address = 0.0.0.0` row (also exposed via the SQL Server's `public_network_access` + the "Allow Azure services and resources to access this server" toggle) allows traffic from Azure-hosted services / resources only, not arbitrary public IPs. It is a different exposure class and should be flagged separately.
 
-> **Ontology Mapping**: This node carries the extra labels `IpPermissionInbound` and `IpRule` so it can be matched alongside `EC2NetworkAclRule:IpPermissionInbound`, `AWSIpRule`, `GCPIpRule`, and other inbound rule nodes via cross-cloud queries.
+> **Ontology Mapping**: This node carries the extra labels `IpPermissionInbound` and `IpRule` so it can be matched alongside `AWSEC2NetworkAclRule:IpPermissionInbound`, `AWSIpRule`, `GCPIpRule`, and other inbound rule nodes via cross-cloud queries.
 
 | Field | Description |
 |-------|-------------|
@@ -673,7 +736,7 @@ Two distinct cases are worth calling out and should NOT be conflated by downstre
 
 Representation of an [AzureSQLDatabase](https://docs.microsoft.com/en-us/rest/api/sql/databases).
 
-> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., RDSInstance, DynamoDBTable, GCPBigtableInstance).
+> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., AWSRDSInstance, AWSDynamoDBTable, GCPBigtableInstance).
 
 | Field | Description |
 |-------|-------------|
@@ -1080,7 +1143,7 @@ Representation of an [AzureStorageFileShare](https://docs.microsoft.com/en-us/re
 
 Representation of an [AzureStorageBlobContainer](https://docs.microsoft.com/en-us/rest/api/storagerp/blobcontainers).
 
-> **Ontology Mapping**: This node has the extra label `ObjectStorage` to enable cross-platform queries for object storage across different systems (e.g., S3Bucket, GCPBucket).
+> **Ontology Mapping**: This node has the extra label `ObjectStorage` to enable cross-platform queries for object storage across different systems (e.g., AWSS3Bucket, GCPBucket).
 
 | Field | Description |
 |-------|-------------|
@@ -1323,7 +1386,7 @@ Representation of an Azure Cosmos DB [Virtual Network Rule](https://docs.microso
 
 Representation of an [AzureCosmosDBSqlDatabase](https://docs.microsoft.com/en-us/rest/api/cosmos-db-resource-provider/).
 
-> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., RDSInstance, DynamoDBTable, GCPBigtableInstance).
+> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., AWSRDSInstance, AWSDynamoDBTable, GCPBigtableInstance).
 
 | Field | Description |
 |-------|-------------|
@@ -1355,7 +1418,7 @@ Representation of an [AzureCosmosDBSqlDatabase](https://docs.microsoft.com/en-us
 
 Representation of an [AzureCosmosDBCassandraKeyspace](https://docs.microsoft.com/en-us/rest/api/cosmos-db-resource-provider/).
 
-> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., RDSInstance, DynamoDBTable, GCPBigtableInstance).
+> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., AWSRDSInstance, AWSDynamoDBTable, GCPBigtableInstance).
 
 | Field | Description |
 |-------|-------------|
@@ -1387,7 +1450,7 @@ Representation of an [AzureCosmosDBCassandraKeyspace](https://docs.microsoft.com
 
 Representation of an [AzureCosmosDBMongoDBDatabase](https://docs.microsoft.com/en-us/rest/api/cosmos-db-resource-provider/).
 
-> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., RDSInstance, DynamoDBTable, GCPBigtableInstance).
+> **Ontology Mapping**: This node has the extra label `Database` to enable cross-platform queries for database instances across different systems (e.g., AWSRDSInstance, AWSDynamoDBTable, GCPBigtableInstance).
 
 | Field | Description |
 |-------|-------------|
@@ -1565,9 +1628,19 @@ Representation of an [Azure Function App](https://learn.microsoft.com/en-us/rest
     (AzureFunctionApp)-[:TAGGED]->(AzureTag)
     ```
 
+- An Azure Function App runs as its managed identity's service principal (canonical ontology `RUNS_AS` edge).
+    ```cypher
+    (AzureFunctionApp)-[:RUNS_AS]->(EntraServicePrincipal)
+    ```
+
+- An Azure Function App assumes the role definitions assigned to its managed identity (canonical ontology `ASSUMES` edge).
+    ```cypher
+    (AzureFunctionApp)-[:ASSUMES]->(AzureRoleDefinition)
+    ```
+
 - Container-deployed Function Apps are linked to the image they run via `HAS_IMAGE` (matched on `image_digest`):
     ```cypher
-    (AzureFunctionApp)-[:HAS_IMAGE]->(:ECRImage)
+    (AzureFunctionApp)-[:HAS_IMAGE]->(:AWSECRImage)
     (AzureFunctionApp)-[:HAS_IMAGE]->(:GitLabContainerImage)
     (AzureFunctionApp)-[:HAS_IMAGE]->(:GCPArtifactRegistryImage)
     (AzureFunctionApp)-[:HAS_IMAGE]->(:GitHubContainerImage)
@@ -1842,11 +1915,16 @@ Representation of a [Secret within an Azure Key Vault](https://learn.microsoft.c
     (AzureKeyVault)-[:CONTAINS]->(:AzureKeyVaultSecret)
     ```
 
+- An Azure Key Vault Secret can be tagged with AzureTags.
+    ```cypher
+    (AzureKeyVaultSecret)-[:TAGGED]->(:AzureTag)
+    ```
+
 ### AzureKeyVaultKey
 
 Representation of a [Key within an Azure Key Vault](https://learn.microsoft.com/en-us/rest/api/keyvault/keys/get-keys/get-keys).
 
-> **Ontology Mapping**: This node has the extra label `EncryptionKey` to enable cross-platform queries for encryption keys across different systems (e.g., KMSKey, GCPCryptoKey, AzureKeyVaultKey).
+> **Ontology Mapping**: This node has the extra label `EncryptionKey` to enable cross-platform queries for encryption keys across different systems (e.g., AWSKMSKey, GCPCryptoKey, AzureKeyVaultKey).
 
 | Field | Description |
 |---|---|
@@ -1874,7 +1952,7 @@ Representation of a [Key within an Azure Key Vault](https://learn.microsoft.com/
 
 Representation of a [Certificate within an Azure Key Vault](https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/get-certificates).
 
-> **Ontology Mapping**: This node has the extra label `Certificate` to enable cross-platform queries for managed certificates across different systems (e.g., ACMCertificate, AWSServerCertificate).
+> **Ontology Mapping**: This node has the extra label `Certificate` to enable cross-platform queries for managed certificates across different systems (e.g., AWSACMCertificate, AWSServerCertificate).
 
 | Field | Description |
 |---|---|
@@ -1903,7 +1981,7 @@ Representation of a [Certificate within an Azure Key Vault](https://learn.micros
 
 Representation of an [Azure Kubernetes Service Cluster](https://learn.microsoft.com/en-us/rest/api/aks/managed-clusters/get).
 
-> **Ontology Mapping**: This node has the extra label `ComputeCluster` to enable cross-platform queries for compute clusters across different systems (e.g., EKSCluster, ECSCluster, GKECluster, KubernetesCluster).
+> **Ontology Mapping**: This node has the extra label `ComputeCluster` to enable cross-platform queries for compute clusters across different systems (e.g., AWSEKSCluster, AWSECSCluster, GKECluster, KubernetesCluster).
 
 | Field | Description |
 |---|---|
@@ -1955,7 +2033,7 @@ Representation of an [Azure Kubernetes Service Agent Pool](https://learn.microso
 
 Representation of an [Azure Container Group](https://learn.microsoft.com/en-us/rest/api/container-instances/container-groups/get). In Azure's API this resource is a *container group* that holds one or more individual containers (modeled as [AzureContainerInstance](#azurecontainerinstance)) — analogous to an ECS Task or Kubernetes Pod rather than an individual container.
 
-> **Ontology Mapping**: This node has the extra label `ComputePod` to enable cross-platform queries for the smallest schedulable workload unit (a co-scheduled, co-located group of containers sharing network and storage) across different systems (e.g., `KubernetesPod`, `ECSTask`). An ACI container group matches Kubernetes Pod semantics, not those of a service / orchestrator.
+> **Ontology Mapping**: This node has the extra label `ComputePod` to enable cross-platform queries for the smallest schedulable workload unit (a co-scheduled, co-located group of containers sharing network and storage) across different systems (e.g., `KubernetesPod`, `AWSECSTask`). An ACI container group matches Kubernetes Pod semantics, not those of a service / orchestrator.
 
 |**id**| The full resource ID of the Container Group. |
 |name| The name of the Container Group. |
@@ -1985,7 +2063,7 @@ Representation of an [Azure Container Group](https://learn.microsoft.com/en-us/r
 
 Representation of an individual container within an [Azure Container Group](https://learn.microsoft.com/en-us/rest/api/container-instances/container-groups/get). A container group may run one or more containers — this node models each container separately to enable per-container image tracking.
 
-> **Ontology Mapping**: This node has the extra label `Container` to enable cross-platform queries across container runtimes (e.g., KubernetesContainer, ECSContainer).
+> **Ontology Mapping**: This node has the extra label `Container` to enable cross-platform queries across container runtimes (e.g., KubernetesContainer, AWSECSContainer).
 > **Note**: ACI does not expose host architecture via its API; all workloads are assumed to run on `amd64`. `HAS_IMAGE` resolves only when the image is referenced by digest (`image@sha256:...`); tag-based references produce no relationship.
 
 | Field | Description |
@@ -2017,7 +2095,7 @@ Representation of an individual container within an [Azure Container Group](http
     ```
 - AzureContainerInstances are linked to the image they run when the image is pinned by digest.
     ```cypher
-    (:AzureContainerInstance)-[:HAS_IMAGE]->(:ECRImage)
+    (:AzureContainerInstance)-[:HAS_IMAGE]->(:AWSECRImage)
     (:AzureContainerInstance)-[:HAS_IMAGE]->(:GitLabContainerImage)
     (:AzureContainerInstance)-[:HAS_IMAGE]->(:GCPArtifactRegistryImage)
     (:AzureContainerInstance)-[:HAS_IMAGE]->(:GitHubContainerImage)
@@ -2285,9 +2363,9 @@ Representation of a Request Routing Rule for an Azure Application Gateway. Prope
     (AzureApplicationGatewayRule)-[:ROUTES_TO]->(:AzureApplicationGatewayBackendPool)
     ```
 
-### AzureTag
+### Tag::AzureTag
 
-Representation of a key-value tag applied to an Azure resource. Tags with the same key and value share a single node in the graph, allowing for easy cross-resource querying.
+Representation of a key-value tag applied to an Azure resource. Tags with the same key and value share a single node in the graph, allowing for easy cross-resource querying. Also carries the cross-provider `:Tag` label, so `(:Tag {key, value})` matches Azure, AWS, GCP, and Tenable tags together.
 
 | Field | Description |
 |---|---|
@@ -2341,7 +2419,7 @@ Representation of an [Azure Virtual Network](https://learn.microsoft.com/en-us/r
 
 Representation of a [Subnet within an Azure Virtual Network](https://learn.microsoft.com/en-us/rest/api/virtualnetwork/subnets/get).
 
-> **Ontology Mapping**: This node has the extra label `Subnet` and normalized `_ont_*` properties to enable cross-platform queries for network subnets across different systems (e.g., EC2Subnet, GCPSubnet).
+> **Ontology Mapping**: This node has the extra label `Subnet` and normalized `_ont_*` properties to enable cross-platform queries for network subnets across different systems (e.g., AWSEC2Subnet, GCPSubnet).
 
 | Field          | Description                                         |
 | -------------- | --------------------------------------------------- |
@@ -2362,7 +2440,7 @@ Representation of a [Subnet within an Azure Virtual Network](https://learn.micro
 
 Representation of an [Azure Network Security Group (NSG)](https://learn.microsoft.com/en-us/rest/api/virtualnetwork/network-security-groups/get).
 
-> **Ontology Mapping**: This node has the extra label `NetworkAccessControl` to enable cross-platform queries for security groups and firewall rules across different systems (e.g., EC2SecurityGroup, GCPFirewall, AzureNetworkSecurityGroup).
+> **Ontology Mapping**: This node has the extra label `NetworkAccessControl` to enable cross-platform queries for security groups and firewall rules across different systems (e.g., AWSEC2SecurityGroup, GCPFirewall, AzureNetworkSecurityGroup).
 
 | Field       | Description                                           |
 | ----------- | ----------------------------------------------------- |
@@ -2394,7 +2472,7 @@ Representation of an [Azure Network Security Group (NSG)](https://learn.microsof
 
 Representation of a single rule inside an [Azure Network Security Group](https://learn.microsoft.com/en-us/rest/api/virtualnetwork/security-rules/get). Both user-defined rules and the platform default rules are ingested. Rules with `direction = Inbound`, `access = Allow`, and a wildcard source (`*`, `Internet`, or `0.0.0.0/0`) covering management ports (22, 3389, 1433, 3306, 5432, 6379, etc.) make the associated workloads internet-reachable.
 
-> **Ontology Mapping**: This node carries the extra label `IpRule` plus either `IpPermissionInbound` (for `direction = Inbound` rules) or `IpPermissionEgress` (for `direction = Outbound` rules), so cross-cloud queries can match it alongside AWS `EC2NetworkAclRule` / `AWSIpRule` and GCP `GCPIpRule`.
+> **Ontology Mapping**: This node carries the extra label `IpRule` plus either `IpPermissionInbound` (for `direction = Inbound` rules) or `IpPermissionEgress` (for `direction = Outbound` rules), so cross-cloud queries can match it alongside AWS `AWSEC2NetworkAclRule` / `AWSIpRule` and GCP `GCPIpRule`.
 
 | Field | Description |
 |-------|-------------|
@@ -2434,7 +2512,7 @@ Representation of an [Azure Firewall](https://learn.microsoft.com/en-us/rest/api
 
 Azure Firewall is a cloud-native network security service that provides threat protection for cloud workloads running in Azure. It's a fully stateful firewall as a service with built-in high availability and unrestricted cloud scalability.
 
-> **Ontology Mapping**: This node has the extra label `NetworkAccessControl` to enable cross-platform queries for security groups and firewall rules across different systems (e.g., EC2SecurityGroup, GCPFirewall, AzureNetworkSecurityGroup).
+> **Ontology Mapping**: This node has the extra label `NetworkAccessControl` to enable cross-platform queries for security groups and firewall rules across different systems (e.g., AWSEC2SecurityGroup, GCPFirewall, AzureNetworkSecurityGroup).
 
 | Field       | Description                                           |
 | ----------- | ----------------------------------------------------- |
@@ -2816,7 +2894,7 @@ Representation of an Azure Synapse [Managed Private Endpoint](https://learn.micr
 
 Representation of an Azure Security [Assessment](https://learn.microsoft.com/en-us/rest/api/defenderforcloud/assessments/get).
 
-> **Ontology Mapping**: This node has the extra label `SecurityIssue` to enable cross-scanner queries for non-CVE security issues across different tools (e.g., GuardDutyFinding, SemgrepSASTFinding, SemgrepSecretsFinding).
+> **Ontology Mapping**: This node has the extra label `SecurityIssue` to enable cross-scanner queries for non-CVE security issues across different tools (e.g., AWSGuardDutyFinding, SemgrepSASTFinding, SemgrepSecretsFinding).
 
 | Field | Description |
 |---|---|

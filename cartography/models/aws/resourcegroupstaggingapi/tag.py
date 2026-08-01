@@ -4,6 +4,7 @@ from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
 from cartography.models.core.nodes import ExtraNodeLabels
+from cartography.models.ontology.labels import TAG
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ class AWSTagSchema(CartographyNodeSchema):
 
     Note: This schema is for documentation purposes. The actual node creation uses
     template-based queries because AWSTag has dynamic TAGGED relationships to many
-    different resource types (EC2Instance, S3Bucket, etc.). The cleanup is also
+    different resource types (AWSEC2Instance, AWSS3Bucket, etc.). The cleanup is also
     handled manually due to this dynamic nature.
 
     The TAGGED relationship goes FROM the resource TO the AWSTag:
@@ -37,6 +38,6 @@ class AWSTagSchema(CartographyNodeSchema):
     """
 
     label: str = "AWSTag"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Tag"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([TAG])
     properties: AWSTagNodeProperties = AWSTagNodeProperties()
     sub_resource_relationship: None = None

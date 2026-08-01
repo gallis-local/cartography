@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_DYNAMO_DB_TABLE
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -9,6 +10,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import DATABASE
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,7 @@ class DynamoDBTableToAWSAccountRelRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:DynamoDBTable)<-[:RESOURCE]-(:AWSAccount)
+# (:AWSDynamoDBTable)<-[:RESOURCE]-(:AWSAccount)
 class DynamoDBTableToAWSAccountRel(CartographyRelSchema):
     target_node_label: str = "AWSAccount"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -55,8 +57,11 @@ class DynamoDBTableToAWSAccountRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class DynamoDBTableSchema(CartographyNodeSchema):
-    label: str = "DynamoDBTable"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Database"])
+    label: str = "AWSDynamoDBTable"
+    # DEPRECATED: legacy DynamoDBTable node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_DYNAMO_DB_TABLE, DATABASE]
+    )
     properties: DynamoDBTableNodeProperties = DynamoDBTableNodeProperties()
     sub_resource_relationship: DynamoDBTableToAWSAccountRel = (
         DynamoDBTableToAWSAccountRel()

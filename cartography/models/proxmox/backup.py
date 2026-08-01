@@ -20,6 +20,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxBackupJob Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxBackupJobNodeProperties(CartographyNodeProperties):
     """
@@ -49,9 +50,11 @@ class ProxmoxBackupJobNodeProperties(CartographyNodeProperties):
     prune_keep_yearly: PropertyRef = PropertyRef("prune_keep_yearly")
     repeat_missed: PropertyRef = PropertyRef("repeat_missed")
 
+
 @dataclass(frozen=True)
 class ProxmoxBackupJobToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxBackupJobToClusterRel(CartographyRelSchema):
@@ -73,9 +76,11 @@ class ProxmoxBackupJobToClusterRel(CartographyRelSchema):
         ProxmoxBackupJobToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxBackupJobToStorageRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxBackupJobToStorageRel(CartographyRelSchema):
@@ -88,7 +93,9 @@ class ProxmoxBackupJobToStorageRel(CartographyRelSchema):
     target_node_label: str = "ProxmoxStorage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
-            "id": PropertyRef("storage_id"),  # Full storage ID (cluster_id/storage/name)
+            "id": PropertyRef(
+                "storage_id"
+            ),  # Full storage ID (cluster_id/storage/name)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
@@ -96,6 +103,7 @@ class ProxmoxBackupJobToStorageRel(CartographyRelSchema):
     properties: ProxmoxBackupJobToStorageRelProperties = (
         ProxmoxBackupJobToStorageRelProperties()
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxBackupJobSchema(CartographyNodeSchema):
@@ -116,7 +124,9 @@ class ProxmoxBackupJobSchema(CartographyNodeSchema):
         ]
     )
 
+
 # MatchLink Schema for Backup Job to VM Relationships
+
 
 @dataclass(frozen=True)
 class ProxmoxBackupJobToVMMatchLinkProperties(CartographyRelProperties):
@@ -130,6 +140,7 @@ class ProxmoxBackupJobToVMMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxBackupJobToVMMatchLink(CartographyRelSchema):

@@ -642,6 +642,29 @@ proxmox_mapping = OntologyMapping(
     ],
 )
 
+salesforce_mapping = OntologyMapping(
+    module_name="salesforce",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="SalesforceUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="username"),
+                OntologyFieldMapping(
+                    ontology_field="firstname", node_field="first_name"
+                ),
+                OntologyFieldMapping(ontology_field="lastname", node_field="last_name"),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+                OntologyFieldMapping(ontology_field="active", node_field="is_active"),
+                OntologyFieldMapping(
+                    ontology_field="lastactivity", node_field="last_login_date"
+                ),
+            ],
+        ),
+    ],
+)
 vercel_mapping = OntologyMapping(
     module_name="vercel",
     nodes=[
@@ -659,6 +682,50 @@ vercel_mapping = OntologyMapping(
     ],
 )
 
+railway_mapping = OntologyMapping(
+    module_name="railway",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="RailwayUser",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="fullname", node_field="name"),
+                OntologyFieldMapping(
+                    ontology_field="has_mfa", node_field="two_factor_auth_enabled"
+                ),
+                # username: Railway has no username, only email and display name.
+                # active: Railway does not expose an account status on workspace members.
+            ],
+        ),
+    ],
+)
+
+supabase_mapping = OntologyMapping(
+    module_name="supabase",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="SupabaseOrganizationMember",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="email", node_field="email", required=True
+                ),
+                OntologyFieldMapping(ontology_field="username", node_field="user_name"),
+                OntologyFieldMapping(
+                    ontology_field="has_mfa",
+                    node_field="mfa_enabled",
+                    special_handling="to_boolean",
+                ),
+                # inactive: Not available. The members endpoint lists only current
+                # members, with no suspended or deactivated state.
+                # lastactivity: Not available.
+            ],
+        ),
+    ],
+)
+
+
 USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "microsoft": entra_mapping,
     "lastpass": lastpass_mapping,
@@ -670,6 +737,7 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "github": github_mapping,
     "gitlab": gitlab_mapping,
     "keycloak": keycloak_mapping,
+    "salesforce": salesforce_mapping,
     "oci": oci_mapping,
     "openai": openai_mapping,
     "proxmox": proxmox_mapping,
@@ -689,4 +757,35 @@ USERACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "unifi": unifi_mapping,
     "jumpcloud": jumpcloud_mapping,
     "vercel": vercel_mapping,
+    "railway": railway_mapping,
+    "databricks": OntologyMapping(
+        module_name="databricks",
+        nodes=[
+            OntologyNodeMapping(
+                node_label="DatabricksUser",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="email", node_field="email", required=True
+                    ),
+                    OntologyFieldMapping(
+                        ontology_field="fullname", node_field="display_name"
+                    ),
+                    OntologyFieldMapping(ontology_field="active", node_field="active"),
+                ],
+            ),
+            OntologyNodeMapping(
+                node_label="DatabricksAccountUser",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="email", node_field="email", required=True
+                    ),
+                    OntologyFieldMapping(
+                        ontology_field="fullname", node_field="display_name"
+                    ),
+                    OntologyFieldMapping(ontology_field="active", node_field="active"),
+                ],
+            ),
+        ],
+    ),
+    "supabase": supabase_mapping,
 }

@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_PUBLIC_SSM_PARAMETER
+from cartography.models.aws.extra_labels import SSM_PARAMETER
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
-from cartography.models.core.nodes import ConditionalNodeLabel
 from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
@@ -11,6 +12,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import SECRET
 
 
 @dataclass(frozen=True)
@@ -19,6 +21,7 @@ class SSMParameterNodeProperties(CartographyNodeProperties):
     arn: PropertyRef = PropertyRef("ARN", extra_index=True)
     id: PropertyRef = PropertyRef("ARN")
     name: PropertyRef = PropertyRef("Name")
+    value: PropertyRef = PropertyRef("Value")
     description: PropertyRef = PropertyRef("Description")
     type: PropertyRef = PropertyRef("Type")
     keyid: PropertyRef = PropertyRef("KeyId")
@@ -59,7 +62,7 @@ class SSMParameterToKMSKeyRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class SSMParameterToKMSKeyRel(CartographyRelSchema):
-    target_node_label: str = "KMSKey"
+    target_node_label: str = "AWSKMSKey"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "id": PropertyRef("KMSKeyIdShort"),
@@ -73,15 +76,14 @@ class SSMParameterToKMSKeyRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class SSMParameterSchema(CartographyNodeSchema):
 
-    label: str = "SSMParameter"
+    label: str = "AWSSSMParameter"
     properties: SSMParameterNodeProperties = SSMParameterNodeProperties()
     # Only SecureString parameters are secrets (String/StringList are plaintext config).
+    # DEPRECATED: legacy SSMParameter node label will be removed in v1.0.0.
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
         [
-            ConditionalNodeLabel(
-                label="Secret",
-                conditions={"type": "SecureString"},
-            ),
+            SSM_PARAMETER,
+            SECRET.when(type="SecureString"),
         ],
     )
     sub_resource_relationship: SSMParameterToAWSAccountRel = (
@@ -92,4 +94,18 @@ class SSMParameterSchema(CartographyNodeSchema):
         [
             SSMParameterToKMSKeyRel(),
         ],
+    )
+
+
+@dataclass(frozen=True)
+class PublicSSMParameterSchema(CartographyNodeSchema):
+
+    label: str = "AWSPublicSSMParameter"
+    properties: SSMParameterNodeProperties = SSMParameterNodeProperties()
+    # AWS-managed public parameters are shared regional data, not account resources.
+    sub_resource_relationship: None = None
+    scoped_cleanup: bool = False
+    # DEPRECATED: legacy PublicSSMParameter node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_PUBLIC_SSM_PARAMETER, SSM_PARAMETER]
     )

@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_INSTANCE
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,9 @@ class ScalewayInstanceProperties(CartographyNodeProperties):
     enable_ipv6: PropertyRef = PropertyRef("enable_ipv6")
     hostname: PropertyRef = PropertyRef("hostname")
     private_ip: PropertyRef = PropertyRef("private_ip")
+    # List of attached public IP ids (also used to match the FlexibleIp
+    # relationship). Persisted so exposure rules can test for a public IP.
+    public_ips: PropertyRef = PropertyRef("public_ips")
     mac_address: PropertyRef = PropertyRef("mac_address")
     modification_date: PropertyRef = PropertyRef("modification_date")
     state: PropertyRef = PropertyRef("state")
@@ -81,8 +85,9 @@ class ScalewayInstanceToFlexibleIpRel(CartographyRelSchema):
     )
 
 
+# Note: the (:ScalewayInstance)-[:MEMBER_OF_SCALEWAY_SECURITY_GROUP]->(:ScalewaySecurityGroup)
+# edge is declared on the SecurityGroup side (see models/scaleway/instance/securitygroup.py).
 # TODO: Link to Image with image.id
-# TODO: Link to SecurityGroup with security_group.id
 # TODO: Link to PlacementGroup with placement_group.id
 
 
@@ -108,7 +113,7 @@ class ScalewayInstanceToProjectRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class ScalewayInstanceSchema(CartographyNodeSchema):
     label: str = "ScalewayInstance"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeInstance"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([COMPUTE_INSTANCE])
     properties: ScalewayInstanceProperties = ScalewayInstanceProperties()
     sub_resource_relationship: ScalewayInstanceToProjectRel = (
         ScalewayInstanceToProjectRel()
@@ -116,5 +121,6 @@ class ScalewayInstanceSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ScalewayInstanceToVolumeRel(),
+            ScalewayInstanceToFlexibleIpRel(),
         ]
     )

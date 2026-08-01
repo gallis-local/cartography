@@ -10,9 +10,11 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.crowdstrike.extra_labels import LEGACY_SPOTLIGHT_VULNERABILITY
+from cartography.models.ontology.labels import CVE
 
 # =============================================================================
-# SpotlightVulnerability
+# CrowdstrikeSpotlightVulnerability
 # =============================================================================
 
 
@@ -39,7 +41,7 @@ class SpotlightVulnerabilityRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
-# (:CrowdstrikeTenant)-[:RESOURCE]->(:SpotlightVulnerability)
+# (:CrowdstrikeTenant)-[:RESOURCE]->(:CrowdstrikeSpotlightVulnerability)
 @dataclass(frozen=True)
 class SpotlightVulnerabilityToCrowdstrikeTenantRel(CartographyRelSchema):
     target_node_label: str = "CrowdstrikeTenant"
@@ -53,7 +55,7 @@ class SpotlightVulnerabilityToCrowdstrikeTenantRel(CartographyRelSchema):
     )
 
 
-# (:CrowdstrikeHost)-[:HAS_VULNERABILITY]->(:SpotlightVulnerability)
+# (:CrowdstrikeHost)-[:HAS_VULNERABILITY]->(:CrowdstrikeSpotlightVulnerability)
 @dataclass(frozen=True)
 class SpotlightVulnerabilityToCrowdstrikeHostRel(CartographyRelSchema):
     target_node_label: str = "CrowdstrikeHost"
@@ -69,12 +71,34 @@ class SpotlightVulnerabilityToCrowdstrikeHostRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class SpotlightVulnerabilitySchema(CartographyNodeSchema):
-    label: str = "SpotlightVulnerability"
+    label: str = "CrowdstrikeSpotlightVulnerability"
+    # DEPRECATED: legacy SpotlightVulnerability node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_SPOTLIGHT_VULNERABILITY]
+    )
     properties: SpotlightVulnerabilityNodeProperties = (
         SpotlightVulnerabilityNodeProperties()
     )
     sub_resource_relationship: SpotlightVulnerabilityToCrowdstrikeTenantRel = (
         SpotlightVulnerabilityToCrowdstrikeTenantRel()
+    )
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            SpotlightVulnerabilityToCrowdstrikeHostRel(),
+        ]
+    )
+
+
+# DEPRECATED: compatibility cleanup for unscoped Spotlight data will be removed in v1.0.0.
+@dataclass(frozen=True)
+class LegacyUnscopedSpotlightVulnerabilityCleanupSchema(CartographyNodeSchema):
+    label: str = "CrowdstrikeSpotlightVulnerability"
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_SPOTLIGHT_VULNERABILITY]
+    )
+    scoped_cleanup: bool = False
+    properties: SpotlightVulnerabilityNodeProperties = (
+        SpotlightVulnerabilityNodeProperties()
     )
     other_relationships: OtherRelationships = OtherRelationships(
         [
@@ -98,10 +122,10 @@ class CrowdstrikeCVENodeProperties(CartographyNodeProperties):
     exploitability_score: PropertyRef = PropertyRef("exploit_status")
 
 
-# (:SpotlightVulnerability)-[:HAS_CVE]->(:CVE)
+# (:CrowdstrikeSpotlightVulnerability)-[:HAS_CVE]->(:CVE)
 @dataclass(frozen=True)
 class CrowdstrikeCVEToSpotlightVulnerabilityRel(CartographyRelSchema):
-    target_node_label: str = "SpotlightVulnerability"
+    target_node_label: str = "CrowdstrikeSpotlightVulnerability"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("vuln_id")},
     )
@@ -116,7 +140,7 @@ class CrowdstrikeCVEToSpotlightVulnerabilityRel(CartographyRelSchema):
 class CrowdstrikeCVESchema(CartographyNodeSchema):
     label: str = "CrowdstrikeFinding"
     scoped_cleanup: bool = False
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["CVE"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([CVE])
     properties: CrowdstrikeCVENodeProperties = CrowdstrikeCVENodeProperties()
     other_relationships: OtherRelationships = OtherRelationships(
         [

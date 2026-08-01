@@ -18,6 +18,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxFirewallOptions Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     """
@@ -38,11 +39,15 @@ class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     log_level_in: PropertyRef = PropertyRef("log_level_in")
     log_level_out: PropertyRef = PropertyRef("log_level_out")
     nf_conntrack_max: PropertyRef = PropertyRef("nf_conntrack_max")
-    nf_conntrack_tcp_timeout_established: PropertyRef = PropertyRef("nf_conntrack_tcp_timeout_established")
+    nf_conntrack_tcp_timeout_established: PropertyRef = PropertyRef(
+        "nf_conntrack_tcp_timeout_established"
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
@@ -64,9 +69,11 @@ class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
         ProxmoxFirewallOptionsToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
@@ -89,6 +96,7 @@ class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
         ProxmoxFirewallOptionsToNodeRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     """
@@ -98,7 +106,9 @@ class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     """
 
     label: str = "ProxmoxFirewallOptions"
-    properties: ProxmoxFirewallOptionsNodeProperties = ProxmoxFirewallOptionsNodeProperties()
+    properties: ProxmoxFirewallOptionsNodeProperties = (
+        ProxmoxFirewallOptionsNodeProperties()
+    )
     sub_resource_relationship: ProxmoxFirewallOptionsToClusterRel = (
         ProxmoxFirewallOptionsToClusterRel()
     )

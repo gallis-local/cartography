@@ -12,6 +12,7 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import ONTOLOGY
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,36 @@ class DeviceOwnedByUserRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "OWNS"
+    properties: DeviceToNodeRelProperties = DeviceToNodeRelProperties()
+
+
+# Cleanup-only relationship.
+# Created by the devices linking query (walking OBSERVED_AS -> S1Agent <- AFFECTS),
+# not by load(DeviceSchema()). Kept on the schema so GraphJob cleanup removes stale edges.
+# (:S1AppFinding)-[:AFFECTS]->(:Device)
+@dataclass(frozen=True)
+class DeviceAffectedByS1AppFindingRel(CartographyRelSchema):
+    target_node_label: str = "S1AppFinding"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("_cleanup_finding_id")},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "AFFECTS"
+    properties: DeviceToNodeRelProperties = DeviceToNodeRelProperties()
+
+
+# Cleanup-only relationship.
+# Created by the devices linking query (walking OBSERVED_AS -> CrowdstrikeHost ->
+# CrowdstrikeSpotlightVulnerability -> CrowdstrikeFinding), not by load(DeviceSchema()).
+# (:CrowdstrikeFinding)-[:AFFECTS]->(:Device)
+@dataclass(frozen=True)
+class DeviceAffectedByCrowdstrikeFindingRel(CartographyRelSchema):
+    target_node_label: str = "CrowdstrikeFinding"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("_cleanup_finding_id")},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "AFFECTS"
     properties: DeviceToNodeRelProperties = DeviceToNodeRelProperties()
 
 
@@ -186,12 +217,14 @@ class DeviceToUnifiDeviceRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class DeviceSchema(CartographyNodeSchema):
     label: str = "Device"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Ontology"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([ONTOLOGY])
     properties: DeviceNodeProperties = DeviceNodeProperties()
     scoped_cleanup: bool = False
     other_relationships: OtherRelationships = OtherRelationships(
         rels=[
             DeviceOwnedByUserRel(),
+            DeviceAffectedByS1AppFindingRel(),
+            DeviceAffectedByCrowdstrikeFindingRel(),
             DeviceToJumpCloudSystemRel(),
             # Serial number-based relationships
             DeviceToCrowdstrikeHostBySerialRel(),

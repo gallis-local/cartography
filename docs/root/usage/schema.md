@@ -45,10 +45,16 @@
 ```{include} ../modules/bigfix/schema.md
 ```
 
+```{include} ../modules/circleci/schema.md
+```
+
 ```{include} ../modules/cloudflare/schema.md
 ```
 
 ```{include} ../modules/crowdstrike/schema.md
+```
+
+```{include} ../modules/databricks/schema.md
 ```
 
 ```{include} ../modules/cve/schema.md
@@ -64,6 +70,9 @@
 ```
 
 ```{include} ../modules/duo/schema.md
+```
+
+```{include} ../modules/fleetdm/schema.md
 ```
 
 ```{include} ../modules/microsoft/schema.md
@@ -96,6 +105,12 @@
 ```{include} ../modules/keycloak/schema.md
 ```
 
+```{include} ../modules/railway/schema.md
+```
+
+```{include} ../modules/salesforce/schema.md
+```
+
 ```{include} ../modules/kubernetes/schema.md
 ```
 
@@ -109,6 +124,9 @@
 ```
 
 ```{include} ../modules/ontology/schema.md
+```
+
+```{include} ../modules/proxmox/schema.md
 ```
 
 ```{include} ../modules/openai/schema.md
@@ -147,7 +165,13 @@
 ```{include} ../modules/subimage/schema.md
 ```
 
+```{include} ../modules/supabase/schema.md
+```
+
 ```{include} ../modules/tailscale/schema.md
+```
+
+```{include} ../modules/tenable/schema.md
 ```
 
 ```{include} ../modules/trivy/schema.md

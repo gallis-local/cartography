@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_CLUSTER
 
 
 @dataclass(frozen=True)
@@ -51,9 +52,9 @@ class KubernetesClusterToEKSClusterRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:EKSCluster)-[:MAPS_TO]->(:KubernetesCluster)
+# (:AWSEKSCluster)-[:MAPS_TO]->(:KubernetesCluster)
 class KubernetesClusterToEKSClusterRel(CartographyRelSchema):
-    target_node_label: str = "EKSCluster"
+    target_node_label: str = "AWSEKSCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"arn": PropertyRef("external_id")}
     )
@@ -67,7 +68,7 @@ class KubernetesClusterToEKSClusterRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class KubernetesClusterSchema(CartographyNodeSchema):
     label: str = "KubernetesCluster"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeCluster"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([COMPUTE_CLUSTER])
     properties: KubernetesClusterNodeProperties = KubernetesClusterNodeProperties()
     other_relationships: OtherRelationships = OtherRelationships(
         [KubernetesClusterToEKSClusterRel()]

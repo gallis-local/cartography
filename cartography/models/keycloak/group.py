@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import USER_GROUP
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,9 @@ class KeycloakGroupToGroupRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:UserGroup)-[:MEMBER_OF]->(:UserGroup)
+# edge (KeycloakGroupToGroupMemberOfRel). Kept for backward compatibility, will
+# be removed in v1.0.0.
 # (:KeycloakGroup)-[:SUBGROUP_OF]->(:KeycloakGroup)
 class KeycloakGroupToGroupRel(CartographyRelSchema):
     target_node_label: str = "KeycloakGroup"
@@ -53,6 +57,25 @@ class KeycloakGroupToGroupRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "SUBGROUP_OF"
     properties: KeycloakGroupToGroupRelProperties = KeycloakGroupToGroupRelProperties()
+
+
+@dataclass(frozen=True)
+class KeycloakGroupToGroupMemberOfRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("LASTUPDATED", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:UserGroup)-[:MEMBER_OF]->(:UserGroup)
+class KeycloakGroupToGroupMemberOfRel(CartographyRelSchema):
+    target_node_label: str = "KeycloakGroup"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("parentId")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "MEMBER_OF"
+    properties: KeycloakGroupToGroupMemberOfRelProperties = (
+        KeycloakGroupToGroupMemberOfRelProperties()
+    )
 
 
 @dataclass(frozen=True)
@@ -78,6 +101,9 @@ class KeycloakGroupToRoleRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:UserGroup)-[:HAS_ROLE]->(:PermissionRole)
+# edge (KeycloakGroupToRoleHasRoleRel). Kept for backward compatibility, will be
+# removed in v1.0.0.
 # (:KeycloakGroup)-[:GRANTS]->(:KeycloakRole)
 class KeycloakGroupToRoleRel(CartographyRelSchema):
     target_node_label: str = "KeycloakRole"
@@ -93,11 +119,39 @@ class KeycloakGroupToRoleRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class KeycloakGroupToRoleHasRoleRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("LASTUPDATED", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:UserGroup)-[:HAS_ROLE]->(:PermissionRole)
+class KeycloakGroupToRoleHasRoleRel(CartographyRelSchema):
+    target_node_label: str = "KeycloakRole"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "name": PropertyRef("_roles", one_to_many=True),
+            "realm": PropertyRef("REALM", set_in_kwargs=True),
+        },
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_ROLE"
+    properties: KeycloakGroupToRoleHasRoleRelProperties = (
+        KeycloakGroupToRoleHasRoleRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class KeycloakGroupSchema(CartographyNodeSchema):
     label: str = "KeycloakGroup"
     properties: KeycloakGroupNodeProperties = KeycloakGroupNodeProperties()
     sub_resource_relationship: KeycloakGroupToRealmRel = KeycloakGroupToRealmRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_GROUP])
     other_relationships: OtherRelationships = OtherRelationships(
-        [KeycloakGroupToGroupRel(), KeycloakGroupToUserRel(), KeycloakGroupToRoleRel()]
+        [
+            KeycloakGroupToGroupRel(),
+            KeycloakGroupToGroupMemberOfRel(),
+            KeycloakGroupToUserRel(),
+            KeycloakGroupToRoleRel(),
+            KeycloakGroupToRoleHasRoleRel(),
+        ]
     )

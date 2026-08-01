@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_ECS_SERVICE
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -10,6 +11,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_SERVICE
 
 
 @dataclass(frozen=True)
@@ -59,7 +61,7 @@ class ECSServiceToECSClusterRelProperties(CartographyRelProperties):
 # DEPRECATED: replaced by WORKLOAD_PARENT, will be removed in v1.0.0
 @dataclass(frozen=True)
 class ECSServiceToECSClusterRel(CartographyRelSchema):
-    target_node_label: str = "ECSCluster"
+    target_node_label: str = "AWSECSCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ClusterArn", set_in_kwargs=True)}
     )
@@ -76,9 +78,9 @@ class ECSServiceToECSClusterWorkloadParentRelProperties(CartographyRelProperties
 
 
 @dataclass(frozen=True)
-# (:ECSService)-[:WORKLOAD_PARENT]->(:ECSCluster)
+# (:AWSECSService)-[:WORKLOAD_PARENT]->(:AWSECSCluster)
 class ECSServiceToECSClusterWorkloadParentRel(CartographyRelSchema):
-    target_node_label: str = "ECSCluster"
+    target_node_label: str = "AWSECSCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ClusterArn", set_in_kwargs=True)}
     )
@@ -96,7 +98,7 @@ class ECSServiceToTaskDefinitionRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class ECSServiceToTaskDefinitionRel(CartographyRelSchema):
-    target_node_label: str = "ECSTaskDefinition"
+    target_node_label: str = "AWSECSTaskDefinition"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("taskDefinition")}
     )
@@ -133,7 +135,7 @@ class ECSServiceToECSTaskRelProperties(CartographyRelProperties):
 # DEPRECATED: replaced by WORKLOAD_PARENT, will be removed in v1.0.0
 @dataclass(frozen=True)
 class ECSServiceToECSTaskRel(CartographyRelSchema):
-    target_node_label: str = "ECSTask"
+    target_node_label: str = "AWSECSTask"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "service_name": PropertyRef("serviceName"),
@@ -147,8 +149,11 @@ class ECSServiceToECSTaskRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class ECSServiceSchema(CartographyNodeSchema):
-    label: str = "ECSService"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeService"])
+    label: str = "AWSECSService"
+    # DEPRECATED: legacy ECSService node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_ECS_SERVICE, COMPUTE_SERVICE]
+    )
     properties: ECSServiceNodeProperties = ECSServiceNodeProperties()
     sub_resource_relationship: ECSServiceToAWSAccountRel = ECSServiceToAWSAccountRel()
     other_relationships: OtherRelationships = OtherRelationships(

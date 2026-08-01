@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import CONTAINER
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,10 @@ class KubernetesContainerNodeProperties(CartographyNodeProperties):
     added_capabilities: PropertyRef = PropertyRef("added_capabilities")
     dropped_capabilities: PropertyRef = PropertyRef("dropped_capabilities")
     host_ports: PropertyRef = PropertyRef("host_ports")
+    container_ports: PropertyRef = PropertyRef("container_ports")
+    container_port_numbers: PropertyRef = PropertyRef(
+        "container_port_numbers", extra_index=True
+    )
     architecture_normalized: PropertyRef = PropertyRef("architecture_normalized")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
@@ -140,7 +145,7 @@ class KubernetesContainerToECRImageRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class KubernetesContainerToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"digest": PropertyRef("status_image_sha")}
     )
@@ -223,7 +228,7 @@ class KubernetesContainerToGitHubContainerImageRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class KubernetesContainerSchema(CartographyNodeSchema):
     label: str = "KubernetesContainer"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Container"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([CONTAINER])
     properties: KubernetesContainerNodeProperties = KubernetesContainerNodeProperties()
     sub_resource_relationship: KubernetesContainerToKubernetesClusterRel = (
         KubernetesContainerToKubernetesClusterRel()

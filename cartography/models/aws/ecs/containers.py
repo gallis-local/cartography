@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_ECS_CONTAINER
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -10,6 +11,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import CONTAINER
 
 
 @dataclass(frozen=True)
@@ -62,7 +64,7 @@ class ECSContainerToTaskRelProperties(CartographyRelProperties):
 # DEPRECATED: replaced by WORKLOAD_PARENT, will be removed in v1.0.0
 @dataclass(frozen=True)
 class ECSContainerToTaskRel(CartographyRelSchema):
-    target_node_label: str = "ECSTask"
+    target_node_label: str = "AWSECSTask"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("taskArn")}
     )
@@ -77,9 +79,9 @@ class ECSContainerToECSTaskWorkloadParentRelProperties(CartographyRelProperties)
 
 
 @dataclass(frozen=True)
-# (:ECSContainer)-[:WORKLOAD_PARENT]->(:ECSTask)
+# (:AWSECSContainer)-[:WORKLOAD_PARENT]->(:AWSECSTask)
 class ECSContainerToECSTaskWorkloadParentRel(CartographyRelSchema):
-    target_node_label: str = "ECSTask"
+    target_node_label: str = "AWSECSTask"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("taskArn")}
     )
@@ -97,7 +99,7 @@ class ECSContainerToECRImageRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class ECSContainerToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"digest": PropertyRef("imageDigest")}
     )
@@ -116,7 +118,7 @@ class ECSContainerToGitLabContainerImageRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ECSContainerToGitLabContainerImageRel(CartographyRelSchema):
     """
-    Relationship from ECSContainer to GitLabContainerImage.
+    Relationship from AWSECSContainer to GitLabContainerImage.
     Matches containers to GitLab registry images by runtime digest (imageDigest).
     """
 
@@ -177,8 +179,11 @@ class ECSContainerToGitHubContainerImageRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class ECSContainerSchema(CartographyNodeSchema):
-    label: str = "ECSContainer"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Container"])
+    label: str = "AWSECSContainer"
+    # DEPRECATED: legacy ECSContainer node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_ECS_CONTAINER, CONTAINER]
+    )
     properties: ECSContainerNodeProperties = ECSContainerNodeProperties()
     sub_resource_relationship: ECSContainerToAWSAccountRel = (
         ECSContainerToAWSAccountRel()

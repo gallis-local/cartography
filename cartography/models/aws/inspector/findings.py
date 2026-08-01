@@ -12,6 +12,9 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.extra_labels import RISK
+from cartography.models.ontology.labels import CVE
+from cartography.models.ontology.labels import SECURITY_ISSUE
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,9 @@ class AWSInspectorNodeProperties(CartographyNodeProperties):
     portrangebegin: PropertyRef = PropertyRef("portrangebegin")
     portrangeend: PropertyRef = PropertyRef("portrangeend")
     vulnerabilityid: PropertyRef = PropertyRef("vulnerabilityid")
+    # Normalized CVE id, populated only for PACKAGE_VULNERABILITY findings; feeds
+    # the :CVE ontology label's _ont_cve_id and the CVEMetadata ENRICHES edge.
+    cve_id: PropertyRef = PropertyRef("cve_id", extra_index=True)
     referenceurls: PropertyRef = PropertyRef("referenceurls")
     relatedvulnerabilities: PropertyRef = PropertyRef("relatedvulnerabilities")
     source: PropertyRef = PropertyRef("source")
@@ -90,7 +96,7 @@ class InspectorFindingToEC2InstanceRelRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class InspectorFindingToEC2InstanceRel(CartographyRelSchema):
-    target_node_label: str = "EC2Instance"
+    target_node_label: str = "AWSEC2Instance"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("instanceid")},
     )
@@ -108,7 +114,7 @@ class InspectorFindingToECRRepositoryRelRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class InspectorFindingToECRRepositoryRel(CartographyRelSchema):
-    target_node_label: str = "ECRRepository"
+    target_node_label: str = "AWSECRRepository"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ecrrepositoryid")},
     )
@@ -126,7 +132,7 @@ class InspectorFindingToECRImageRelRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class InspectorFindingToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ecrimageid")},
     )
@@ -175,14 +181,25 @@ class InspectorFindingToPackageMatchLink(CartographyRelSchema):
 class AWSInspectorFindingSchema(CartographyNodeSchema):
     label: str = "AWSInspectorFinding"
     properties: AWSInspectorNodeProperties = AWSInspectorNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Risk"])
+    # Inspector findings are mixed: package vulnerabilities are CVE-backed while
+    # network-reachability findings are configuration security issues. Label them
+    # by type so each shows up in the right ontology finding family.
+    # CODE_VULNERABILITY is intentionally left unlabeled for now; give it its own
+    # distinct label if/when it needs one.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [
+            RISK,
+            CVE.when(type="PACKAGE_VULNERABILITY"),
+            SECURITY_ISSUE.when(type="NETWORK_REACHABILITY"),
+        ],
+    )
     sub_resource_relationship: InspectorFindingToAWSAccountRel = (
         InspectorFindingToAWSAccountRel()
     )
     other_relationships: OtherRelationships = OtherRelationships(
         [
             InspectorFindingToEC2InstanceRel(),
-            # TODO: Fix ECRRepository and ECRImage relationships
+            # TODO: Fix AWSECRRepository and AWSECRImage relationships
             InspectorFindingToECRRepositoryRel(),
             InspectorFindingToECRImageRel(),
             InspectorFindingToAWSAccountRelDelegateRel(),

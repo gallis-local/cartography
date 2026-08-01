@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import USER_GROUP
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,9 @@ class OCIGroupToOCIUserRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:UserAccount)-[:MEMBER_OF]->(:UserGroup)
+# edge (OCIGroupToOCIUserMemberOfRel). Kept for backward compatibility, will be
+# removed in v1.0.0.
 class OCIGroupToOCIUserRel(CartographyRelSchema):
     """
     Relationship: (OCIUser)-[:MEMBER_OCID_GROUP]->(OCIGroup)
@@ -60,11 +64,30 @@ class OCIGroupToOCIUserRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class OCIGroupToOCIUserMemberOfRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:UserAccount)-[:MEMBER_OF]->(:UserGroup)
+class OCIGroupToOCIUserMemberOfRel(CartographyRelSchema):
+    target_node_label: str = "OCIUser"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"ocid": PropertyRef("user_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.INWARD
+    rel_label: str = "MEMBER_OF"
+    properties: OCIGroupToOCIUserMemberOfRelProperties = (
+        OCIGroupToOCIUserMemberOfRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class OCIGroupSchema(CartographyNodeSchema):
     label: str = "OCIGroup"
     properties: OCIGroupNodeProperties = OCIGroupNodeProperties()
     sub_resource_relationship: OCIGroupToOCITenancyRel = OCIGroupToOCITenancyRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_GROUP])
 
 
 @dataclass(frozen=True)
@@ -77,7 +100,7 @@ class OCIGroupWithMembersSchema(CartographyNodeSchema):
     label: str = "OCIGroup"
     properties: OCIGroupNodeProperties = OCIGroupNodeProperties()
     sub_resource_relationship: OCIGroupToOCITenancyRel = OCIGroupToOCITenancyRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_GROUP])
     other_relationships: OtherRelationships = OtherRelationships(
-        [OCIGroupToOCIUserRel()],
+        [OCIGroupToOCIUserRel(), OCIGroupToOCIUserMemberOfRel()],
     )

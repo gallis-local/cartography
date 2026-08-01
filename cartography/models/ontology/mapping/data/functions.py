@@ -97,8 +97,59 @@ azure_mapping = OntologyMapping(
     ],
 )
 
+scaleway_mapping = OntologyMapping(
+    module_name="scaleway",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ScalewayServerlessFunction",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                OntologyFieldMapping(ontology_field="runtime", node_field="runtime"),
+                OntologyFieldMapping(
+                    ontology_field="memory", node_field="memory_limit"
+                ),
+                OntologyFieldMapping(ontology_field="timeout", node_field="timeout"),
+                # Scaleway Serverless Functions are source-code deployments.
+                OntologyFieldMapping(
+                    ontology_field="deployment_type",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "code"},
+                ),
+            ],
+        ),
+    ],
+)
+
+supabase_mapping = OntologyMapping(
+    module_name="supabase",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="SupabaseEdgeFunction",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # Edge functions are Deno source deployments, never containers.
+                OntologyFieldMapping(
+                    ontology_field="deployment_type",
+                    node_field="",
+                    special_handling="static_value",
+                    extra={"value": "code"},
+                ),
+                # runtime / memory / timeout: Not available. Supabase does not
+                # expose per-function resource limits through the Management API.
+            ],
+        ),
+    ],
+)
+
 FUNCTIONS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "gcp": gcp_mapping,
     "azure": azure_mapping,
+    "scaleway": scaleway_mapping,
+    "supabase": supabase_mapping,
 }

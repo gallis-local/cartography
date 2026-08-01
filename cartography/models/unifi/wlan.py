@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_ACCESS_POINT
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,6 @@ class UnifiWlanToSiteRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiWlanSchema(CartographyNodeSchema):
     label: str = "UnifiWlan"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkAccessPoint"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ACCESS_POINT])
     properties: UnifiWlanNodeProperties = UnifiWlanNodeProperties()
     sub_resource_relationship: UnifiWlanToSiteRel = UnifiWlanToSiteRel()

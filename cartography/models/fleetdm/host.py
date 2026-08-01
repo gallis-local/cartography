@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import DEVICE
 
 
 @dataclass(frozen=True)
@@ -98,7 +99,7 @@ class FleetDMHostToFleetRel(CartographyRelSchema):
 class FleetDMHostSchema(CartographyNodeSchema):
     label: str = "FleetDMHost"
     properties: FleetDMHostNodeProperties = FleetDMHostNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Device"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([DEVICE])
     sub_resource_relationship: FleetDMHostToTenantRel = FleetDMHostToTenantRel()
     other_relationships: OtherRelationships = OtherRelationships(
         [

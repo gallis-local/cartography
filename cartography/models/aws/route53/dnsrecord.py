@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import DNS_RECORD
 
 
 @dataclass(frozen=True)
@@ -62,7 +63,7 @@ class AWSDNSRecordToNameServerRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AWSDNSRecordToNameServerRel(CartographyRelSchema):
-    target_node_label: str = "NameServer"
+    target_node_label: str = "AWSNameServer"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "id": PropertyRef("servers", one_to_many=True),
@@ -82,7 +83,7 @@ class AWSDNSRecordToEC2InstanceRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AWSDNSRecordToEC2InstanceRel(CartographyRelSchema):
-    target_node_label: str = "EC2Instance"
+    target_node_label: str = "AWSEC2Instance"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "publicdnsname": PropertyRef("value"),
@@ -142,7 +143,7 @@ class AWSDNSRecordToESDomainRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AWSDNSRecordToESDomainRel(CartographyRelSchema):
-    target_node_label: str = "ESDomain"
+    target_node_label: str = "AWSESDomain"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "endpoint": PropertyRef("value"),
@@ -200,7 +201,7 @@ class AWSDNSRecordToElasticIPAddressRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AWSDNSRecordToElasticIPAddressRel(CartographyRelSchema):
-    target_node_label: str = "ElasticIPAddress"
+    target_node_label: str = "AWSElasticIPAddress"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "public_ip": PropertyRef("value"),
@@ -216,7 +217,7 @@ class AWSDNSRecordToElasticIPAddressRel(CartographyRelSchema):
 class AWSDNSRecordSchema(CartographyNodeSchema):
     label: str = "AWSDNSRecord"
     properties: AWSDNSRecordNodeProperties = AWSDNSRecordNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["DNSRecord"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([DNS_RECORD])
     sub_resource_relationship: AWSDNSRecordToAWSAccountRel = (
         AWSDNSRecordToAWSAccountRel()
     )

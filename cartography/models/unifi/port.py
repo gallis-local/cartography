@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_INTERFACE
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ class UnifiPortToDeviceRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiPortSchema(CartographyNodeSchema):
     label: str = "UnifiPort"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkInterface"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_INTERFACE])
     properties: UnifiPortNodeProperties = UnifiPortNodeProperties()
     sub_resource_relationship: UnifiPortToSiteRel = UnifiPortToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

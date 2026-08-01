@@ -46,6 +46,9 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
     {  # preserve order so that the default sync always runs `analysis` at the very end
         "create-indexes": _LazyStage("cartography.intel.create_indexes", "run"),
         "airbyte": _LazyStage("cartography.intel.airbyte", "start_airbyte_ingestion"),
+        "databricks": _LazyStage(
+            "cartography.intel.databricks", "start_databricks_ingestion"
+        ),
         "anthropic": _LazyStage(
             "cartography.intel.anthropic", "start_anthropic_ingestion"
         ),
@@ -78,6 +81,9 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "kandji": _LazyStage("cartography.intel.kandji", "start_kandji_ingestion"),
         "keycloak": _LazyStage(
             "cartography.intel.keycloak", "start_keycloak_ingestion"
+        ),
+        "salesforce": _LazyStage(
+            "cartography.intel.salesforce", "start_salesforce_ingestion"
         ),
         "kubernetes": _LazyStage("cartography.intel.kubernetes", "start_k8s_ingestion"),
         "jumpcloud": _LazyStage(
@@ -116,6 +122,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "sentinelone": _LazyStage(
             "cartography.intel.sentinelone", "start_sentinelone_ingestion"
         ),
+        "tenable": _LazyStage("cartography.intel.tenable", "start_tenable_ingestion"),
         "cve_metadata": _LazyStage(
             "cartography.intel.cve_metadata", "start_cve_metadata_ingestion"
         ),
@@ -129,6 +136,13 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         ),
         "vercel": _LazyStage("cartography.intel.vercel", "start_vercel_ingestion"),
         "unifi": _LazyStage("cartography.intel.unifi", "start_unifi_ingestion"),
+        "supabase": _LazyStage(
+            "cartography.intel.supabase", "start_supabase_ingestion"
+        ),
+        "railway": _LazyStage("cartography.intel.railway", "start_railway_ingestion"),
+        "circleci": _LazyStage(
+            "cartography.intel.circleci", "start_circleci_ingestion"
+        ),
         "ontology": _LazyStage("cartography.intel.ontology", "run"),
         # Analysis should be the last stage
         "analysis": _LazyStage("cartography.intel.analysis", "run"),

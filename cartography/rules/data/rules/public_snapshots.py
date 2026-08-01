@@ -1,4 +1,5 @@
 from cartography.rules.data.frameworks.iso27001 import iso27001_annex_a
+from cartography.rules.data.frameworks.soc2 import soc2_tsc
 from cartography.rules.spec.model import Fact
 from cartography.rules.spec.model import Finding
 from cartography.rules.spec.model import Maturity
@@ -15,9 +16,10 @@ _aws_ebs_snapshot_public = Fact(
         "contents of the source volume to anyone."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(s:EBSSnapshot)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(s:AWSEBSSnapshot)
     WHERE s.ispublic = true
     RETURN
+        coalesce(s.description, s.id) AS name,
         s.id AS id,
         s.id AS arn,
         s.volumeid AS source_identifier,
@@ -25,17 +27,18 @@ _aws_ebs_snapshot_public = Fact(
         s.region AS region,
         a.id AS account_id,
         a.name AS account,
-        'EBSSnapshot' AS resource_type
+        'AWSEBSSnapshot' AS resource_type
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(s:EBSSnapshot)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(s:AWSEBSSnapshot)
     WHERE s.ispublic = true
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (s:EBSSnapshot)
+    MATCH (s:AWSEBSSnapshot)
     RETURN COUNT(s) AS count
     """,
+    asset_label="AWSEBSSnapshot",
     asset_id_field="id",
     identity_fields=("id",),
     module=Module.AWS,
@@ -52,9 +55,10 @@ _aws_rds_snapshot_public = Fact(
         "contents of the source database to anyone."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(s:RDSSnapshot)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(s:AWSRDSSnapshot)
     WHERE s.ispublic = true
     RETURN
+        s.db_snapshot_identifier AS name,
         s.db_snapshot_identifier AS id,
         s.arn AS arn,
         s.db_instance_identifier AS source_identifier,
@@ -62,17 +66,18 @@ _aws_rds_snapshot_public = Fact(
         s.region AS region,
         a.id AS account_id,
         a.name AS account,
-        'RDSSnapshot' AS resource_type
+        'AWSRDSSnapshot' AS resource_type
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(s:RDSSnapshot)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(s:AWSRDSSnapshot)
     WHERE s.ispublic = true
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (s:RDSSnapshot)
+    MATCH (s:AWSRDSSnapshot)
     RETURN COUNT(s) AS count
     """,
+    asset_label="AWSRDSSnapshot",
     asset_id_field="arn",
     identity_fields=("arn",),
     module=Module.AWS,
@@ -94,10 +99,11 @@ _aws_ami_public = Fact(
         "flagged."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(i:EC2Image)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(i:AWSEC2Image)
     WHERE i.ispublic = true
       AND i.owner = a.id
     RETURN
+        coalesce(i.name, i.id) AS name,
         i.id AS id,
         i.imageid AS arn,
         i.name AS source_identifier,
@@ -105,19 +111,20 @@ _aws_ami_public = Fact(
         i.region AS region,
         a.id AS account_id,
         a.name AS account,
-        'EC2Image' AS resource_type
+        'AWSEC2Image' AS resource_type
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(i:EC2Image)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(i:AWSEC2Image)
     WHERE i.ispublic = true
       AND i.owner = a.id
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(i:EC2Image)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(i:AWSEC2Image)
     WHERE i.owner = a.id
     RETURN COUNT(i) AS count
     """,
+    asset_label="AWSEC2Image",
     asset_id_field="id",
     identity_fields=("id",),
     module=Module.AWS,
@@ -127,6 +134,7 @@ _aws_ami_public = Fact(
 
 # Rule
 class PublicSnapshots(Finding):
+    name: str | None = None
     id: str | None = None
     arn: str | None = None
     source_identifier: str | None = None
@@ -159,5 +167,10 @@ public_snapshots = Rule(
         "stride:information_disclosure",
     ),
     version="0.1.0",
-    frameworks=(iso27001_annex_a("8.3"),),
+    frameworks=(
+        iso27001_annex_a("8.3"),
+        soc2_tsc("CC6.1"),
+        soc2_tsc("CC6.6"),
+        soc2_tsc("CC6.7"),
+    ),
 )

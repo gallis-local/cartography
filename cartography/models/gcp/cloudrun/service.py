@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_SERVICE
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,9 @@ class CloudRunServiceToServiceAccountRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:ComputeService)-[:RUNS_AS]->(:ServiceAccount)
+# edge (CloudRunServiceToServiceAccountRunsAsRel). Kept for backward
+# compatibility, will be removed in v1.0.0.
 class CloudRunServiceToServiceAccountRel(CartographyRelSchema):
     target_node_label: str = "GCPServiceAccount"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -63,9 +67,28 @@ class CloudRunServiceToServiceAccountRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class CloudRunServiceToServiceAccountRunsAsRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:ComputeService)-[:RUNS_AS]->(:ServiceAccount)
+class CloudRunServiceToServiceAccountRunsAsRel(CartographyRelSchema):
+    target_node_label: str = "GCPServiceAccount"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"email": PropertyRef("service_account_email")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "RUNS_AS"
+    properties: CloudRunServiceToServiceAccountRunsAsRelProperties = (
+        CloudRunServiceToServiceAccountRunsAsRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class GCPCloudRunServiceSchema(CartographyNodeSchema):
     label: str = "GCPCloudRunService"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeService"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([COMPUTE_SERVICE])
     properties: GCPCloudRunServiceProperties = GCPCloudRunServiceProperties()
     sub_resource_relationship: ProjectToCloudRunServiceRel = (
         ProjectToCloudRunServiceRel()
@@ -73,5 +96,6 @@ class GCPCloudRunServiceSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             CloudRunServiceToServiceAccountRel(),
+            CloudRunServiceToServiceAccountRunsAsRel(),
         ],
     )

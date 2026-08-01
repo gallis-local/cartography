@@ -20,6 +20,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxHAGroup Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxHAGroupNodeProperties(CartographyNodeProperties):
     """
@@ -37,9 +38,11 @@ class ProxmoxHAGroupNodeProperties(CartographyNodeProperties):
     nofailback: PropertyRef = PropertyRef("nofailback")
     comment: PropertyRef = PropertyRef("comment")
 
+
 @dataclass(frozen=True)
 class ProxmoxHAGroupToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxHAGroupToClusterRel(CartographyRelSchema):
@@ -61,6 +64,7 @@ class ProxmoxHAGroupToClusterRel(CartographyRelSchema):
         ProxmoxHAGroupToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxHAGroupSchema(CartographyNodeSchema):
     """
@@ -73,7 +77,9 @@ class ProxmoxHAGroupSchema(CartographyNodeSchema):
     properties: ProxmoxHAGroupNodeProperties = ProxmoxHAGroupNodeProperties()
     sub_resource_relationship: ProxmoxHAGroupToClusterRel = ProxmoxHAGroupToClusterRel()
 
+
 # ProxmoxHAResource Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxHAResourceNodeProperties(CartographyNodeProperties):
@@ -93,9 +99,11 @@ class ProxmoxHAResourceNodeProperties(CartographyNodeProperties):
     max_relocate: PropertyRef = PropertyRef("max_relocate")
     comment: PropertyRef = PropertyRef("comment")
 
+
 @dataclass(frozen=True)
 class ProxmoxHAResourceToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxHAResourceToClusterRel(CartographyRelSchema):
@@ -117,9 +125,11 @@ class ProxmoxHAResourceToClusterRel(CartographyRelSchema):
         ProxmoxHAResourceToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxHAResourceToHAGroupRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxHAResourceToHAGroupRel(CartographyRelSchema):
@@ -142,6 +152,7 @@ class ProxmoxHAResourceToHAGroupRel(CartographyRelSchema):
         ProxmoxHAResourceToHAGroupRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxHAResourceSchema(CartographyNodeSchema):
     """
@@ -161,7 +172,9 @@ class ProxmoxHAResourceSchema(CartographyNodeSchema):
         ]
     )
 
+
 # MatchLink Schema for HA Protection Relationships
+
 
 @dataclass(frozen=True)
 class ProxmoxHAResourceToVMMatchLinkProperties(CartographyRelProperties):
@@ -175,6 +188,7 @@ class ProxmoxHAResourceToVMMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
@@ -194,7 +208,9 @@ class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
     source_node_label: str = "ProxmoxHAResource"
     source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
         {
-            "id": PropertyRef("ha_resource_id"),  # Full cluster-scoped ID (cluster_id/ha/resource/sid)
+            "id": PropertyRef(
+                "ha_resource_id"
+            ),  # Full cluster-scoped ID (cluster_id/ha/resource/sid)
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD

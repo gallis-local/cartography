@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import API_KEY
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,9 @@ class OpenAIAdminApiKeyToUserRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:APIKey)-[:OWNED_BY]->(:UserAccount)
+# edge (OpenAIAdminApiKeyToUserOwnedByRel). Kept for backward compatibility,
+# will be removed in v1.0.0.
 # (:OpenAIUser)-[:OWNS]->(:OpenAIAdminApiKey)
 class OpenAIAdminApiKeyToUserRel(CartographyRelSchema):
     target_node_label: str = "OpenAIUser"
@@ -66,6 +70,9 @@ class OpenAIAdminApiKeyToSARelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:APIKey)-[:OWNED_BY]->(:ServiceAccount)
+# edge (OpenAIAdminApiKeyToSAOwnedByRel). Kept for backward compatibility,
+# will be removed in v1.0.0.
 # (:OpenAIServiceAccount)-[:OWNS]->(:OpenAIAdminApiKey)
 class OpenAIAdminApiKeyToSARel(CartographyRelSchema):
     target_node_label: str = "OpenAIServiceAccount"
@@ -80,15 +87,58 @@ class OpenAIAdminApiKeyToSARel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class OpenAIAdminApiKeyToUserOwnedByRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:APIKey)-[:OWNED_BY]->(:UserAccount)
+class OpenAIAdminApiKeyToUserOwnedByRel(CartographyRelSchema):
+    target_node_label: str = "OpenAIUser"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("owner_user_id")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "OWNED_BY"
+    properties: OpenAIAdminApiKeyToUserOwnedByRelProperties = (
+        OpenAIAdminApiKeyToUserOwnedByRelProperties()
+    )
+
+
+@dataclass(frozen=True)
+class OpenAIAdminApiKeyToSAOwnedByRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:APIKey)-[:OWNED_BY]->(:ServiceAccount)
+class OpenAIAdminApiKeyToSAOwnedByRel(CartographyRelSchema):
+    target_node_label: str = "OpenAIServiceAccount"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("owner_sa_id")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "OWNED_BY"
+    properties: OpenAIAdminApiKeyToSAOwnedByRelProperties = (
+        OpenAIAdminApiKeyToSAOwnedByRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class OpenAIAdminApiKeySchema(CartographyNodeSchema):
     label: str = "OpenAIAdminApiKey"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        ["APIKey"]
+        [API_KEY]
     )  # APIKey label is used for ontology mapping
     properties: OpenAIAdminApiKeyNodeProperties = OpenAIAdminApiKeyNodeProperties()
     sub_resource_relationship: OpenAIAdminApiKeyToOrganizationRel = (
         OpenAIAdminApiKeyToOrganizationRel()
     )
     other_relationships: OtherRelationships = OtherRelationships(
-        [OpenAIAdminApiKeyToUserRel(), OpenAIAdminApiKeyToSARel()],
+        [
+            OpenAIAdminApiKeyToUserRel(),
+            OpenAIAdminApiKeyToSARel(),
+            OpenAIAdminApiKeyToUserOwnedByRel(),
+            OpenAIAdminApiKeyToSAOwnedByRel(),
+        ],
     )

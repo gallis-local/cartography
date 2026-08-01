@@ -10,6 +10,8 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import IOT_DEVICE
+from cartography.models.unifi.extra_labels import POWER_OUTLET
 
 
 @dataclass(frozen=True)
@@ -68,7 +70,7 @@ class UnifiOutletToDeviceRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiOutletSchema(CartographyNodeSchema):
     label: str = "UnifiOutlet"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["PowerOutlet", "IoTDevice"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([POWER_OUTLET, IOT_DEVICE])
     properties: UnifiOutletNodeProperties = UnifiOutletNodeProperties()
     sub_resource_relationship: UnifiOutletToSiteRel = UnifiOutletToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

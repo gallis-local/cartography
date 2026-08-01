@@ -16,6 +16,7 @@ from typing_extensions import Annotated
 
 from cartography.rules.data.rules import RULES
 from cartography.rules.runners import get_all_frameworks
+from cartography.rules.runners import parse_framework_filter
 from cartography.rules.runners import run_rules
 from cartography.rules.spec.model import Framework
 
@@ -267,10 +268,7 @@ def list_cmd(
         fw_scope = None
         fw_revision = None
         if framework:
-            parts = framework.split(":")
-            fw_short_name = parts[0] if len(parts) >= 1 else None
-            fw_scope = parts[1] if len(parts) >= 2 else None
-            fw_revision = parts[2] if len(parts) >= 3 else None
+            fw_short_name, fw_scope, fw_revision = parse_framework_filter(framework)
 
         if framework:
             typer.secho(f"\nRules matching framework: {framework}\n", bold=True)
@@ -302,6 +300,7 @@ def list_cmd(
 
         if not found_rules:
             typer.echo("No rules found matching the filter.", err=True)
+            raise typer.Exit(1)
         return
 
     # Validate rule
@@ -441,10 +440,16 @@ def run_cmd(
         password = typer.prompt("Neo4j password", hide_input=True)
     elif neo4j_password_env_var:
         password = os.environ.get(neo4j_password_env_var)
+        if not password:
+            typer.secho(
+                f"Error: environment variable '{neo4j_password_env_var}' is not set or is empty. "
+                "Set it to the Neo4j password or use --neo4j-password-prompt.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(1)
     else:
         password = os.getenv("NEO4J_PASSWORD")
-        if not password:
-            password = typer.prompt("Neo4j password", hide_input=True)
 
     # Determine rules to run
     if rule == "all":

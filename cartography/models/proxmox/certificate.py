@@ -16,8 +16,10 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import CERTIFICATE
 
 # ProxmoxCertificate Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
@@ -42,19 +44,15 @@ class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
     public_key_bits: PropertyRef = PropertyRef("public_key_bits")
     pem: PropertyRef = PropertyRef("pem")
     # Computed expiration properties for easy querying
-    expires_in_days: PropertyRef = PropertyRef(
-        "expires_in_days", extra_index=True
-    )
-    is_expired: PropertyRef = PropertyRef(
-        "is_expired", extra_index=True
-    )
-    expires_soon: PropertyRef = PropertyRef(
-        "expires_soon", extra_index=True
-    )
+    expires_in_days: PropertyRef = PropertyRef("expires_in_days", extra_index=True)
+    is_expired: PropertyRef = PropertyRef("is_expired", extra_index=True)
+    expires_soon: PropertyRef = PropertyRef("expires_soon", extra_index=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRel(CartographyRelSchema):
@@ -76,9 +74,11 @@ class ProxmoxCertificateToClusterRel(CartographyRelSchema):
         ProxmoxCertificateToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxCertificateToNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxCertificateToNodeRel(CartographyRelSchema):
@@ -100,6 +100,7 @@ class ProxmoxCertificateToNodeRel(CartographyRelSchema):
         ProxmoxCertificateToNodeRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxCertificateSchema(CartographyNodeSchema):
     """
@@ -113,7 +114,7 @@ class ProxmoxCertificateSchema(CartographyNodeSchema):
     sub_resource_relationship: ProxmoxCertificateToClusterRel = (
         ProxmoxCertificateToClusterRel()
     )
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Certificate"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([CERTIFICATE])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxCertificateToNodeRel(),

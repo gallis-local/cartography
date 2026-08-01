@@ -10,6 +10,9 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_QOS_POLICY
+from cartography.models.unifi.extra_labels import NETWORK_ROUTING_POLICY
+from cartography.models.unifi.extra_labels import NETWORK_SECURITY_POLICY
 
 
 @dataclass(frozen=True)
@@ -77,7 +80,7 @@ class UnifiNetworkConfigToFirewallZoneRel(CartographyRelSchema):
 class UnifiNetworkConfigSchema(CartographyNodeSchema):
     label: str = "UnifiNetworkConfig"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        ["NetworkQoSPolicy", "NetworkSecurityPolicy", "NetworkRoutingPolicy"]
+        [NETWORK_QOS_POLICY, NETWORK_SECURITY_POLICY, NETWORK_ROUTING_POLICY]
     )
     properties: UnifiNetworkConfigNodeProperties = UnifiNetworkConfigNodeProperties()
     sub_resource_relationship: UnifiNetworkConfigToSiteRel = (

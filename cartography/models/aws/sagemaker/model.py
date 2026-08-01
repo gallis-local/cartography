@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import AI_MODEL
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,7 @@ class AWSSageMakerModelToS3BucketRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AWSSageMakerModelToS3BucketRel(CartographyRelSchema):
-    target_node_label: str = "S3Bucket"
+    target_node_label: str = "AWSS3Bucket"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ModelArtifactsS3BucketId")}
     )
@@ -106,7 +107,7 @@ class AWSSageMakerModelToModelPackageRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class AWSSageMakerModelSchema(CartographyNodeSchema):
     label: str = "AWSSageMakerModel"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["AIModel"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([AI_MODEL])
     properties: AWSSageMakerModelNodeProperties = AWSSageMakerModelNodeProperties()
     sub_resource_relationship: AWSSageMakerModelToAWSAccountRel = (
         AWSSageMakerModelToAWSAccountRel()

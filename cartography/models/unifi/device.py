@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_INFRASTRUCTURE_DEVICE
 
 
 @dataclass(frozen=True)
@@ -136,7 +137,7 @@ class UnifiDeviceToOntologyDeviceRel(CartographyRelSchema):
 class UnifiDeviceSchema(CartographyNodeSchema):
     label: str = "UnifiDevice"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        ["NetworkInfrastructureDevice"]
+        [NETWORK_INFRASTRUCTURE_DEVICE]
     )
     properties: UnifiDeviceNodeProperties = UnifiDeviceNodeProperties()
     sub_resource_relationship: UnifiDeviceToSiteRel = UnifiDeviceToSiteRel()

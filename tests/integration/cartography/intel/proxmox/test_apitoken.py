@@ -136,7 +136,7 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
 
 @patch.object(cartography.intel.proxmox.apitoken, "get_tokens_for_user")
 def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
-    """Test ProxmoxAPIToken BELONGS_TO relationship to ProxmoxUser."""
+    """Test ProxmoxAPIToken OWNED_BY relationship to ProxmoxUser."""
     # Setup
     cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2)
     proxmox_client = MagicMock()
@@ -177,7 +177,7 @@ def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     # Assert - check relationship exists
     result = neo4j_session.run(
         """
-        MATCH (t:ProxmoxAPIToken)-[:BELONGS_TO]->(u:ProxmoxUser)
+        MATCH (t:ProxmoxAPIToken)-[:OWNED_BY]->(u:ProxmoxUser)
         WHERE u.userid = $userid AND u.cluster_id = $cluster_id
         RETURN t.tokenid as tokenid, u.userid as userid
         """,

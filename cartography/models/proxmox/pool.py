@@ -17,6 +17,7 @@ from cartography.models.core.relationships import make_source_node_matcher
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_CLUSTER
 
 # ProxmoxPool Node Schema
 
@@ -71,7 +72,7 @@ class ProxmoxPoolSchema(CartographyNodeSchema):
     label: str = "ProxmoxPool"
     properties: ProxmoxPoolNodeProperties = ProxmoxPoolNodeProperties()
     sub_resource_relationship: ProxmoxPoolToClusterRel = ProxmoxPoolToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeCluster"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([COMPUTE_CLUSTER])
 
 
 # MatchLink Schemas for Pool Containment Relationships

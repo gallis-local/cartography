@@ -1,4 +1,5 @@
 from cartography.rules.data.frameworks.iso27001 import iso27001_annex_a
+from cartography.rules.data.frameworks.soc2 import soc2_tsc
 from cartography.rules.spec.model import Fact
 from cartography.rules.spec.model import Finding
 from cartography.rules.spec.model import Maturity
@@ -45,6 +46,7 @@ _unpinned_github_actions_fact = Fact(
       AND coalesce(repo.disabled, false) = false
     RETURN COUNT(DISTINCT a) AS count
     """,
+    asset_label="GitHubAction",
     asset_id_field="action_id",
     identity_fields=("repo", "workflow_path", "action_id"),
     module=Module.GITHUB,
@@ -81,7 +83,7 @@ unpinned_github_actions = Rule(
         ),
         RuleReference(
             text="CISA - Supply Chain Compromise of Third-Party tj-actions/changed-files (CVE-2025-30066)",
-            url="https://www.cisa.gov/news-events/alerts/2025/03/18/supply-chain-compromise-third-party-tj-actionschanged-files-cve-2025-30066",
+            url="https://www.cisa.gov/news-events/alerts/2025/03/18/supply-chain-compromise-third-party-tj-actionschanged-files-cve-2025-30066-and-reviewdogaction",
         ),
         RuleReference(
             text="StepSecurity - Harden-Runner detection of tj-actions/changed-files compromise",
@@ -91,5 +93,6 @@ unpinned_github_actions = Rule(
     frameworks=(
         iso27001_annex_a("8.28"),
         iso27001_annex_a("8.32"),
+        soc2_tsc("CC6.8"),
     ),
 )

@@ -10,6 +10,7 @@ Facts within a Rule are provider-specific implementations of the same concept.
 
 from cartography.rules.data.frameworks.cis import cis_aws
 from cartography.rules.data.frameworks.iso27001 import iso27001_annex_a
+from cartography.rules.data.frameworks.soc2 import soc2_tsc
 from cartography.rules.spec.model import Fact
 from cartography.rules.spec.model import Finding
 from cartography.rules.spec.model import Maturity
@@ -31,7 +32,7 @@ CIS_REFERENCES = [
 
 # =============================================================================
 # CIS AWS 3.1.2: MFA Delete is enabled on S3 buckets
-# Main node: S3Bucket
+# Main node: AWSS3Bucket
 # =============================================================================
 # v6 3.1.2 requires both Versioning enabled and MFA Delete enabled. This rule
 # matches the audit procedure: a bucket fails if either property is missing.
@@ -56,7 +57,7 @@ _aws_s3_mfa_delete_disabled = Fact(
         "of authentication when deleting object versions."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(bucket:S3Bucket)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(bucket:AWSS3Bucket)
     WHERE bucket.versioning_status IS NULL OR bucket.versioning_status <> 'Enabled'
        OR bucket.mfa_delete IS NULL OR bucket.mfa_delete <> 'Enabled'
     RETURN
@@ -69,15 +70,17 @@ _aws_s3_mfa_delete_disabled = Fact(
         a.name AS account
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(bucket:S3Bucket)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(bucket:AWSS3Bucket)
     WHERE bucket.versioning_status IS NULL OR bucket.versioning_status <> 'Enabled'
        OR bucket.mfa_delete IS NULL OR bucket.mfa_delete <> 'Enabled'
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (bucket:S3Bucket)
+    MATCH (bucket:AWSS3Bucket)
     RETURN COUNT(bucket) AS count
     """,
+    asset_id_field="bucket_id",
+    asset_label="AWSS3Bucket",
     identity_fields=("bucket_id",),
     module=Module.AWS,
     maturity=Maturity.STABLE,
@@ -98,13 +101,14 @@ aws_s3_bucket_mfa_delete = Rule(
     frameworks=(
         cis_aws("3.1.2"),
         iso27001_annex_a("8.10"),
+        soc2_tsc("CC7.1"),
     ),
 )
 
 
 # =============================================================================
 # S3 Block Public Access
-# Main node: S3Bucket
+# Main node: AWSS3Bucket
 # =============================================================================
 class S3BlockPublicAccessOutput(Finding):
     """Output model for S3 Block Public Access check."""
@@ -125,14 +129,39 @@ _aws_s3_block_public_access_disabled = Fact(
     name="AWS S3 buckets without full Block Public Access",
     description=(
         "Detects S3 buckets that do not have all Block Public Access settings enabled. "
-        "All four Block Public Access settings should be enabled to prevent public access."
+        "All four Block Public Access settings should be enabled to prevent public access. "
+        "Buckets that have no bucket-level settings at all (all four fields NULL) and "
+        "therefore purely inherit account-level Block Public Access are not flagged when "
+        "the parent account fully enforces account-level Block Public Access, since the "
+        "account-level configuration already blocks public access."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(bucket:S3Bucket)
-    WHERE (bucket.block_public_acls IS NULL OR bucket.block_public_acls <> true)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(bucket:AWSS3Bucket)
+    WHERE (
+          (bucket.block_public_acls IS NULL OR bucket.block_public_acls <> true)
        OR (bucket.ignore_public_acls IS NULL OR bucket.ignore_public_acls <> true)
        OR (bucket.block_public_policy IS NULL OR bucket.block_public_policy <> true)
        OR (bucket.restrict_public_buckets IS NULL OR bucket.restrict_public_buckets <> true)
+    )
+    // Only exempt buckets that have no bucket-level config at all (all four fields
+    // NULL) and therefore purely inherit account-level BPA. A bucket with any explicit
+    // bucket-level setting is still evaluated on its own merits.
+    // Account-level BPA is account-global in AWS but stored one node per region with
+    // identical values, so a single region node with all four settings enforced is
+    // enough to confirm the account blocks public access for every bucket it owns.
+    AND NOT (
+        bucket.block_public_acls IS NULL
+        AND bucket.ignore_public_acls IS NULL
+        AND bucket.block_public_policy IS NULL
+        AND bucket.restrict_public_buckets IS NULL
+        AND EXISTS {
+            MATCH (a)-[:RESOURCE]->(pab:AWSS3AccountPublicAccessBlock)
+            WHERE pab.block_public_acls = true
+              AND pab.ignore_public_acls = true
+              AND pab.block_public_policy = true
+              AND pab.restrict_public_buckets = true
+        }
+    )
     RETURN
         bucket.name AS bucket_name,
         bucket.id AS bucket_id,
@@ -145,17 +174,34 @@ _aws_s3_block_public_access_disabled = Fact(
         a.name AS account
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(bucket:S3Bucket)
-    WHERE (bucket.block_public_acls IS NULL OR bucket.block_public_acls <> true)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(bucket:AWSS3Bucket)
+    WHERE (
+          (bucket.block_public_acls IS NULL OR bucket.block_public_acls <> true)
        OR (bucket.ignore_public_acls IS NULL OR bucket.ignore_public_acls <> true)
        OR (bucket.block_public_policy IS NULL OR bucket.block_public_policy <> true)
        OR (bucket.restrict_public_buckets IS NULL OR bucket.restrict_public_buckets <> true)
+    )
+    AND NOT (
+        bucket.block_public_acls IS NULL
+        AND bucket.ignore_public_acls IS NULL
+        AND bucket.block_public_policy IS NULL
+        AND bucket.restrict_public_buckets IS NULL
+        AND EXISTS {
+            MATCH (a)-[:RESOURCE]->(pab:AWSS3AccountPublicAccessBlock)
+            WHERE pab.block_public_acls = true
+              AND pab.ignore_public_acls = true
+              AND pab.block_public_policy = true
+              AND pab.restrict_public_buckets = true
+        }
+    )
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (bucket:S3Bucket)
+    MATCH (bucket:AWSS3Bucket)
     RETURN COUNT(bucket) AS count
     """,
+    asset_id_field="bucket_id",
+    asset_label="AWSS3Bucket",
     identity_fields=("bucket_id",),
     module=Module.AWS,
     maturity=Maturity.STABLE,
@@ -171,18 +217,19 @@ aws_s3_block_public_access = Rule(
     output_model=S3BlockPublicAccessOutput,
     facts=(_aws_s3_block_public_access_disabled,),
     tags=("storage", "s3", "stride:information_disclosure"),
-    version="1.0.0",
+    version="1.1.0",
     references=CIS_REFERENCES,
     frameworks=(
         cis_aws("3.1.4"),
         iso27001_annex_a("8.3"),
+        soc2_tsc("CC6.1"),
     ),
 )
 
 
 # =============================================================================
 # RDS Encryption at Rest
-# Main node: RDSInstance
+# Main node: AWSRDSInstance
 # =============================================================================
 class RdsEncryptionOutput(Finding):
     """Output model for RDS encryption check."""
@@ -207,7 +254,7 @@ _aws_rds_encryption_disabled = Fact(
         "compliance requirements for sensitive data."
     ),
     cypher_query="""
-    MATCH (a:AWSAccount)-[:RESOURCE]->(rds:RDSInstance)
+    MATCH (a:AWSAccount)-[:RESOURCE]->(rds:AWSRDSInstance)
     WHERE rds.storage_encrypted IS NULL OR rds.storage_encrypted = false
     RETURN
         rds.db_instance_identifier AS db_identifier,
@@ -221,14 +268,16 @@ _aws_rds_encryption_disabled = Fact(
         a.name AS account
     """,
     cypher_visual_query="""
-    MATCH p=(a:AWSAccount)-[:RESOURCE]->(rds:RDSInstance)
+    MATCH p=(a:AWSAccount)-[:RESOURCE]->(rds:AWSRDSInstance)
     WHERE rds.storage_encrypted IS NULL OR rds.storage_encrypted = false
     RETURN *
     """,
     cypher_count_query="""
-    MATCH (rds:RDSInstance)
+    MATCH (rds:AWSRDSInstance)
     RETURN COUNT(rds) AS count
     """,
+    asset_id_field="db_arn",
+    asset_label="AWSRDSInstance",
     identity_fields=("db_arn",),
     module=Module.AWS,
     maturity=Maturity.STABLE,
@@ -249,6 +298,7 @@ aws_rds_encryption_at_rest = Rule(
     frameworks=(
         cis_aws("3.2.1"),
         iso27001_annex_a("8.24"),
+        soc2_tsc("CC6.1"),
     ),
 )
 

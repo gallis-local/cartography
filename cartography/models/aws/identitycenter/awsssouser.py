@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import USER_ACCOUNT
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,9 @@ class AWSSSOUserToSSOGroupRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:UserAccount)-[:MEMBER_OF]->(:UserGroup)
+# edge (AWSSSOUserToSSOGroupMemberOfRel). Kept for backward compatibility, will
+# be removed in v1.0.0.
 class AWSSSOUserToSSOGroupRel(CartographyRelSchema):
     target_node_label: str = "AWSSSOGroup"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -73,6 +77,25 @@ class AWSSSOUserToSSOGroupRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "MEMBER_OF_SSO_GROUP"
     properties: AWSSSOUserToSSOGroupRelProperties = AWSSSOUserToSSOGroupRelProperties()
+
+
+@dataclass(frozen=True)
+class AWSSSOUserToSSOGroupMemberOfRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:UserAccount)-[:MEMBER_OF]->(:UserGroup)
+class AWSSSOUserToSSOGroupMemberOfRel(CartographyRelSchema):
+    target_node_label: str = "AWSSSOGroup"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("MemberOfGroups", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "MEMBER_OF"
+    properties: AWSSSOUserToSSOGroupMemberOfRelProperties = (
+        AWSSSOUserToSSOGroupMemberOfRelProperties()
+    )
 
 
 @dataclass(frozen=True)
@@ -120,13 +143,14 @@ class AWSSSOUserSchema(CartographyNodeSchema):
     label: str = "AWSSSOUser"
     properties: AWSSSOUserProperties = AWSSSOUserProperties()
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        ["UserAccount"]
+        [USER_ACCOUNT]
     )  # UserAccount label is used for ontology mapping
     sub_resource_relationship: AWSSSOUserToAWSAccountRel = AWSSSOUserToAWSAccountRel()
     other_relationships: OtherRelationships = OtherRelationships(
         [
             AWSSSOUserToOktaUserRel(),
             AWSSSOUserToSSOGroupRel(),
+            AWSSSOUserToSSOGroupMemberOfRel(),
             AWSSSOUserToPermissionSetRel(),
             AWSSSOUserToPermissionSetHasRoleRel(),
         ],

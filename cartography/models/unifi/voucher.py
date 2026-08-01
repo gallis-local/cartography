@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_GUEST_ACCESS
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,6 @@ class UnifiVoucherToSiteRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiVoucherSchema(CartographyNodeSchema):
     label: str = "UnifiVoucher"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkGuestAccess"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_GUEST_ACCESS])
     properties: UnifiVoucherNodeProperties = UnifiVoucherNodeProperties()
     sub_resource_relationship: UnifiVoucherToSiteRel = UnifiVoucherToSiteRel()

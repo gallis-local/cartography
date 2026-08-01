@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_RDS_INSTANCE
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -10,6 +11,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import DATABASE
 
 
 @dataclass(frozen=True)
@@ -88,7 +90,7 @@ class RDSInstanceToEC2SecurityGroupRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class RDSInstanceToEC2SecurityGroupRel(CartographyRelSchema):
-    target_node_label: str = "EC2SecurityGroup"
+    target_node_label: str = "AWSEC2SecurityGroup"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "id": PropertyRef("security_group_ids", one_to_many=True),
@@ -108,7 +110,7 @@ class RDSInstanceToRDSInstanceRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class RDSInstanceToRDSInstanceRel(CartographyRelSchema):
-    target_node_label: str = "RDSInstance"
+    target_node_label: str = "AWSRDSInstance"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "db_instance_identifier": PropertyRef("read_replica_source_identifier"),
@@ -128,7 +130,7 @@ class RDSInstanceToRDSClusterRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class RDSInstanceToRDSClusterRel(CartographyRelSchema):
-    target_node_label: str = "RDSCluster"
+    target_node_label: str = "AWSRDSCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {
             "db_cluster_identifier": PropertyRef("db_cluster_identifier"),
@@ -142,9 +144,31 @@ class RDSInstanceToRDSClusterRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class RDSInstanceToKMSKeyRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:Database)-[:ENCRYPTED_BY]->(:EncryptionKey).
+# Only created when the instance has a customer-managed KMS key (KmsKeyId is the
+# key ARN).
+class RDSInstanceToKMSKeyRel(CartographyRelSchema):
+    target_node_label: str = "AWSKMSKey"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"arn": PropertyRef("KmsKeyId")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "ENCRYPTED_BY"
+    properties: RDSInstanceToKMSKeyRelProperties = RDSInstanceToKMSKeyRelProperties()
+
+
+@dataclass(frozen=True)
 class RDSInstanceSchema(CartographyNodeSchema):
-    label: str = "RDSInstance"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Database"])
+    label: str = "AWSRDSInstance"
+    # DEPRECATED: legacy RDSInstance node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_RDS_INSTANCE, DATABASE]
+    )
     properties: RDSInstanceNodeProperties = RDSInstanceNodeProperties()
     sub_resource_relationship: RDSInstanceToAWSAccountRel = RDSInstanceToAWSAccountRel()
     other_relationships: OtherRelationships = OtherRelationships(
@@ -152,5 +176,6 @@ class RDSInstanceSchema(CartographyNodeSchema):
             RDSInstanceToEC2SecurityGroupRel(),
             RDSInstanceToRDSInstanceRel(),
             RDSInstanceToRDSClusterRel(),
+            RDSInstanceToKMSKeyRel(),
         ]
     )

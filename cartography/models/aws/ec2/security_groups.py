@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_EC2_SECURITY_GROUP
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -10,6 +11,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import NETWORK_ACCESS_CONTROL
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,7 @@ class EC2SecurityGroupToSourceGroupRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class EC2SecurityGroupToSourceGroupRel(CartographyRelSchema):
-    target_node_label: str = "EC2SecurityGroup"
+    target_node_label: str = "AWSEC2SecurityGroup"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"groupid": PropertyRef("SOURCE_GROUP_IDS", one_to_many=True)}
     )
@@ -78,9 +80,12 @@ class EC2SecurityGroupToSourceGroupRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class EC2SecurityGroupSchema(CartographyNodeSchema):
-    label: str = "EC2SecurityGroup"
+    label: str = "AWSEC2SecurityGroup"
     properties: EC2SecurityGroupNodeProperties = EC2SecurityGroupNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkAccessControl"])
+    # DEPRECATED: legacy EC2SecurityGroup node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_EC2_SECURITY_GROUP, NETWORK_ACCESS_CONTROL]
+    )
     sub_resource_relationship: EC2SecurityGroupToAWSAccountRel = (
         EC2SecurityGroupToAWSAccountRel()
     )

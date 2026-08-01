@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
-from cartography.models.core.nodes import ConditionalNodeLabel
 from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
@@ -18,6 +17,8 @@ from cartography.models.core.relationships import make_source_node_matcher
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import BLOCK_STORAGE
+from cartography.models.ontology.labels import FILE_STORAGE
 
 # ProxmoxStorage Node Schema
 
@@ -81,18 +82,18 @@ class ProxmoxStorageSchema(CartographyNodeSchema):
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
         [
             # Block storage types
-            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "lvm"}),
-            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "lvmthin"}),
-            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "rbd"}),
-            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "iscsi"}),
-            ConditionalNodeLabel(label="BlockStorage", conditions={"type": "zfs"}),
+            BLOCK_STORAGE.when(type="lvm"),
+            BLOCK_STORAGE.when(type="lvmthin"),
+            BLOCK_STORAGE.when(type="rbd"),
+            BLOCK_STORAGE.when(type="iscsi"),
+            BLOCK_STORAGE.when(type="zfs"),
             # File storage types
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "dir"}),
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "zfspool"}),
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "cephfs"}),
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "nfs"}),
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "cifs"}),
-            ConditionalNodeLabel(label="FileStorage", conditions={"type": "glusterfs"}),
+            FILE_STORAGE.when(type="dir"),
+            FILE_STORAGE.when(type="zfspool"),
+            FILE_STORAGE.when(type="cephfs"),
+            FILE_STORAGE.when(type="nfs"),
+            FILE_STORAGE.when(type="cifs"),
+            FILE_STORAGE.when(type="glusterfs"),
         ]
     )
 

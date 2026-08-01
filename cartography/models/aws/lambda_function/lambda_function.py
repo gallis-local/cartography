@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import FUNCTION
 
 
 @dataclass(frozen=True)
@@ -84,13 +85,35 @@ class AWSLambdaToPrincipalRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class AWSLambdaToRoleAssumesRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:Function)-[:ASSUMES]->(:PermissionRole).
+# The function runs with the permissions of its execution role. The existing
+# STS_ASSUMEROLE_ALLOW edge (to the generic AWSPrincipal) is the IAM
+# trust-policy view and is kept as a distinct semantic.
+class AWSLambdaToRoleAssumesRel(CartographyRelSchema):
+    target_node_label: str = "AWSRole"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"arn": PropertyRef("Role")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "ASSUMES"
+    properties: AWSLambdaToRoleAssumesRelProperties = (
+        AWSLambdaToRoleAssumesRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class AWSLambdaToECRImageRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class AWSLambdaToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"digest": PropertyRef("image_digest")},
     )
@@ -157,11 +180,12 @@ class AWSLambdaToGitHubContainerImageRel(CartographyRelSchema):
 class AWSLambdaSchema(CartographyNodeSchema):
     label: str = "AWSLambda"
     properties: AWSLambdaNodeProperties = AWSLambdaNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Function"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([FUNCTION])
     sub_resource_relationship: AWSLambdaToAWSAccountRel = AWSLambdaToAWSAccountRel()
     other_relationships: OtherRelationships = OtherRelationships(
         [
             AWSLambdaToPrincipalRel(),
+            AWSLambdaToRoleAssumesRel(),
             AWSLambdaToECRImageRel(),
             AWSLambdaToGitLabContainerImageRel(),
             AWSLambdaToGCPArtifactRegistryImageRel(),

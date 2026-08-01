@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import USER_GROUP
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,9 @@ class AWSSSOGroupToPermissionSetRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
+# DEPRECATED: replaced by the canonical (:UserGroup)-[:HAS_ROLE]->(:PermissionRole)
+# edge (AWSSSOGroupToPermissionSetHasRoleRel). Kept for backward compatibility,
+# will be removed in v1.0.0.
 class AWSSSOGroupToPermissionSetRel(CartographyRelSchema):
     target_node_label: str = "AWSPermissionSet"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -60,13 +64,33 @@ class AWSSSOGroupToPermissionSetRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class AWSSSOGroupToPermissionSetHasRoleRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# Canonical ontology edge: (:UserGroup)-[:HAS_ROLE]->(:PermissionRole)
+class AWSSSOGroupToPermissionSetHasRoleRel(CartographyRelSchema):
+    target_node_label: str = "AWSPermissionSet"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"arn": PropertyRef("AssignedPermissionSets", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_ROLE"
+    properties: AWSSSOGroupToPermissionSetHasRoleRelProperties = (
+        AWSSSOGroupToPermissionSetHasRoleRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class AWSSSOGroupSchema(CartographyNodeSchema):
     label: str = "AWSSSOGroup"
     properties: AWSSSOGroupProperties = AWSSSOGroupProperties()
     sub_resource_relationship: AWSSSOGroupToAWSAccountRel = AWSSSOGroupToAWSAccountRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_GROUP])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             AWSSSOGroupToPermissionSetRel(),
+            AWSSSOGroupToPermissionSetHasRoleRel(),
         ]
     )

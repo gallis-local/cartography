@@ -11,11 +11,12 @@ O -- RESOURCE --> OV(GitHubActionsVariable)
 O -- RESOURCE --> A(GitHubAction)
 O -- RESOURCE --> DA(GitHubDependabotAlert)
 O -- RESOURCE --> PAT(GitHubPersonalAccessToken)
+O -- RESOURCE --> COR(GitHubCodeOwnerRule)
 U(GitHubUser) -- MEMBER_OF --> O
 U -- ADMIN_OF --> O
 U -- UNAFFILIATED --> O
 U -- OWNER --> R
-U -- OWNS --> PAT
+PAT -- OWNED_BY --> U
 U -- OUTSIDE_COLLAB_{ACTION} --> R
 U -- DIRECT_COLLAB_{ACTION} --> R
 U -- COMMITTED_TO --> R
@@ -23,9 +24,10 @@ R -- LANGUAGE --> L(ProgrammingLanguage)
 R -- BRANCH --> B(GitHubBranch)
 R -- HAS_RULE --> BPR(GitHubBranchProtectionRule)
 R -- HAS_RULESET --> GRS(GitHubRuleset)
+R -- HAS_CODEOWNER_RULE --> COR
 GRS -- CONTAINS_RULE --> RSR(GitHubRulesetRule)
 R -- REQUIRES --> D(Dependency)
-R -- HAS_MANIFEST --> M(DependencyGraphManifest)
+R -- HAS_MANIFEST --> M(GitHubDependencyGraphManifest)
 R -- HAS_WORKFLOW --> W(GitHubWorkflow)
 R -- HAS_SECRET --> RS(GitHubActionsSecret)
 R -- HAS_VARIABLE --> RV(GitHubActionsVariable)
@@ -39,9 +41,12 @@ W -- REFERENCES_SECRET --> RS
 E -- HAS_SECRET --> ES(GitHubActionsSecret)
 E -- HAS_VARIABLE --> EV(GitHubActionsVariable)
 M -- HAS_DEP --> D
+M -- MATCHES_CODEOWNER_RULE --> COR
+COR -- CODEOWNER --> T
+COR -- CODEOWNER --> U
 T -- {ROLE} --> R
-T -- MEMBER_OF_TEAM --> T
-U -- MEMBER --> T
+T -- MEMBER_OF --> T
+U -- MEMBER_OF --> T
 U -- MAINTAINER --> T
 I(Image) -- PACKAGED_FROM --> R
 I(Image) -- PACKAGED_BY --> W
@@ -78,11 +83,11 @@ Representation of a single GitHubRepository (repo) [repository object](https://d
 
 #### Relationships
 
-- GitHubUsers or GitHubOrganizations own GitHubRepositories.
+- GitHubRepositories are owned by GitHubUsers or GitHubOrganizations.
 
     ```
-    (GitHubUser)-[OWNER]->(GitHubRepository)
-    (GitHubOrganization)-[OWNER]->(GitHubRepository)
+    (GitHubRepository)-[OWNER]->(GitHubUser)
+    (GitHubRepository)-[OWNER]->(GitHubOrganization)
     ```
 
 - GitHubRepositories in an organization can have [outside collaborators](https://docs.github.com/en/graphql/reference/enums#collaboratoraffiliation) who may be granted different levels of access, including ADMIN,
@@ -121,6 +126,12 @@ WRITE, MAINTAIN, TRIAGE, and READ ([Reference](https://docs.github.com/en/graphq
   (GitHubTeam)-[ADMIN|READ|WRITE|TRIAGE|MAINTAIN]->(GitHubRepository)
   ```
 
+- GitHubRepositories can have CODEOWNERS rules parsed from the effective `CODEOWNERS` file on the default branch.
+
+  ```
+  (GitHubRepository)-[:HAS_CODEOWNER_RULE]->(GitHubCodeOwnerRule)
+  ```
+
 - GitHubUsers who have committed to GitHubRepositories in the last 30 days are tracked with commit activity data.
 
   ```
@@ -156,10 +167,10 @@ Representation of a single GitHubOrganization [organization object](https://deve
 
 #### Relationships
 
-- GitHubOrganizations own GitHubRepositories.
+- GitHubRepositories can be owned by GitHubOrganizations.
 
     ```
-    (GitHubOrganization)-[OWNER]->(GitHubRepository)
+    (GitHubRepository)-[OWNER]->(GitHubOrganization)
     ```
 
 - GitHubTeams are resources under GitHubOrganizations
@@ -224,13 +235,13 @@ A GitHubTeam [organization object](https://docs.github.com/en/graphql/reference/
 - GitHubTeams may be children of other teams:
 
     ```
-    (GitHubTeam)-[MEMBER_OF_TEAM]->(GitHubTeam)
+    (GitHubTeam)-[MEMBER_OF]->(GitHubTeam)
     ```
 
 - GitHubUsers may be ['immediate'](https://docs.github.com/en/graphql/reference/enums#teammembershiptype) members of a team (as opposed to being members via membership in a child team), with their membership [role](https://docs.github.com/en/graphql/reference/enums#teammemberrole) being MEMBER or MAINTAINER.
 
     ```
-    (GitHubUser)-[MEMBER|MAINTAINER]->(GitHubTeam)
+    (GitHubUser)-[MEMBER_OF|MAINTAINER]->(GitHubTeam)
     ```
 
 
@@ -258,10 +269,10 @@ Representation of a single GitHubUser [user object](https://developer.github.com
 
 #### Relationships
 
-- GitHubUsers own GitHubRepositories.
+- GitHubRepositories can be owned by GitHubUsers.
 
     ```
-    (GitHubUser)-[OWNER]->(GitHubRepository)
+    (GitHubRepository)-[OWNER]->(GitHubUser)
     ```
 
 - GitHubRepositories in an organization can have [outside collaborators](https://docs.github.com/en/graphql/reference/enums#collaboratoraffiliation) who may be granted different levels of access, including ADMIN,
@@ -298,13 +309,13 @@ WRITE, MAINTAIN, TRIAGE, and READ ([Reference](https://docs.github.com/en/graphq
 - GitHubTeams may be children of other teams:
 
     ```
-    (GitHubTeam)-[MEMBER_OF_TEAM]->(GitHubTeam)
+    (GitHubTeam)-[MEMBER_OF]->(GitHubTeam)
     ```
 
 - GitHubUsers may be ['immediate'](https://docs.github.com/en/graphql/reference/enums#teammembershiptype) members of a team (as opposed to being members via membership in a child team), with their membership [role](https://docs.github.com/en/graphql/reference/enums#teammemberrole) being MEMBER or MAINTAINER.
 
     ```
-    (GitHubUser)-[MEMBER|MAINTAINER]->(GitHubTeam)
+    (GitHubUser)-[MEMBER_OF|MAINTAINER]->(GitHubTeam)
     ```
 
 - GitHubUsers who have committed to GitHubRepositories in the last 30 days are tracked with commit activity data.
@@ -355,10 +366,10 @@ Fine-grained and classic PATs also receive kind-specific labels, `GitHubFineGrai
     (GitHubOrganization)-[:RESOURCE]->(GitHubPersonalAccessToken)
     ```
 
-- GitHubUsers own GitHubPersonalAccessTokens when the owner can be resolved.
+- GitHubPersonalAccessTokens are owned by the GitHubUser they authenticate as, when the owner can be resolved.
 
     ```
-    (GitHubUser)-[:OWNS]->(GitHubPersonalAccessToken)
+    (GitHubPersonalAccessToken)-[:OWNED_BY]->(GitHubUser)
     ```
 
 - Fine-grained GitHubPersonalAccessTokens can access GitHubRepositories returned by GitHub's token repository access endpoint.
@@ -539,7 +550,10 @@ ProgrammingLanguage nodes are shared globally across repositories and are linked
     ```
 
 
-### DependencyGraphManifest
+### GitHubDependencyGraphManifest
+
+The legacy `DependencyGraphManifest` label remains attached for compatibility until
+v1.0.0.
 
 Represents a dependency manifest file (e.g., package.json, requirements.txt, pom.xml) from GitHub's dependency graph API.
 
@@ -549,6 +563,7 @@ Represents a dependency manifest file (e.g., package.json, requirements.txt, pom
 | lastupdated | Timestamp of the last time the node was updated |
 | **id** | Unique identifier: `{repo_url}#{blob_path}` |
 | **blob_path** | Path to the manifest file in the repository (e.g., "/package.json") |
+| **repo_relative_path** | Normalized repository-relative path for matching CODEOWNERS patterns (e.g., "package.json") |
 | **filename** | Name of the manifest file (e.g., "package.json") |
 | **dependencies_count** | Number of dependencies listed in this manifest |
 | **repo_url** | URL of the GitHub repository containing this manifest |
@@ -559,24 +574,83 @@ Represents a dependency manifest file (e.g., package.json, requirements.txt, pom
   - GitHubRepositories can have multiple dependency manifests
 
     ```
-    (GitHubRepository)-[:HAS_MANIFEST]->(DependencyGraphManifest)
+    (GitHubRepository)-[:HAS_MANIFEST]->(GitHubDependencyGraphManifest)
     ```
 
 - **Dependency** via **HAS_DEP** relationship
   - Each manifest lists specific dependencies
 
     ```
-    (DependencyGraphManifest)-[:HAS_DEP]->(Dependency)
+    (GitHubDependencyGraphManifest)-[:HAS_DEP]->(Dependency)
+    ```
+
+- **GitHubCodeOwnerRule** via **MATCHES_CODEOWNER_RULE** relationship
+  - Each manifest is linked to the last matching CODEOWNERS rule for its repository-relative path.
+
+    ```
+    (GitHubDependencyGraphManifest)-[:MATCHES_CODEOWNER_RULE]->(GitHubCodeOwnerRule)
     ```
 
 - **GitHubOrganization** via **RESOURCE** relationship
   - Manifests are scoped to the owning organization for cleanup
 
     ```
-    (GitHubOrganization)-[:RESOURCE]->(DependencyGraphManifest)
+    (GitHubOrganization)-[:RESOURCE]->(GitHubDependencyGraphManifest)
     ```
 
-### Dependency
+### GitHubCodeOwnerRule
+
+Represents one supported rule line from the effective GitHub `CODEOWNERS` file for a repository default branch. Lines without owners and unsupported CODEOWNERS syntax are skipped.
+
+| Field | Description |
+|-------|-------------|
+| firstseen | Timestamp of when a sync job first discovered this node |
+| lastupdated | Timestamp of the last time the node was updated |
+| **id** | Stable identifier derived from repository URL, source path, line number, pattern, and owners |
+| **repo_url** | URL of the GitHub repository containing the CODEOWNERS file |
+| **repo_name** | Name of the GitHub repository |
+| **default_branch** | Branch used to fetch the effective CODEOWNERS file |
+| **source_path** | CODEOWNERS file path used by GitHub (`.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS`) |
+| **line_number** | Line number of the rule in the CODEOWNERS file |
+| **pattern** | CODEOWNERS path pattern |
+| **owners** | Raw owner tokens from the rule |
+| **owner_logins** | Parsed GitHub user logins from `@user` owners |
+| **owner_team_slugs** | Parsed GitHub team slugs from `@org/team` owners |
+| **owner_emails** | Parsed email owners |
+| **unresolved_owners** | Owner tokens that could not be classified as a GitHub user, team, or email owner |
+
+#### Relationships
+
+- **GitHubOrganization** via **RESOURCE** relationship
+  - CODEOWNERS rules are scoped to the owning organization for cleanup.
+
+    ```
+    (GitHubOrganization)-[:RESOURCE]->(GitHubCodeOwnerRule)
+    ```
+
+- **GitHubRepository** via **HAS_CODEOWNER_RULE** relationship
+  - Repositories own the parsed CODEOWNERS rules from their effective CODEOWNERS file.
+
+    ```
+    (GitHubRepository)-[:HAS_CODEOWNER_RULE]->(GitHubCodeOwnerRule)
+    ```
+
+- **GitHubTeam** and **GitHubUser** via **CODEOWNER** relationship
+  - Parsed owners are linked when the corresponding team or user node exists in the graph.
+
+    ```
+    (GitHubCodeOwnerRule)-[:CODEOWNER]->(GitHubTeam)
+    (GitHubCodeOwnerRule)-[:CODEOWNER]->(GitHubUser)
+    ```
+
+- **GitHubDependencyGraphManifest** via **MATCHES_CODEOWNER_RULE** relationship
+  - Dependency manifests are linked to the last matching CODEOWNERS rule for their repository-relative path.
+
+    ```
+    (GitHubDependencyGraphManifest)-[:MATCHES_CODEOWNER_RULE]->(GitHubCodeOwnerRule)
+    ```
+
+### GitHubDependency
 https://docs.github.com/en/graphql/reference/objects#dependencygraphdependency
 Represents a software dependency from GitHub's dependency graph manifests. This node contains information about a package dependency within a repository
 
@@ -598,9 +672,9 @@ Represents a software dependency from GitHub's dependency graph manifests. This 
 | source | Provenance of the version: `dependency_graph` from GitHub's dependency graph, or `lockfile` when an exact version was recovered from a lockfile fallback. |
 | version_confidence | Confidence in the version: `exact` (an exact version is known), `range` (only a requirement range is known), or `unknown` (no version or requirement). |
 
-> **Ontology Mapping**: This node also carries the extra label `GitHubDependency`. When `normalized_id` is populated (exact version), a canonical `Package` (ontology) node is detected as this dependency, enabling cross-scanner queries alongside Trivy, Syft, SocketDev, and GitLab packages.
+> **Ontology Mapping**: This node also carries the shared extra label `Dependency`, the ontology label common to every dependency producer (Semgrep, SocketDev, ...). When `normalized_id` is populated (exact version), a canonical `PackageVersion` (ontology) node is detected as this dependency, enabling cross-scanner queries alongside Trivy, Syft, SocketDev, and GitLab packages.
 
-> **Lockfile fallback**: GitHub's dependency graph reports some dependencies with only a version range (no exact version), so they have no `normalized_id` and cannot be projected into the Package ontology. For ecosystems with a parseable lockfile (`uv.lock` for pip, `package-lock.json` for npm), the sync fetches the lockfile co-located with the dependency's manifest (e.g. a manifest under `services/api/package.json` uses `services/api/package-lock.json`, never the repo-root lockfile) and, where it pins an exact version for a range-only dependency, fills in `version`, `type`, and `normalized_id` and sets `source` to `lockfile` and `version_confidence` to `exact`. Because a `Dependency` node is shared by `name|requirements` (not by version), if two manifests pin the same `name|requirements` to different exact versions the enrichment is declined for that node to avoid representing the wrong version. Lockfiles are fetched only for manifests that have range-only dependencies in a supported ecosystem.
+> **Lockfile fallback**: GitHub's dependency graph reports some dependencies with only a version range (no exact version), so they have no `normalized_id` and cannot be projected into the PackageVersion ontology. For ecosystems with a parseable lockfile (`uv.lock` for pip, `package-lock.json` for npm), the sync fetches the lockfile co-located with the dependency's manifest (e.g. a manifest under `services/api/package.json` uses `services/api/package-lock.json`, never the repo-root lockfile) and, where it pins an exact version for a range-only dependency, fills in `version`, `type`, and `normalized_id` and sets `source` to `lockfile` and `version_confidence` to `exact`. Because a `Dependency` node is shared by `name|requirements` (not by version), if two manifests pin the same `name|requirements` to different exact versions the enrichment is declined for that node to avoid representing the wrong version. Lockfiles are fetched only for manifests that have range-only dependencies in a supported ecosystem.
 
 #### Relationships
 
@@ -612,10 +686,10 @@ Represents a software dependency from GitHub's dependency graph manifests. This 
     (GitHubRepository)-[:REQUIRES]->(Dependency)
     ```
 
-- A canonical **Package** (ontology) is detected as a **GitHubDependency**.
+- A canonical **PackageVersion** (ontology) is detected as a **GitHubDependency**.
 
     ```
-    (Package)-[:DETECTED_AS]->(Dependency:GitHubDependency)
+    (PackageVersion)-[:DETECTED_AS]->(Dependency:GitHubDependency)
     ```
 
 ### GitHubDependabotAlert
@@ -695,11 +769,11 @@ Represents a [Dependabot alert](https://docs.github.com/en/rest/dependabot/alert
 
 Dependabot package, GHSA, CWE, and reference identifiers are currently stored as properties. Cartography does not create dependency or CVE relationships from this payload until package/dependency identity can be normalized safely across sources. CVE-backed alerts are labeled `CVE` for compatibility with CVE metadata enrichment.
 
-- **DependencyGraphManifest** via **HAS_DEP** relationship
+- **GitHubDependencyGraphManifest** via **HAS_DEP** relationship
   - Dependencies are linked to their specific manifest files
 
     ```
-    (DependencyGraphManifest)-[:HAS_DEP]->(Dependency)
+    (GitHubDependencyGraphManifest)-[:HAS_DEP]->(Dependency)
     ```
 
 Dependency nodes are deliberately shared across organizations and repositories
@@ -712,7 +786,7 @@ nodes such as `PythonLibrary`.
 
 Representation of a container package hosted on GitHub Container Registry (`ghcr.io`). Each package is the registry-side container for one or more image tags and their underlying image digests.
 
-> **Ontology Mapping**: This node has the extra label `ContainerRegistry` to enable cross-platform queries across registry repositories (e.g., `ECRRepository`, `GitLabContainerRepository`).
+> **Ontology Mapping**: This node has the extra label `ContainerRegistry` to enable cross-platform queries across registry repositories (e.g., `AWSECRRepository`, `GitLabContainerRepository`).
 
 | Field | Description |
 |-------|--------------|
@@ -757,7 +831,7 @@ Representation of a container package hosted on GitHub Container Registry (`ghcr
 
 Representation of a container image stored in GitHub Container Registry (`ghcr.io`), identified by its digest. Images are content-addressable and can be referenced by multiple tags. Manifest lists (multi-architecture images) contain references to platform-specific child images.
 
-> **Ontology Mapping**: This node has conditional extra labels based on the image type: `Image` for single-platform images (`type="image"`), or `ImageManifestList` for multi-architecture manifest lists (`type="manifest_list"`). These labels enable cross-platform queries for container images across different systems (e.g., `ECRImage`, `GCPArtifactRegistryImage`, `GitLabContainerImage`).
+> **Ontology Mapping**: This node has conditional extra labels based on the image type: `Image` for single-platform images (`type="image"`), or `ImageManifestList` for multi-architecture manifest lists (`type="manifest_list"`). These labels enable cross-platform queries for container images across different systems (e.g., `AWSECRImage`, `GCPArtifactRegistryImage`, `GitLabContainerImage`).
 
 | Field | Description |
 |-------|--------------|
@@ -837,7 +911,7 @@ Representation of a container image stored in GitHub Container Registry (`ghcr.i
 
     ```
     (:AWSLambda)-[:HAS_IMAGE]->(:GitHubContainerImage)
-    (:ECSContainer)-[:HAS_IMAGE]->(:GitHubContainerImage)
+    (:AWSECSContainer)-[:HAS_IMAGE]->(:GitHubContainerImage)
     (:KubernetesContainer)-[:HAS_IMAGE]->(:GitHubContainerImage)
     (:GCPCloudRunServiceContainer)-[:HAS_IMAGE]->(:GitHubContainerImage)
     (:GCPCloudRunJobContainer)-[:HAS_IMAGE]->(:GitHubContainerImage)
@@ -886,7 +960,7 @@ Representation of a tag inside a GitHub container package. Tags are mutable poin
 
 Representation of a container image layer stored in GitHub Container Registry. Layers are the building blocks of container images, identified by their uncompressed content hash (`diff_id`). Multiple images can share the same layers through Docker's layer deduplication.
 
-> **Ontology Mapping**: This node has the extra label `ImageLayer` to enable cross-provider queries for container image layers (e.g., `ECRImageLayer`, `GCPArtifactRegistryImageLayer`, `GitLabContainerImageLayer`).
+> **Ontology Mapping**: This node has the extra label `ImageLayer` to enable cross-provider queries for container image layers (e.g., `AWSECRImageLayer`, `GCPArtifactRegistryImageLayer`, `GitLabContainerImageLayer`).
 
 **Note**: Layers are keyed by `diff_id` (uncompressed layer digest from the image config) rather than `digest` (compressed layer digest from the manifest). This ensures consistent cross-provider layer deduplication: the same layer content may have different compressed digests in different registries but will always share the same `diff_id`.
 
@@ -1010,7 +1084,7 @@ These nodes are also shared globally across repositories. Repository-specific ve
 
 Represents a GitHub Actions workflow definition file in a repository.
 
-> **Ontology Mapping**: This node has the extra label `CICDPipeline` to enable cross-platform queries for CI/CD pipeline definitions across different systems (e.g., CodeBuildProject, GitLabCIConfig, SpaceliftStack).
+> **Ontology Mapping**: This node has the extra label `CICDPipeline` to enable cross-platform queries for CI/CD pipeline definitions across different systems (e.g., AWSCodeBuildProject, GitLabCIConfig, SpaceliftStack).
 
 | Field | Description |
 |-------|-------------|

@@ -16,6 +16,8 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import DEVICE_INSTANCE
+from cartography.models.ontology.labels import TENANT
 
 # ProxmoxCluster Node Schema
 
@@ -65,7 +67,7 @@ class ProxmoxClusterSchema(CartographyNodeSchema):
 
     label: str = "ProxmoxCluster"
     properties: ProxmoxClusterNodeProperties = ProxmoxClusterNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Tenant"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([TENANT])
     # No sub_resource_relationship - this is the tenant-like root entity
     sub_resource_relationship: None = None
 
@@ -141,7 +143,7 @@ class ProxmoxNodeSchema(CartographyNodeSchema):
     label: str = "ProxmoxNode"
     properties: ProxmoxNodeNodeProperties = ProxmoxNodeNodeProperties()
     sub_resource_relationship: ProxmoxNodeToClusterRel = ProxmoxNodeToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["DeviceInstance"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([DEVICE_INSTANCE])
 
 
 # ProxmoxNodeNetworkInterface Node Schema

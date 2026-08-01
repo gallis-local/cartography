@@ -19,6 +19,9 @@ class CVEMetadataNodeProperties(CartographyNodeProperties):
     description: PropertyRef = PropertyRef("description_en")
     references: PropertyRef = PropertyRef("references_urls")
     problem_types: PropertyRef = PropertyRef("weaknesses")
+    # Technical-effect labels derived from CWE (preferred) or CVSS fallback.
+    effect_tags: PropertyRef = PropertyRef("effect_tags")
+    effect_tags_source: PropertyRef = PropertyRef("effect_tags_source")
     cvss_version: PropertyRef = PropertyRef("cvss_version")
     vector_string: PropertyRef = PropertyRef("vectorString")
     attack_vector: PropertyRef = PropertyRef("attackVector")
@@ -72,6 +75,11 @@ class CVEMetadataToCVERelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 # (:CVEMetadata)-[:ENRICHES]->(:CVE)
+# Matches every node carrying the :CVE label with a matching cve_id: the deprecated
+# CVE node plus all finding nodes that now carry the :CVE semantic label (e.g.
+# AWSInspectorFinding, SemgrepSCAFinding, TrivyImageFinding). Findings that load
+# after cve_metadata in a given sync are enriched on the next run; stale edges are
+# pruned by lastupdated cleanup.
 class CVEMetadataToCVERel(CartographyRelSchema):
     target_node_label: str = "CVE"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(

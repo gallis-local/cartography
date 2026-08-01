@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_EC2_RESERVED_INSTANCE
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
@@ -51,7 +53,9 @@ class EC2ReservedInstanceToAWSAccountRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class EC2ReservedInstanceSchema(CartographyNodeSchema):
-    label: str = "EC2ReservedInstance"
+    label: str = "AWSEC2ReservedInstance"
+    # DEPRECATED: legacy EC2ReservedInstance node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([LEGACY_EC2_RESERVED_INSTANCE])
     properties: EC2ReservedInstanceNodeProperties = EC2ReservedInstanceNodeProperties()
     sub_resource_relationship: EC2ReservedInstanceToAWSAccountRel = (
         EC2ReservedInstanceToAWSAccountRel()

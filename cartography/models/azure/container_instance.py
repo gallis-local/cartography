@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import CONTAINER
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,7 @@ class AzureContainerInstanceToECRImageRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class AzureContainerInstanceToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"digest": PropertyRef("image_digest")},
     )
@@ -168,7 +169,7 @@ class AzureContainerInstanceToGitHubContainerImageRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class AzureContainerInstanceSchema(CartographyNodeSchema):
     label: str = "AzureContainerInstance"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Container"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([CONTAINER])
     properties: AzureContainerInstanceNodeProperties = (
         AzureContainerInstanceNodeProperties()
     )

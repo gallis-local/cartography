@@ -1,5 +1,8 @@
 from datetime import datetime
 
+import pytest
+
+from cartography.intel.aws.guardduty import _severity_label
 from cartography.intel.aws.guardduty import transform_findings
 from tests.data.aws.guardduty import EXPECTED_TRANSFORM_RESULTS
 from tests.data.aws.guardduty import GET_FINDINGS
@@ -13,8 +16,8 @@ def test_transform_findings():
     findings_data = GET_FINDINGS["Findings"]
     transformed = transform_findings(findings_data)
 
-    # Should transform 4 findings
-    assert len(transformed) == 4
+    # Should transform 5 findings
+    assert len(transformed) == 5
 
     # Expected EC2 Instance finding
     expected_ec2_finding = EXPECTED_TRANSFORM_RESULTS[0]
@@ -31,6 +34,10 @@ def test_transform_findings():
     # Expected IAM AccessKey finding (UserType=AssumedRole)
     expected_iam_role_finding = EXPECTED_TRANSFORM_RESULTS[3]
     assert transformed[3] == expected_iam_role_finding
+
+    # Expected EKS Cluster (Kubernetes) finding
+    expected_eks_finding = EXPECTED_TRANSFORM_RESULTS[4]
+    assert transformed[4] == expected_eks_finding
 
 
 def test_transform_findings_extracts_sample_flag():
@@ -116,3 +123,24 @@ def test_transform_findings_falls_back_to_top_level_event_fields():
 
     assert transformed[0]["eventfirstseen"] == datetime(2024, 2, 1, 2, 0, 0)
     assert transformed[0]["eventlastseen"] == datetime(2024, 2, 1, 3, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "severity,expected",
+    [
+        (0.5, None),
+        (1.0, "low"),
+        (3.9, "low"),
+        (4.0, "medium"),
+        (6.9, "medium"),
+        (7.0, "high"),
+        (8.9, "high"),
+        (9.0, "critical"),
+        (10.0, "critical"),
+        (None, None),
+        ("not-a-number", None),
+    ],
+)
+def test_severity_label_buckets(severity, expected):
+    """GuardDuty numeric severity is bucketed into the normalized ontology band."""
+    assert _severity_label(severity) == expected

@@ -8,6 +8,8 @@ graph LR
 
 U(User) -- HAS_ACCOUNT --> UA{{UserAccount}}
 U -- OWNS --> CC(Device)
+SAF[S1AppFinding] -- AFFECTS --> CC
+CSF[CrowdstrikeFinding] -- AFFECTS --> CC
 U -- OWNS --> AK{{APIKey}}
 U -- AUTHORIZED --> OA{{ThirdPartyApp}}
 UG{{UserGroup}}
@@ -38,16 +40,38 @@ FN{{Function}}
 REPO{{CodeRepository}}
 SC{{Secret}}
 EK{{EncryptionKey}}
+SC -- ENCRYPTED_BY --> EK
+DB -- ENCRYPTED_BY --> EK
+OS -- ENCRYPTED_BY --> EK
+FS -- ENCRYPTED_BY --> EK
+CP -- USES_SECRET --> SC
+FN -- USES_SECRET --> SC
+CI -- USES_SECRET --> SC
 PR{{PermissionRole}}
 UA -- HAS_ROLE --> PR
 SA -- HAS_ROLE --> PR
+UG -- HAS_ROLE --> PR
+PR -- INCLUDES --> PR
+UA -- MEMBER_OF --> UG
+SA -- MEMBER_OF --> UG
+UG -- MEMBER_OF --> UG
+AK -- OWNED_BY --> UA
+AK -- OWNED_BY --> SA
+CI -- RUNS_AS --> SA
+CP -- RUNS_AS --> SA
+FN -- RUNS_AS --> SA
+CS -- RUNS_AS --> SA
+CI -- ASSUMES --> PR
+FN -- ASSUMES --> PR
 NAC{{NetworkAccessControl}}
 AIM{{AIModel}}
 PIP(PublicIP) -- POINTS_TO --> LB
 PIP -- POINTS_TO --> CI
-PKG(Package) -- DEPLOYED --> IM{{Image}}
-PKG -- DEPENDS_ON --> PKG
-F[TrivyImageFinding] -- AFFECTS --> PKG
+PKG(Package) -- HAS_VERSION --> PKGV(PackageVersion)
+PKGV -- DEPLOYED --> IM{{Image}}
+PKGV -- DEPENDS_ON --> PKGV
+F[TrivyImageFinding] -- AFFECTS --> PKGV
+SCA[SemgrepSCAFinding] -- AFFECTS --> PKGV
 CR{{ContainerRegistry}} -- REPO_IMAGE --> IT{{ImageTag}}
 IT -- IMAGE --> IM
 IML{{ImageManifestList}} -- CONTAINS_IMAGE --> IM
@@ -56,6 +80,7 @@ IM -- HAS_LAYER --> IL{{ImageLayer}}
 CT -- HAS_IMAGE --> IM
 CT -- HAS_IMAGE --> IML
 CT -- RESOLVED_IMAGE --> IM
+CS -- HAS_RUNTIME_IMAGE --> IM
 ```
 
 :::{note}
@@ -64,9 +89,9 @@ In this schema, `squares` represent `Abstract Nodes` and `hexagons` represent `S
 
 ### Where ontology relationships come from
 
-1. The abstract ontology node schemas (`User`, `Device`, `PublicIP`, `Package`) declare the edges they own to module nodes (e.g. `(:User)-[:HAS_ACCOUNT]->(:UserAccount)`).
-2. Ontology analysis jobs derive cross-module edges after sync (e.g. `ontology_users_linking.json` builds the `User`/`UserAccount` graph; `resolved_image_analysis.json` connects `Container` and `Function` to a single-platform `Image`).
-3. Sync modules wire edges between two ontology-labelled nodes themselves (e.g. ECS adding `(:ECSContainer:Container)-[:WORKLOAD_PARENT]->(:ECSTask:ComputePod)`). For this last source, canonical `(src, dst, label)` triples are encoded as `RelConstraint` entries in [`cartography/models/ontology/constraints.py`](https://github.com/cartography-cncf/cartography/blob/master/cartography/models/ontology/constraints.py); a unit test rejects any module rel between those two ontology labels that uses a different name or direction.
+1. The abstract ontology node schemas (`User`, `Device`, `PublicIP`, `Package`, `PackageVersion`) declare the edges they own to module nodes (e.g. `(:User)-[:HAS_ACCOUNT]->(:UserAccount)`).
+2. Ontology analysis jobs derive cross-module edges after sync (e.g. `USER_LINKING_JOBS` builds the `User`/`UserAccount` graph; `RESOLVED_IMAGE_JOBS` connects `Container` and `Function` to a single-platform `Image`; `WORKLOAD_HAS_RUNTIME_IMAGE` collapses running containers up the `WORKLOAD_PARENT` chain to record `(:ComputeService)-[:HAS_RUNTIME_IMAGE]->(:Image)` for each workload).
+3. Sync modules wire edges between two ontology-labelled nodes themselves (e.g. ECS adding `(:AWSECSContainer:Container)-[:WORKLOAD_PARENT]->(:AWSECSTask:ComputePod)`). For this last source, canonical `(src, dst, label)` triples are encoded as `RelConstraint` entries in [`cartography/models/ontology/constraints.py`](https://github.com/cartography-cncf/cartography/blob/master/cartography/models/ontology/constraints.py); a unit test rejects any module rel between those two ontology labels that uses a different name or direction.
 
 ### Ontology Properties on Nodes
 
@@ -187,7 +212,7 @@ Unlike the abstract `User` node, `UserGroup` is a semantic label applied to conc
 Common group concepts across platforms include:
 - **Cloud IAM**: AWS IAM Groups, AWS SSO Groups, OCI Groups, Scaleway Groups
 - **Identity Providers**: Entra Groups, Okta Groups, Keycloak Groups, Google Workspace Groups, GSuite Groups
-- **Collaboration**: GitHub Teams, GitLab Groups, Slack Groups, PagerDuty Teams
+- **Collaboration**: GitHub Teams, GitLab Groups, Slack Groups, PagerDuty Teams, Vercel Access Groups
 - **Network/Device**: Duo Groups, Tailscale Groups
 
 | Field | Description |
@@ -196,6 +221,16 @@ Common group concepts across platforms include:
 | _ont_description | Description of the group. |
 | _ont_email | Email address associated with the group (for mail-enabled groups). |
 | _ont_source | Source of the data. |
+
+#### Relationships
+
+- A `UserAccount` or `ServiceAccount` is a member of a `UserGroup` via the canonical `MEMBER_OF` edge. Groups also nest into other groups with the same edge:
+    ```
+    (:UserAccount)-[:MEMBER_OF]->(:UserGroup)
+    (:ServiceAccount)-[:MEMBER_OF]->(:UserGroup)
+    (:UserGroup)-[:MEMBER_OF]->(:UserGroup)
+    ```
+  Group "owner", "maintainer", and "admin" roles are kept as their own provider-specific edges (a distinct, more privileged semantic), as are transitive `INHERITED_MEMBER_OF` edges derived across nested groups.
 
 
 ### Device
@@ -231,6 +266,11 @@ A client computer is a host that accesses a service made available by a server o
     (:User)-[:OWNS]->(:Device)
     ```
   This relationship may be derived from provider signals such as Jamf device emails, CrowdStrike host emails, or native provider ownership edges.
+- A `Device` can be affected by one or many findings (propagated from the provider host/agent during the ontology linking job):
+    ```
+    (:S1AppFinding)-[:AFFECTS]->(:Device)
+    (:CrowdstrikeFinding)-[:AFFECTS]->(:Device)
+    ```
 
 
 ### APIKey
@@ -253,7 +293,13 @@ API keys are used across different cloud providers and SaaS platforms for authen
 
 #### Relationships
 
-- `User` can own one or many `APIKey`
+- An `APIKey` is owned by the `UserAccount` or `ServiceAccount` it authenticates as, via the canonical `OWNED_BY` edge:
+    ```
+    (:APIKey)-[:OWNED_BY]->(:UserAccount)
+    (:APIKey)-[:OWNED_BY]->(:ServiceAccount)
+    ```
+
+- At the abstract layer, a `User` owns one or many `APIKey` (derived from the `OWNED_BY` edges above during the ontology linking job):
     ```
     (:User)-[:OWNS]->(:APIKey)
     ```
@@ -276,6 +322,15 @@ They are managed by dedicated services like AWS Secrets Manager, GCP Secret Mana
 | _ont_updated_at | Timestamp when the secret was last updated. |
 | _ont_rotation_enabled | Whether automatic rotation is enabled for the secret. |
 
+#### Relationships
+
+- A `ComputePod`, `Function`, or `ComputeInstance` that consumes a secret is linked via the canonical `USES_SECRET` edge. The injection method is captured on the edge as the `mount_method` property (e.g. `volume`, `env`):
+    ```
+    (:ComputePod)-[:USES_SECRET]->(:Secret)
+    (:Function)-[:USES_SECRET]->(:Secret)
+    (:ComputeInstance)-[:USES_SECRET]->(:Secret)
+    ```
+
 
 ### EncryptionKey
 
@@ -293,6 +348,16 @@ Encryption keys are used for data encryption, signing, and other cryptographic o
 | _ont_key_type | The key purpose or usage type (e.g., "ENCRYPT_DECRYPT", "SIGN_VERIFY"). |
 | _ont_enabled | Whether the encryption key is currently enabled. |
 | _ont_rotation_enabled | Whether automatic key rotation is configured. |
+
+#### Relationships
+
+- A `Secret`, `Database`, `ObjectStorage`, or `FileStorage` encrypted with a customer-managed key is linked to it via the canonical `ENCRYPTED_BY` edge:
+    ```
+    (:Secret)-[:ENCRYPTED_BY]->(:EncryptionKey)
+    (:Database)-[:ENCRYPTED_BY]->(:EncryptionKey)
+    (:ObjectStorage)-[:ENCRYPTED_BY]->(:EncryptionKey)
+    (:FileStorage)-[:ENCRYPTED_BY]->(:EncryptionKey)
+    ```
 
 
 ### ComputeInstance
@@ -325,7 +390,7 @@ A container represents a lightweight, standalone executable package that include
 It generalizes concepts like ECS Containers, Kubernetes Containers, individual containers within Azure Container Groups (`AzureContainerInstance`), and individual containers within GCP Cloud Run Services (`GCPCloudRunServiceContainer`) and Jobs (`GCPCloudRunJobContainer`).
 
 ```{note}
-GCP Cloud Run Services, Jobs and Revisions are themselves **not** modeled as `Container` (and no longer as `Function` either). Services and Jobs are orchestrators (analogous to `ECSService` / AWS Batch); Revisions are pure versioning markers for Services. Their per-container specs are materialized as child `GCPCloudRunServiceContainer` / `GCPCloudRunJobContainer` nodes that carry `:Container` and `RESOLVED_IMAGE`.
+GCP Cloud Run Services, Jobs and Revisions are themselves **not** modeled as `Container` (and no longer as `Function` either). Services and Jobs are orchestrators (analogous to `AWSECSService` / AWS Batch); Revisions are pure versioning markers for Services. Their per-container specs are materialized as child `GCPCloudRunServiceContainer` / `GCPCloudRunJobContainer` nodes that carry `:Container` and `RESOLVED_IMAGE`.
 ```
 
 | Field | Description |
@@ -347,7 +412,7 @@ GCP Cloud Run Services, Jobs and Revisions are themselves **not** modeled as `Co
     (:Container)-[:HAS_IMAGE]->(:Image)
     (:Container)-[:HAS_IMAGE]->(:ImageManifestList)
     ```
-- `Container` is connected to a concrete single platform `Image` that actually ran via `RESOLVED_IMAGE`. This edge is produced by the `resolved_image_analysis.json` analysis job, which runs after the ontology stage. It is only created when the target can be deterministically identified:
+- `Container` is connected to a concrete single platform `Image` that actually ran via `RESOLVED_IMAGE`. This edge is produced by `RESOLVED_IMAGE_JOBS` in `cartography/analysis/ontology/analysis.py`, which runs after the ontology stage. It is only created when the target can be deterministically identified:
     - When `HAS_IMAGE` already points at an `:Image` (not `:ImageManifestList`), `RESOLVED_IMAGE` is created directly.
     - When `HAS_IMAGE` points at an `:ImageManifestList`, `RESOLVED_IMAGE` is created to the child `:Image` reached via `CONTAINS_IMAGE` whose architecture matches the container's `architecture_normalized`. If zero or more than one child match, no edge is created (determinism guard).
     ```
@@ -416,6 +481,11 @@ It generalizes concepts like AWS ECS services and GCP Cloud Run services and job
     (:ComputePod)-[:WORKLOAD_PARENT]->(:ComputeService)
     (:Container)-[:WORKLOAD_PARENT]->(:ComputeService)
     ```
+- `ComputeService` has a runtime `Image`: the runtime image inventory (composition) of the logical workload. This edge is produced by `WORKLOAD_HAS_RUNTIME_IMAGE` in `cartography/analysis/ontology/analysis.py`, which collapses each running container up the `WORKLOAD_PARENT` chain to its owning controller and dedups to one edge per `(workload, image)` pair. The collapse is zero-or-more hops, so serverless workloads that are both `ComputeService` and `Container` on a single node (e.g. `ScalewayServerlessContainer`) are covered too. The edge carries an `exposed_internet` boolean: the OR of the service-level exposure signal (`svc.exposed_internet`, e.g. GCP Cloud Run ingress) and any running replica's signal (`rt.exposed_internet`, e.g. AWS ECS / Kubernetes), so a workload's runtime composition and exposure can be read without fanning back out to individual replicas.
+    ```
+    (:ComputeService)-[:HAS_RUNTIME_IMAGE]->(:Image)
+    ```
+    Standalone runtimes with no `ComputeService` controller are not materialized here and are served by the read-side live-collapse path instead: bare pods, and functions (`AWS Lambda`, `GCP Cloud Functions`, `Azure Function Apps`, `Scaleway serverless functions`) which carry only `:Function`.
 
 
 ### ComputeNamespace
@@ -577,11 +647,28 @@ Common role concepts across platforms include:
 | _ont_scope | The scope level of the role (e.g., "global", "account", "org", "project", "namespace", "cluster"). |
 | _ont_source | Source of the data. |
 
-A `UserAccount` or `ServiceAccount` that is granted a permission role is linked via the canonical `HAS_ROLE` edge:
+A `UserAccount`, `ServiceAccount`, or `UserGroup` that is granted a permission role is linked via the canonical `HAS_ROLE` edge. Members inherit the roles granted to their groups:
 ```
 (:UserAccount)-[:HAS_ROLE]->(:PermissionRole)
 (:ServiceAccount)-[:HAS_ROLE]->(:PermissionRole)
+(:UserGroup)-[:HAS_ROLE]->(:PermissionRole)
 ```
+
+A composite or hierarchical role includes other roles via the canonical `INCLUDES` edge (e.g. Keycloak composite roles):
+```
+(:PermissionRole)-[:INCLUDES]->(:PermissionRole)
+```
+
+A workload that assumes a permission role to obtain its privileges is linked via the canonical `ASSUMES` edge:
+```
+(:ComputeInstance)-[:ASSUMES]->(:PermissionRole)
+(:Function)-[:ASSUMES]->(:PermissionRole)
+```
+Wired for both `Function` and `ComputeInstance`:
+- `Function`: an AWS Lambda is linked to its execution role (`(:AWSLambda)-[:ASSUMES]->(:AWSRole)`); an Azure Function App is linked to the role definitions assigned to its managed identity (`(:AzureFunctionApp)-[:ASSUMES]->(:AzureRoleDefinition)`).
+- `ComputeInstance`: an EC2 instance is linked to the role attached through its instance profile (`(:AWSEC2Instance)-[:ASSUMES]->(:AWSRole)`, assembled from `AWSEC2Instance-[:INSTANCE_PROFILE]->AWSInstanceProfile-[:ASSOCIATED_WITH]->AWSRole`); an Azure VM is linked to the role definitions assigned to its managed identity (`(:AzureVirtualMachine)-[:ASSUMES]->(:AzureRoleDefinition)`). The AWS analysis-job `STS_ASSUMEROLE_ALLOW` edge is kept as the distinct IAM trust-policy view.
+
+GCP compute (`ComputeInstance -[:ASSUMES]-> GCPRole`) is still pending, as it spans the compute and IAM-policy-binding syncs.
 
 
 ### ObjectStorage
@@ -739,6 +826,16 @@ Common service account concepts across platforms include:
 | _ont_active | Whether the service account is active. |
 | _ont_source | Source of the data. |
 
+#### Relationships
+
+- A workload runs as (assumes the identity of) a `ServiceAccount` via the canonical `RUNS_AS` edge:
+    ```
+    (:ComputeInstance)-[:RUNS_AS]->(:ServiceAccount)
+    (:ComputePod)-[:RUNS_AS]->(:ServiceAccount)
+    (:Function)-[:RUNS_AS]->(:ServiceAccount)
+    (:ComputeService)-[:RUNS_AS]->(:ServiceAccount)
+    ```
+
 
 ### Certificate
 
@@ -778,10 +875,10 @@ It generalizes concepts like AWS Lambda functions, GCP Cloud Functions, and Azur
 
 #### Relationships
 
-- `Function` is connected to the concrete single platform `Image` it actually ran via `RESOLVED_IMAGE`. This edge is produced by the `resolved_image_analysis.json` analysis job and covers container-based functions that expose a container image reference:
+- `Function` is connected to the concrete single platform `Image` it actually ran via `RESOLVED_IMAGE`. This edge is produced by `RESOLVED_IMAGE_JOBS` in `cartography/analysis/ontology/analysis.py` and covers container-based functions that expose a container image reference:
     - **AWSLambda** (`PackageType=Image`) has `HAS_IMAGE` on the node itself — `RESOLVED_IMAGE` is created directly.
     - **AzureFunctionApp** (`is_container=true`) has `HAS_IMAGE` on the node itself — `RESOLVED_IMAGE` is created directly.
-    - **GCPCloudRunService** and **GCPCloudRunJob** do NOT carry `:Function`. They are orchestrators (analogous to `ECSService` and AWS Batch). Their per-container specs are materialized as child `GCPCloudRunServiceContainer` / `GCPCloudRunJobContainer` nodes that carry `:Container` and participate in `RESOLVED_IMAGE` via the `:Container` path.
+    - **GCPCloudRunService** and **GCPCloudRunJob** do NOT carry `:Function`. They are orchestrators (analogous to `AWSECSService` and AWS Batch). Their per-container specs are materialized as child `GCPCloudRunServiceContainer` / `GCPCloudRunJobContainer` nodes that carry `:Container` and participate in `RESOLVED_IMAGE` via the `:Container` path.
     - When `HAS_IMAGE` points at an `:ImageManifestList`, the determinism guard from the `Container` section applies (single arch-matching child required).
     ```
     (:Function)-[:RESOLVED_IMAGE]->(:Image)
@@ -910,7 +1007,7 @@ A subnet represents an IP subnetwork within a virtual network. It generalizes AW
 `_ont_is_public` is intentionally not modeled: no provider exposes a faithful public/private flag on the subnet node (it depends on route-table/internet-gateway analysis on AWS, and route/NSG configuration on Azure).
 
 ```{note}
-Several AWS sync paths (instances, network interfaces, VPC endpoints, auto scaling groups) create partial `EC2Subnet` nodes that know only the subnet id and sometimes the region. These nodes carry the `Subnet` label with `_ont_name` and `_ont_source` set, but may have a null `_ont_cidr_block` / `_ont_availability_zone` until a full subnet sync enriches them. `(:Subnet)` queries that rely on CIDR/AZ should treat absence as "not yet known", not as a real value. GCP subnet stub nodes are deliberately left unlabeled because they lack even a name.
+Several AWS sync paths (instances, network interfaces, VPC endpoints, auto scaling groups) create partial `AWSEC2Subnet` nodes that know only the subnet id and sometimes the region. These nodes carry the `Subnet` label with `_ont_name` and `_ont_source` set, but may have a null `_ont_cidr_block` / `_ont_availability_zone` until a full subnet sync enriches them. `(:Subnet)` queries that rely on CIDR/AZ should treat absence as "not yet known", not as a real value. GCP subnet stub nodes are deliberately left unlabeled because they lack even a name.
 ```
 
 
@@ -935,8 +1032,45 @@ A virtual network represents an isolated virtual network environment that define
 Package is an abstract ontology node.
 ```
 
-A package represents a software package (library, dependency, or system package) discovered across different scanning tools.
-Package nodes are deduplicated by their `id`, which uses the format `{type}|{namespace/}{name}|{version}` for cross-tool matching.
+A package represents a software package (library, dependency, or system package) independently of its
+version. It groups every `PackageVersion` of itself discovered across the estate, so it answers
+"which versions of this package do we have?" without string-splitting ids.
+
+Package nodes are deduplicated by their `id`, which uses the format `{type}|{namespace/}{name}`: the
+version-independent counterpart of `PackageVersion.id`.
+
+| Field | Description |
+|-------|-------------|
+| **id** | Version-independent normalized ID (format: `{type}\|{namespace/}{name}`). |
+| firstseen | Timestamp of when a sync job first created this node. |
+| lastupdated | Timestamp of the last time the node was updated. |
+| name | Normalized name of the package (PEP 503 for Python, lowercase elsewhere). This keeps the PURL namespace prefix when there is one, so `pkg:npm/%40types/node` gives `@types/node` rather than `node`: it is the name the package is published under, and it keeps `name` aligned with the `name` part of `id`. Use `namespace` below to get the bare PURL namespace component on its own. |
+| namespace | The PURL `namespace` component alone, when the PURL carries one (e.g. `@types` for `pkg:npm/%40types/node`), else unset. |
+| type | Package ecosystem type (e.g., npm, pypi, deb). |
+
+#### Relationships
+
+- `Package` groups the concrete versions of itself found across the estate:
+    ```
+    (:Package)-[:HAS_VERSION]->(:PackageVersion)
+    ```
+
+```{note}
+`Package` is a pure aggregation node: every derived edge (`DETECTED_AS`, `DEPLOYED`, `AFFECTS`,
+`SHOULD_UPDATE_TO`, `DEPENDS_ON`) hangs off the `PackageVersion` nodes it groups.
+```
+
+
+### PackageVersion
+
+```{note}
+PackageVersion is an abstract ontology node.
+```
+
+A package version represents one specific version of a software package (library, dependency, or
+system package) discovered across different scanning tools.
+PackageVersion nodes are deduplicated by their `id`, which uses the format
+`{type}|{namespace/}{name}|{version}` for cross-tool matching.
 
 | Field | Description |
 |-------|-------------|
@@ -950,26 +1084,71 @@ Package nodes are deduplicated by their `id`, which uses the format `{type}|{nam
 
 #### Relationships
 
-- `Package` is linked to one or many source nodes that detected it:
+- `PackageVersion` is grouped under the version-independent `Package`:
     ```
-    (:Package)-[:DETECTED_AS]->(:TrivyPackage)
-    (:Package)-[:DETECTED_AS]->(:SyftPackage)
+    (:Package)-[:HAS_VERSION]->(:PackageVersion)
     ```
-- `Package` can be deployed in one or many container images (propagated from TrivyPackage and SyftPackage):
+- `PackageVersion` is linked to one or many source nodes that detected it:
     ```
-    (:Package)-[:DEPLOYED]->(:Image)
+    (:PackageVersion)-[:DETECTED_AS]->(:TrivyPackage)
+    (:PackageVersion)-[:DETECTED_AS]->(:SyftPackage)
+    (:PackageVersion)-[:DETECTED_AS]->(:SemgrepDependency)
+    (:PackageVersion)-[:DETECTED_AS]->(:GitHubDependency)
+    (:PackageVersion)-[:DETECTED_AS]->(:GitLabDependency)
+    (:PackageVersion)-[:DETECTED_AS]->(:SocketDevDependency)
     ```
-- `Package` can be affected by one or many vulnerability findings (propagated from TrivyPackage):
+- `PackageVersion` can be deployed in one or many container images (propagated from TrivyPackage and SyftPackage):
     ```
-    (:TrivyImageFinding)-[:AFFECTS]->(:Package)
+    (:PackageVersion)-[:DEPLOYED]->(:Image)
     ```
-- `Package` can have one or many recommended fix versions (propagated from TrivyPackage):
+- `PackageVersion` can be affected by one or many vulnerability findings or security issues (propagated from TrivyPackage and SemgrepDependency):
     ```
-    (:Package)-[:SHOULD_UPDATE_TO]->(:TrivyFix)
+    (:TrivyImageFinding)-[:AFFECTS]->(:PackageVersion)
+    (:SemgrepSCAFinding)-[:AFFECTS]->(:PackageVersion)
     ```
-- `Package` can depend on other packages (propagated from SyftPackage):
+- `PackageVersion` can have one or many recommended fix versions (propagated from TrivyPackage):
     ```
-    (:Package)-[:DEPENDS_ON]->(:Package)
+    (:PackageVersion)-[:SHOULD_UPDATE_TO]->(:TrivyFix)
+    ```
+- `PackageVersion` can depend on other package versions (propagated from SyftPackage):
+    ```
+    (:PackageVersion)-[:DEPENDS_ON]->(:PackageVersion)
+    ```
+
+### CVE
+
+```{note}
+CVE is a semantic label.
+```
+
+A CVE represents a specific, publicly disclosed vulnerability (a CVE identifier) as detected by a
+scanner or vulnerability feed. Unlike the abstract nodes, `CVE` is a semantic label applied directly
+to the concrete finding nodes that reference a CVE, so cross-scanner queries can select every
+CVE-backed finding with `MATCH (c:CVE)`.
+
+Contributing module nodes (each carries `:CVE` unconditionally or via a conditional label): the
+deprecated `CVE` node, `UbuntuCVE`, `CrowdstrikeFinding`, `GitHubDependabotAlert`, `S1AppFinding`,
+`SemgrepSCAFinding` and `TrivyImageFinding` (both when `has_cve` is true), and
+`AWSInspectorFinding` (when `type = PACKAGE_VULNERABILITY`).
+
+| Field | Description |
+|-------|-------------|
+| _ont_cve_id | The CVE identifier (e.g. `CVE-2022-31129`). |
+| _ont_description | Human-readable description of the vulnerability. |
+| _ont_references | Reference URLs for the vulnerability. |
+| _ont_base_score | CVSS base score. |
+| _ont_base_severity | CVSS base severity (e.g. `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`). |
+| _ont_source | Source module of the data. |
+
+Not every contributing node populates every field; scanners expose different subsets (see the
+per-module mappings in `cartography/models/ontology/mapping/data/cves.py`).
+
+#### Relationships
+
+- A `CVE`-labelled node is enriched with normalized NVD / EPSS / CISA KEV metadata by the `CVEMetadata`
+  node (matched on the CVE identifier):
+    ```
+    (:CVEMetadata)-[:ENRICHES]->(:CVE)
     ```
 
 ### ContainerRegistry
@@ -997,7 +1176,7 @@ ImageTag is a semantic label.
 ```
 
 An image tag represents a human-readable reference to a container image within a registry.
-It generalizes concepts like AWS ECRRepositoryImage, GCP Artifact Registry image tags, and GitLab Container Registry tags.
+It generalizes concepts like AWS AWSECRRepositoryImage, GCP Artifact Registry image tags, and GitLab Container Registry tags.
 
 | Field | Description |
 |-------|-------------|
@@ -1019,7 +1198,7 @@ Image is a conditional semantic label applied to container image nodes when `typ
 ```
 
 An image represents a runnable container image (single-architecture or platform-specific).
-It generalizes concepts like AWS ECRImage (type=image), GCP Container Images, and GitLab Container Images.
+It generalizes concepts like AWS AWSECRImage (type=image), GCP Container Images, and GitLab Container Images.
 
 | Field | Description |
 |-------|-------------|
@@ -1050,9 +1229,9 @@ It generalizes concepts like AWS ECRImage (type=image), GCP Container Images, an
     (:TrivyImageFinding)-[:AFFECTS]->(:Image)
     ```
 
-- Canonical `Package` nodes are deployed on an `Image` (propagated from TrivyPackage and SyftPackage):
+- Canonical `PackageVersion` nodes are deployed on an `Image` (propagated from TrivyPackage and SyftPackage):
     ```
-    (:Package)-[:DEPLOYED]->(:Image)
+    (:PackageVersion)-[:DEPLOYED]->(:Image)
     ```
 
 
@@ -1063,7 +1242,7 @@ ImageAttestation is a conditional semantic label applied to container image node
 ```
 
 An image attestation represents cryptographic metadata that validates or provides provenance information about a container image.
-It generalizes concepts like AWS ECRImage attestations and OCI attestation manifests.
+It generalizes concepts like AWS AWSECRImage attestations and OCI attestation manifests.
 
 | Field | Description |
 |-------|-------------|
@@ -1086,7 +1265,7 @@ ImageManifestList is a conditional semantic label applied to container image nod
 ```
 
 An image manifest list (also known as an image index) represents a multi-architecture container image that contains references to platform-specific images.
-It generalizes concepts like AWS ECRImage manifest lists and OCI image indexes.
+It generalizes concepts like AWS AWSECRImage manifest lists and OCI image indexes.
 
 | Field | Description |
 |-------|-------------|
@@ -1109,7 +1288,7 @@ ImageLayer is a semantic label.
 
 An image layer represents an individual filesystem layer within a container image.
 Layers are de-duplicated by their content-addressable digest, so multiple images may reference the same layer node.
-It generalizes concepts like AWS ECRImageLayer and OCI image layers.
+It generalizes concepts like AWS AWSECRImageLayer and OCI image layers.
 
 | Field | Description |
 |-------|-------------|

@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import CONTAINER
 
 
 @dataclass(frozen=True)
@@ -89,7 +90,7 @@ class CloudRunJobContainerToECRImageRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class CloudRunJobContainerToECRImageRel(CartographyRelSchema):
-    target_node_label: str = "ECRImage"
+    target_node_label: str = "AWSECRImage"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"digest": PropertyRef("image_digest")},
     )
@@ -159,7 +160,7 @@ class CloudRunJobContainerToGitHubContainerImageRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class GCPCloudRunJobContainerSchema(CartographyNodeSchema):
     label: str = "GCPCloudRunJobContainer"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Container"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([CONTAINER])
     properties: GCPCloudRunJobContainerProperties = GCPCloudRunJobContainerProperties()
     sub_resource_relationship: ProjectToCloudRunJobContainerRel = (
         ProjectToCloudRunJobContainerRel()

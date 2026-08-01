@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_ADDRESS_TRANSLATION
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,6 @@ class UnifiPortForwardToSiteRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiPortForwardSchema(CartographyNodeSchema):
     label: str = "UnifiPortForward"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkAddressTranslation"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ADDRESS_TRANSLATION])
     properties: UnifiPortForwardNodeProperties = UnifiPortForwardNodeProperties()
     sub_resource_relationship: UnifiPortForwardToSiteRel = UnifiPortForwardToSiteRel()

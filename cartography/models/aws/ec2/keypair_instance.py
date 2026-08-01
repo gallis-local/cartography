@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import KEY_PAIR
+from cartography.models.aws.extra_labels import LEGACY_EC2_KEY_PAIR
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -46,7 +48,7 @@ class EC2KeyPairInstanceToEC2InstanceRelRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class EC2KeyPairInstanceToEC2InstanceRel(CartographyRelSchema):
-    target_node_label: str = "EC2Instance"
+    target_node_label: str = "AWSEC2Instance"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("InstanceId")},
     )
@@ -63,8 +65,11 @@ class EC2KeyPairInstanceSchema(CartographyNodeSchema):
     EC2 keypairs as known by describe-instances.
     """
 
-    label: str = "EC2KeyPair"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["KeyPair"])
+    label: str = "AWSEC2KeyPair"
+    # DEPRECATED: legacy EC2KeyPair node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_EC2_KEY_PAIR, KEY_PAIR]
+    )
     properties: EC2KeyPairInstanceNodeProperties = EC2KeyPairInstanceNodeProperties()
     sub_resource_relationship: EC2KeyPairInstanceToAWSAccountRel = (
         EC2KeyPairInstanceToAWSAccountRel()

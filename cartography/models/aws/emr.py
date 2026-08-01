@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from cartography.models.aws.extra_labels import LEGACY_EMR_CLUSTER
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
 from cartography.models.core.nodes import CartographyNodeSchema
@@ -9,6 +10,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import COMPUTE_CLUSTER
 
 
 @dataclass(frozen=True)
@@ -43,7 +45,7 @@ class EMRClusterToAWSAccountRelRelProperties(CartographyRelProperties):
 
 
 @dataclass(frozen=True)
-# (:EMRCluster)<-[:RESOURCE]-(:AWSAccount)
+# (:AWSEMRCluster)<-[:RESOURCE]-(:AWSAccount)
 class EMRClusterToAWSAccountRel(CartographyRelSchema):
     target_node_label: str = "AWSAccount"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -58,7 +60,10 @@ class EMRClusterToAWSAccountRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class EMRClusterSchema(CartographyNodeSchema):
-    label: str = "EMRCluster"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ComputeCluster"])
+    label: str = "AWSEMRCluster"
+    # DEPRECATED: legacy EMRCluster node label will be removed in v1.0.0.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [LEGACY_EMR_CLUSTER, COMPUTE_CLUSTER]
+    )
     properties: EMRClusterNodeProperties = EMRClusterNodeProperties()
     sub_resource_relationship: EMRClusterToAWSAccountRel = EMRClusterToAWSAccountRel()

@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import THIRD_PARTY_APP
 
 
 @dataclass(frozen=True)
@@ -28,7 +29,7 @@ class EntraApplicationToTenantRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class EntraApplicationToTenantRel(CartographyRelSchema):
-    target_node_label: str = "EntraTenant"
+    target_node_label: str = "AzureTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
     )
@@ -42,7 +43,7 @@ class EntraApplicationToTenantRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class EntraApplicationSchema(CartographyNodeSchema):
     label: str = "EntraApplication"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["ThirdPartyApp"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([THIRD_PARTY_APP])
     properties: EntraApplicationNodeProperties = EntraApplicationNodeProperties()
     sub_resource_relationship: EntraApplicationToTenantRel = (
         EntraApplicationToTenantRel()
