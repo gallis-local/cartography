@@ -12,6 +12,7 @@ import cartography.intel.proxmox
 import cartography.intel.proxmox.access
 import cartography.intel.proxmox.cluster
 import cartography.intel.proxmox.compute
+from cartography.util import run_cleanup_job
 from tests.data.proxmox.access import MOCK_USER_DATA
 from tests.integration.util import check_nodes
 
@@ -283,3 +284,104 @@ def test_multi_cluster_user_isolation(
     userid = MOCK_USER_DATA[0]["userid"]
     expected_ids = {f"{TEST_CLUSTER_A}/user/{userid}", f"{TEST_CLUSTER_B}/user/{userid}"}
     assert user_ids == expected_ids, f"Expected {expected_ids}, got {user_ids}"
+
+
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_status", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODES)
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
+@patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
+@patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
+@patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
+@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[])
+@patch.object(cartography.intel.proxmox.compute, "get_vm_config", return_value={})
+def test_import_cleanup_is_cluster_scoped(
+    mock_get_vm_config,
+    mock_get_containers,
+    mock_get_vms,
+    mock_get_node_network,
+    mock_get_config,
+    mock_get_options,
+    mock_get_nodes,
+    mock_get_cluster,
+    neo4j_session,
+):
+    """
+    Regression test: the proxmox_import_cleanup.json job must only delete stale
+    core nodes for the cluster being synced, never for another cluster.
+
+    Reproduces the multi-cluster race where back-to-back syncs (one per cluster,
+    each with its own update tag) ran a glocal cleanup job that deleted the other
+    cluster's freshly-synced core nodes (ProxmoxCluster/ProxmoxNode/ProxmoxVM).
+    """
+    # Arrange
+    proxmox_a = MagicMock()
+    proxmox_a.nodes.get.return_value = MOCK_NODES
+
+    proxmox_b = MagicMock()
+    proxmox_b.nodes.get.return_value = MOCK_NODES
+
+    def get_vms_side_effect(proxmox_client, node_name):
+        return [
+            vm
+            for vm in MOCK_VM_DATA_MULTI.get(node_name, [])
+            if vm.get("type") == "qemu"
+        ]
+
+    mock_get_vms.side_effect = get_vms_side_effect
+
+    tag_a = TEST_UPDATE_TAG
+    tag_b = TEST_UPDATE_TAG + 1
+
+    common_params_a: dict[str, Any] = {
+        "UPDATE_TAG": tag_a,
+        "CLUSTER_ID": TEST_CLUSTER_A,
+    }
+
+    common_params_b: dict[str, Any] = {
+        "UPDATE_TAG": tag_b,
+        "CLUSTER_ID": TEST_CLUSTER_B,
+    }
+
+    # Act - Sync cluster A with its own update tag, then cluster B (simulating
+    # two back-to-back sync runs, one per proxmox host)
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, tag_a, common_params_a
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_a, TEST_CLUSTER_A, tag_a, common_params_a
+    )
+
+    cartography.intel.proxmox.cluster.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, tag_b, common_params_b
+    )
+    cartography.intel.proxmox.compute.sync(
+        neo4j_session, proxmox_b, TEST_CLUSTER_B, tag_b, common_params_b
+    )
+
+    # Act - Run the import cleanup job with cluster B's parameters (this is the
+    # job start_proxmox_ingestion runs at the end of cluster B's sync)
+    run_cleanup_job(
+        "proxmox_import_cleanup.json",
+        neo4j_session,
+        common_params_b,
+    )
+
+    # Assert - Core nodes of both clusters must survive: cluster B's because
+    # they're fresh, cluster A's because cleanup must be cluster-scoped
+    clusters = {
+        node[0] for node in check_nodes(neo4j_session, "ProxmoxCluster", ["id"])
+    }
+    assert clusters == {f"{TEST_CLUSTER_A}", f"{TEST_CLUSTER_B}"}, (
+        f"Expected both clusters to survive cleanup, got {clusters}"
+    )
+
+    nodes = {node[0] for node in check_nodes(neo4j_session, "ProxmoxNode", ["id"])}
+    assert nodes == {
+        f"{TEST_CLUSTER_A}/node/pve1",
+        f"{TEST_CLUSTER_B}/node/pve1",
+    }, f"Expected both clusters' nodes to survive cleanup, got {nodes}"
+
+    vms = {node[0] for node in check_nodes(neo4j_session, "ProxmoxVM", ["id"])}
+    assert vms == {f"{TEST_CLUSTER_A}/vm/100", f"{TEST_CLUSTER_B}/vm/100"}, (
+        f"Expected both clusters' VMs to survive cleanup, got {vms}"
+    )
