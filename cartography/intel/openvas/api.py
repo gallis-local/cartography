@@ -174,7 +174,10 @@ def _children(element: Any, tag: str) -> list:
 
 
 _ITEMS_TAGS = {
-    "get_hosts": "host",
+    # get_hosts wraps GMP get_assets(type="host"); items and the count
+    # element are keyed by "asset", not "host" (that's the nested detail
+    # element inside each <asset>).
+    "get_hosts": "asset",
     "get_tasks": "task",
     "get_results": "result",
     "get_tls_certificates": "tls_certificate",

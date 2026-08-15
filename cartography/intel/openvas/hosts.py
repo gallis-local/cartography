@@ -15,43 +15,67 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-def _transform_host(host: Any) -> dict:
-    latest_scan = host.find("latest_scan")
-    task_id = None
-    task_name = None
-    latest_scan_date = None
-    if latest_scan is not None:
-        latest_scan_date = latest_scan.findtext("date")
-        task = latest_scan.find("task")
-        if task is not None:
-            task_id = task.get("id")
-            task_name = task.findtext("name")
+def _transform_host(asset: Any) -> dict:
+    """
+    Transform a <get_assets type="host"> response element.
 
-    asset = host.find("asset")
-    asset_id = asset.get("id") if asset is not None else None
+    GMP's get_hosts is a thin wrapper around get_assets(type="host"): each
+    item is an <asset> element (identified by asset id, not a separate host
+    id) with a nested <host> element carrying severity/detail, and an
+    <identifiers> list of <identifier><name>ip|hostname|OS</name><value>
+    entries scraped from scan reports. There is no latest_scan/task
+    reference in this API version, so LAST_SCANNED_BY stays unset.
+    """
+    identifiers = asset.find("identifiers")
+    ip = None
+    hostname = None
+    identifier_names: list[str] = []
+    if identifiers is not None:
+        for identifier in identifiers.findall("identifier"):
+            id_name = identifier.findtext("name")
+            id_value = identifier.findtext("value")
+            if id_name and id_name not in identifier_names:
+                identifier_names.append(id_name)
+            if id_name == "ip" and ip is None:
+                ip = id_value
+            elif id_name == "hostname" and hostname is None:
+                hostname = id_value
 
-    severity = host.findtext("severity")
-    try:
-        severity = float(severity) if severity else None
-    except ValueError:
-        severity = None
+    host = asset.find("host")
+    severity = None
+    os_name = None
+    if host is not None:
+        severity_elem = host.find("severity")
+        severity_text = (
+            severity_elem.findtext("value") if severity_elem is not None else None
+        )
+        try:
+            severity = float(severity_text) if severity_text else None
+        except ValueError:
+            severity = None
+        for detail in host.findall("detail"):
+            if detail.findtext("name") == "best_os_txt":
+                os_name = detail.findtext("value")
+                break
+
+    asset_id = asset.get("id")
 
     return {
-        "id": host.get("id"),
-        "name": host.findtext("name"),
-        "ip": host.findtext("ip"),
-        "hostname": host.findtext("hostname"),
-        "os": host.findtext("os"),
-        "comment": host.findtext("comment"),
-        "creation_time": host.findtext("creation_time"),
-        "modification_time": host.findtext("modification_time"),
+        "id": asset_id,
+        "name": asset.findtext("name"),
+        "ip": ip or asset.findtext("name"),
+        "hostname": hostname,
+        "os": os_name,
+        "comment": asset.findtext("comment"),
+        "creation_time": asset.findtext("creation_time"),
+        "modification_time": asset.findtext("modification_time"),
         "severity": severity,
         "asset_id": asset_id,
-        "latest_scan_date": latest_scan_date,
-        "latest_scan_task_id": task_id,
-        "latest_scan_task_name": task_name,
-        "source_type": host.findtext("source_type"),
-        "identifiers": host.findtext("identifiers"),
+        "latest_scan_date": None,
+        "latest_scan_task_id": None,
+        "latest_scan_task_name": None,
+        "source_type": asset.findtext("type"),
+        "identifiers": ",".join(identifier_names) or None,
     }
 
 
