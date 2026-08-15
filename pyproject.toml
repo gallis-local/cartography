@@ -113,6 +113,7 @@ dependencies = [
     # lockfile fallback parser).
     "tomli>=2.0.0; python_version < '3.11'",
     "aiounifi>=81",
+    "python-gvm>=27.2.0",
 ]
 # Comes from Git tag
 dynamic = [ "version" ]

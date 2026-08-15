@@ -329,6 +329,23 @@ proxmox_mapping = OntologyMapping(
     ],
 )
 
+openvas_mapping = OntologyMapping(
+    module_name="openvas",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OpenVASHost",
+            # OpenVAS hosts are keyed by GMP uuid, not serial_number (the canonical
+            # Device id), so they cannot be a canonical source. They are still
+            # linked to existing Device nodes via the OBSERVED_AS relationship.
+            eligible_for_source=False,
+            fields=[
+                OntologyFieldMapping(ontology_field="hostname", node_field="hostname"),
+                OntologyFieldMapping(ontology_field="os", node_field="os"),
+            ],
+        ),
+    ],
+)
+
 DEVICES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "bigfix": bigfix_mapping,
     "crowdstrike": crowdstrike_mapping,
@@ -343,4 +360,5 @@ DEVICES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "tailscale": tailscale_mapping,
     "unifi": unifi_mapping,
     "proxmox": proxmox_mapping,
+    "openvas": openvas_mapping,
 }

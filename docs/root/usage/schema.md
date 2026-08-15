@@ -132,6 +132,9 @@
 ```{include} ../modules/openai/schema.md
 ```
 
+```{include} ../modules/openvas/schema.md
+```
+
 ```{include} ../modules/pagerduty/schema.md
 ```
 

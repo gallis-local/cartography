@@ -82,6 +82,7 @@ PANEL_ONTOLOGY = "Ontology Options"
 PANEL_SCALEWAY = "Scaleway Options"
 PANEL_SENTINELONE = "SentinelOne Options"
 PANEL_TENABLE = "Tenable Options"
+PANEL_OPENVAS = "OpenVAS Options"
 PANEL_KEYCLOAK = "Keycloak Options"
 PANEL_SALESFORCE = "Salesforce Options"
 PANEL_SLACK = "Slack Options"
@@ -146,6 +147,7 @@ MODULE_PANELS = {
     "sentry": PANEL_SENTRY,
     "sentinelone": PANEL_SENTINELONE,
     "tenable": PANEL_TENABLE,
+    "openvas": PANEL_OPENVAS,
     "keycloak": PANEL_KEYCLOAK,
     "salesforce": PANEL_SALESFORCE,
     "slack": PANEL_SLACK,
@@ -2083,6 +2085,134 @@ class CLI:
                 ),
             ] = 180,
             # =================================================================
+            # OpenVAS Options
+            # =================================================================
+            openvas_host: Annotated[
+                str | None,
+                typer.Option(
+                    "--openvas-host",
+                    help=(
+                        "Hostname or IP of the GVM daemon (gvmd) GMP endpoint. "
+                        "Defaults to 127.0.0.1."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = None,
+            openvas_port: Annotated[
+                int,
+                typer.Option(
+                    "--openvas-port",
+                    help=(
+                        "TCP port of the GVM daemon GMP endpoint. Defaults to 9390. "
+                        "Plain TCP (or TLS with --openvas-tls) unless --openvas-ssh is set."
+                    ),
+                    min=1,
+                    max=65535,
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = 9390,
+            openvas_user: Annotated[
+                str,
+                typer.Option(
+                    "--openvas-user",
+                    help=(
+                        "GVM user used to authenticate over GMP, and the SSH user when "
+                        "--openvas-ssh is set. Defaults to admin."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = "admin",
+            openvas_password_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--openvas-password-env-var",
+                    help=(
+                        "Environment variable name containing the GVM password. "
+                        "Defaults to GVM_PASSWORD."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = "GVM_PASSWORD",
+            openvas_socket_path: Annotated[
+                str | None,
+                typer.Option(
+                    "--openvas-socket-path",
+                    help=(
+                        "Path to the gvmd Unix socket (e.g. /run/gvmd/gvmd.sock). "
+                        "When set, overrides --openvas-host/--openvas-port."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = None,
+            openvas_tls: Annotated[
+                bool,
+                typer.Option(
+                    "--openvas-tls",
+                    help=(
+                        "Connect to the GMP endpoint over TLS instead of plain TCP "
+                        "(GVM_TLS style, port 9391 when gvmd TLS is enabled)."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = False,
+            openvas_tls_cafile: Annotated[
+                str | None,
+                typer.Option(
+                    "--openvas-tls-cafile",
+                    help=(
+                        "Path to a CA certificate file used to verify the GVM TLS "
+                        "endpoint. Defaults to the system CA bundle."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = None,
+            openvas_ssh: Annotated[
+                bool,
+                typer.Option(
+                    "--openvas-ssh",
+                    help=(
+                        "Tunnel GMP over SSH instead of plain TCP or TLS. "
+                        "--openvas-user/--openvas-password are used for the SSH login."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = False,
+            openvas_instance_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--openvas-instance-id",
+                    help=(
+                        "Identifier used to scope all OpenVAS nodes in the graph "
+                        "(the OpenVASInstance node id). Defaults to host:port, or the "
+                        "socket path when --openvas-socket-path is set."
+                    ),
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = None,
+            openvas_findings_lookback_days: Annotated[
+                int,
+                typer.Option(
+                    "--openvas-findings-lookback-days",
+                    help=(
+                        "Number of days to look back for OpenVAS results on each run. "
+                        "Stale results outside this window are removed from the graph "
+                        "by the cleanup job. Defaults to 180."
+                    ),
+                    min=1,
+                    rich_help_panel=PANEL_OPENVAS,
+                    hidden=PANEL_OPENVAS not in visible_panels,
+                ),
+            ] = 180,
+            # =================================================================
             # Keycloak Options
             # =================================================================
             keycloak_client_id: Annotated[
@@ -3235,6 +3365,15 @@ class CLI:
                 )
                 tenable_secret_key = os.environ.get(tenable_secret_key_env_var)
 
+            # Read OpenVAS password
+            openvas_password = None
+            if openvas_password_env_var:
+                logger.debug(
+                    "Reading OpenVAS password from environment variable %s",
+                    openvas_password_env_var,
+                )
+                openvas_password = os.environ.get(openvas_password_env_var)
+
             # Read Keycloak client secret
             keycloak_client_secret = None
             if keycloak_client_secret_env_var:
@@ -3489,6 +3628,16 @@ class CLI:
                 tenable_access_key=tenable_access_key,
                 tenable_secret_key=tenable_secret_key,
                 tenable_findings_lookback_days=tenable_findings_lookback_days,
+                openvas_host=openvas_host,
+                openvas_port=openvas_port,
+                openvas_user=openvas_user,
+                openvas_password=openvas_password,
+                openvas_socket_path=openvas_socket_path,
+                openvas_tls=openvas_tls,
+                openvas_tls_cafile=openvas_tls_cafile,
+                openvas_ssh=openvas_ssh,
+                openvas_instance_id=openvas_instance_id,
+                openvas_findings_lookback_days=openvas_findings_lookback_days,
                 spacelift_api_endpoint=spacelift_api_endpoint_resolved,
                 spacelift_api_token=spacelift_api_token,
                 spacelift_api_key_id=spacelift_api_key_id,

@@ -69,8 +69,25 @@ proxmox_mapping = OntologyMapping(
     ],
 )
 
+openvas_mapping = OntologyMapping(
+    module_name="openvas",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OpenVASTLSCertificate",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="domain", node_field="name", required=True
+                ),
+                OntologyFieldMapping(ontology_field="expiry", node_field="not_after"),
+                OntologyFieldMapping(ontology_field="issuer", node_field="issuer"),
+            ],
+        ),
+    ],
+)
+
 CERTIFICATES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "azure": azure_mapping,
     "proxmox": proxmox_mapping,
+    "openvas": openvas_mapping,
 }
