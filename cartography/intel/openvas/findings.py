@@ -109,7 +109,10 @@ def _transform_result(result: Any) -> dict:
         "summary": tags.get("summary"),
         "detection_result": tags.get("detection_result"),
         "source_ip": result.findtext("source_ip"),
-        "created": result.findtext("created"),
+        # GMP results carry their timestamp as <creation_time>, matching
+        # every other entity (task/target/config/...) -- not <created>,
+        # which is only a get_results *filter* keyword, not a response tag.
+        "created": result.findtext("creation_time"),
         "cve_id": cves[0] if cves else None,
         "cve_list": cves if cves else None,
         "has_cve": "true" if cves else "false",

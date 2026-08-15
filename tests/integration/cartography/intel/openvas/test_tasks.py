@@ -35,10 +35,28 @@ def test_sync_tasks_and_supporting(neo4j_session):
 
     # Assert
     task_nodes = (
-        check_nodes(neo4j_session, "OpenVASTask", ["id", "status", "last_report_id"])
+        check_nodes(
+            neo4j_session,
+            "OpenVASTask",
+            [
+                "id",
+                "status",
+                "last_report_id",
+                "last_report_timestamp",
+                "last_report_scan_start",
+                "last_report_scan_end",
+            ],
+        )
         or set()
     )
-    assert (TASK_ID_1, "Done", "report-1") in task_nodes
+    assert (
+        TASK_ID_1,
+        "Done",
+        "report-1",
+        "2024-06-01T12:00:00+00:00",
+        "2024-06-01T10:00:00+00:00",
+        "2024-06-01T12:00:00+00:00",
+    ) in task_nodes
 
     target_nodes = check_nodes(neo4j_session, "OpenVASTarget", ["id", "hosts"]) or set()
     assert (TARGET_ID_1, "10.0.0.0/24") in target_nodes
