@@ -16,7 +16,7 @@ NVTs are ingested **only as they are referenced by detected results** (deduplica
 
 | CLI flag | Default | Required | Description |
 |---|---|---|---|
-| `--openvas-host` | `None` | Yes* | Hostname or IP of the gvmd manager (or the SSH host when `--openvas-ssh` is set). |
+| `--openvas-host` | `127.0.0.1` | No* | Hostname or IP of the gvmd manager (or the SSH host when `--openvas-ssh` is set). |
 | `--openvas-port` | `9390` | No | Port of the gvmd manager. |
 | `--openvas-user` | `admin` | No | GMP username (or SSH username when `--openvas-ssh` is set). |
 | `--openvas-password-env-var` | `GVM_PASSWORD` | Yes | Environment variable holding the GMP (or SSH) password. If unset, the OpenVAS sync is skipped. |
