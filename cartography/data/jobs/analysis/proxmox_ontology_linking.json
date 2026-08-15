@@ -3,7 +3,7 @@
   "statements": [
     {
       "__comment": "Link ProxmoxAPIToken to canonical User via the owning ProxmoxUser. This creates (:User)-[:OWNS]->(:ProxmoxAPIToken) enabling cross-provider queries like 'find all API keys owned by this user across all platforms'.",
-      "query": "MATCH (key:ProxmoxAPIToken {cluster_id: $CLUSTER_ID})-[:BELONGS_TO]->(pu:ProxmoxUser {cluster_id: $CLUSTER_ID}) MATCH (u:User)-[:HAS_ACCOUNT]->(pu) MERGE (u)-[r:OWNS]->(key) ON CREATE SET r.firstseen = timestamp() SET r.lastupdated = $UPDATE_TAG",
+      "query": "MATCH (key:ProxmoxAPIToken {cluster_id: $CLUSTER_ID})-[:OWNED_BY]->(pu:ProxmoxUser {cluster_id: $CLUSTER_ID}) MATCH (u:User)-[:HAS_ACCOUNT]->(pu) MERGE (u)-[r:OWNS]->(key) ON CREATE SET r.firstseen = timestamp() SET r.lastupdated = $UPDATE_TAG",
       "iterative": false
     },
     {
