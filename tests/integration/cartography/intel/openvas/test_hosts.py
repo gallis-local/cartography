@@ -34,23 +34,75 @@ def test_sync_hosts(neo4j_session):
         check_nodes(
             neo4j_session,
             "OpenVASHost",
-            ["id", "ip", "hostname", "os", "severity", "latest_scan_task_id"],
+            ["id", "ip", "hostname", "os", "severity", "asset_id"],
         )
         or set()
     )
+    # Node identity is the IP, not GMP's asset id -- GVM reissues asset ids
+    # on every host (re)discovery, so keying on asset_id would create a new
+    # duplicate node per sync instead of updating one. asset_id is kept as
+    # an informational property.
     assert (
-        HOST_ID_1,
+        "10.0.0.5",
         "10.0.0.5",
         "web-01.example.com",
         "Linux",
         8.1,
-        None,
+        HOST_ID_1,
     ) in nodes
-    assert (HOST_ID_2, "10.0.0.6", None, None, 0.0, None) in nodes
+    assert ("10.0.0.6", "10.0.0.6", None, None, 0.0, HOST_ID_2) in nodes
 
     # Hosts carry the DEVICE_INSTANCE semantic label.
     device_nodes = check_nodes(neo4j_session, "DeviceInstance", ["id"]) or set()
-    assert (HOST_ID_1,) in device_nodes
+    assert ("10.0.0.5",) in device_nodes
+
+
+def test_sync_hosts_dedupes_reissued_asset_ids(neo4j_session):
+    """
+    GVM can return several <asset> elements for the same IP in one
+    get_assets response (a fresh asset id per host rediscovery). These must
+    collapse into a single OpenVASHost node, keyed by IP, not accumulate.
+    """
+    # Arrange
+    seed_instance(neo4j_session)
+    gmp = FakeGmp()
+    gmp._responses["get_hosts"] = f"""
+    <get_assets_response status="200" status_text="OK">
+      <asset_count>2<filtered>2</filtered></asset_count>
+      <asset id="asset-aaa">
+        <name>10.0.0.9</name>
+        <identifiers>
+          <identifier id="ident-a"><name>ip</name><value>10.0.0.9</value></identifier>
+        </identifiers>
+        <type>host</type>
+        <host><severity><value>5.0</value></severity></host>
+      </asset>
+      <asset id="asset-bbb">
+        <name>10.0.0.9</name>
+        <identifiers>
+          <identifier id="ident-b"><name>ip</name><value>10.0.0.9</value></identifier>
+        </identifiers>
+        <type>host</type>
+        <host><severity><value>7.5</value></severity></host>
+      </asset>
+    </get_assets_response>
+    """
+
+    # Act
+    cartography.intel.openvas.hosts.sync_hosts(
+        neo4j_session,
+        gmp,
+        INSTANCE_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters(),
+    )
+
+    # Assert: the two same-IP assets collapsed into a single node, not two.
+    # (neo4j_session is module-scoped, so other tests' hosts may also be
+    # present -- scope the assertion to this test's IP.)
+    nodes = check_nodes(neo4j_session, "OpenVASHost", ["id", "ip"]) or set()
+    matching = {n for n in nodes if n[1] == "10.0.0.9"}
+    assert matching == {("10.0.0.9", "10.0.0.9")}
 
     check_rels(
         neo4j_session,

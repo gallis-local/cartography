@@ -362,7 +362,7 @@ openvas_mapping = OntologyMapping(
     nodes=[
         OntologyNodeMapping(
             node_label="OpenVASHost",
-            # OpenVAS hosts are keyed by GMP uuid, not serial_number (the canonical
+            # OpenVAS hosts are keyed by IP, not serial_number (the canonical
             # Device id), so they cannot be a canonical source. They are still
             # linked to existing Device nodes via the OBSERVED_AS relationship.
             eligible_for_source=False,

@@ -3,7 +3,6 @@ Integration tests for the OpenVAS entry point.
 """
 
 import cartography.intel.openvas
-from tests.data.openvas.responses import HOST_ID_1
 from tests.data.openvas.responses import INSTANCE_ID
 from tests.data.openvas.responses import NVT_OID_1
 from tests.data.openvas.responses import RESULT_ID_1
@@ -57,7 +56,9 @@ def test_start_openvas_ingestion(neo4j_session, mocker):
     )
     assert (INSTANCE_ID, "gvm.example.com", "9390", "admin") in instance_nodes
 
-    assert (HOST_ID_1,) in (check_nodes(neo4j_session, "OpenVASHost", ["id"]) or set())
+    assert ("10.0.0.5",) in (
+        check_nodes(neo4j_session, "OpenVASHost", ["id"]) or set()
+    )
     assert (TASK_ID_1,) in (check_nodes(neo4j_session, "OpenVASTask", ["id"]) or set())
     assert (RESULT_ID_1,) in (
         check_nodes(neo4j_session, "OpenVASResult", ["id"]) or set()

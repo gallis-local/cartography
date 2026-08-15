@@ -59,11 +59,17 @@ def _transform_host(asset: Any) -> dict:
                 break
 
     asset_id = asset.get("id")
+    resolved_ip = ip or asset.findtext("name")
 
     return {
-        "id": asset_id,
+        # Keyed by IP, not GMP's asset id: GVM issues a fresh asset id per
+        # host (re)discovery, so keying on asset_id creates a new duplicate
+        # OpenVASHost node -- sometimes several per sync -- for the same IP
+        # instead of updating one. IP is what every relationship (AFFECTS,
+        # dashboards) already joins hosts on, so it's the real identity here.
+        "id": resolved_ip,
         "name": asset.findtext("name"),
-        "ip": ip or asset.findtext("name"),
+        "ip": resolved_ip,
         "hostname": hostname,
         "os": os_name,
         "comment": asset.findtext("comment"),
