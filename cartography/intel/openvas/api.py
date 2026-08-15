@@ -186,28 +186,37 @@ _ITEMS_TAGS = {
 }
 
 
-def _fetch_all(gmp: Any, command: str, **kwargs: Any) -> list:
+def _fetch_all(
+    gmp: Any,
+    command: str,
+    filter_string: Optional[str] = None,
+    gmp_method: Optional[str] = None,
+) -> list:
     """
     Fetch every page of a GMP list command, honoring its count tag.
 
-    kwargs are forwarded as GMP command arguments (e.g. filter_string).
+    python-gvm's get_* methods don't take first/rows/ignore_pagination as
+    separate arguments; GMP pagination is expressed inside filter_string
+    (e.g. "first=1 rows=1000"), so page bounds are appended there.
+
+    `command` keys `_ITEMS_TAGS` for the response element tag; `gmp_method`
+    overrides the attribute called on `gmp` when it differs from `command`
+    (e.g. get_configs -> gmp.get_scan_configs).
     """
     all_items: list = []
-    first = 0
+    first = 1
     full_count: Optional[int] = None
     while True:
         logger.debug(
             "Fetching %s page %d..%d",
             command,
             first,
-            first + _PAGE_SIZE,
+            first + _PAGE_SIZE - 1,
         )
-        response = getattr(gmp, command)(
-            first=first,
-            rows=_PAGE_SIZE,
-            ignore_pagination=False,
-            **kwargs,
-        )
+        page_filter = f"first={first} rows={_PAGE_SIZE}"
+        if filter_string:
+            page_filter = f"{filter_string} {page_filter}"
+        response = getattr(gmp, gmp_method or command)(filter_string=page_filter)
         items = _children(response, _ITEMS_TAGS[command])
         all_items.extend(items)
         # List responses carry a <X_count> element. When no filter applies the
@@ -252,7 +261,7 @@ def get_targets(gmp: Any) -> list:
 
 
 def get_configs(gmp: Any) -> list:
-    return _fetch_all(gmp, "get_configs")
+    return _fetch_all(gmp, "get_configs", gmp_method="get_scan_configs")
 
 
 def get_schedules(gmp: Any) -> list:
