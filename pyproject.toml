@@ -118,6 +118,7 @@ dependencies = [
     "pydo>=0.40.0",
     "proxmoxer>=2.0.1",
     "aiounifi>=81",
+    "python-gvm>=27.2.0",
 ]
 # Comes from Git tag
 dynamic = [ "version" ]

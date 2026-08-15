@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -796,6 +797,16 @@ class Config:
         tenable_access_key=None,
         tenable_secret_key=None,
         tenable_findings_lookback_days=180,
+        openvas_host=None,
+        openvas_port=9390,
+        openvas_user="admin",
+        openvas_password=None,
+        openvas_socket_path=None,
+        openvas_tls=False,
+        openvas_tls_cafile=None,
+        openvas_ssh=False,
+        openvas_instance_id=None,
+        openvas_findings_lookback_days=180,
         spacelift_api_endpoint=None,
         spacelift_api_token=None,
         spacelift_api_key_id=None,
@@ -1160,6 +1171,16 @@ class Config:
         self.tenable_access_key = tenable_access_key
         self.tenable_secret_key = tenable_secret_key
         self.tenable_findings_lookback_days = tenable_findings_lookback_days
+        self.openvas_host = openvas_host
+        self.openvas_port = openvas_port
+        self.openvas_user = openvas_user
+        self.openvas_password = openvas_password
+        self.openvas_socket_path = openvas_socket_path
+        self.openvas_tls = openvas_tls
+        self.openvas_tls_cafile = openvas_tls_cafile
+        self.openvas_ssh = openvas_ssh
+        self.openvas_instance_id = openvas_instance_id
+        self.openvas_findings_lookback_days = openvas_findings_lookback_days
         self.spacelift_api_endpoint = spacelift_api_endpoint
         self.spacelift_api_token = spacelift_api_token
         self.spacelift_api_key_id = spacelift_api_key_id
