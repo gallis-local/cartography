@@ -23,7 +23,7 @@ NVTs are ingested **only as they are referenced by detected results** (deduplica
 | `--openvas-socket-path` | `None` | No | Path to a gvmd Unix socket. When set, overrides `--openvas-host`/`--openvas-port`. |
 | `--openvas-tls` | `False` | No | Connect to gvmd over TLS with certificate verification. |
 | `--openvas-tls-cafile` | `None` | No | CA bundle used to verify the gvmd TLS certificate (defaults to system CAs). |
-| `--openvas-ssh` | `False` | No | Connect over SSH instead of TCP/TLS. `--openvas-user`/`--openvas-password` are then used for the SSH login. |
+| `--openvas-ssh` | `False` | No | Connect over SSH instead of TCP/TLS. `--openvas-user` and the password from `--openvas-password-env-var` are used for the SSH login. |
 | `--openvas-instance-id` | auto | No | Identifier used to scope all graph nodes for this instance. Defaults to `host:port`, or the socket path when `--openvas-socket-path` is set. |
 | `--openvas-findings-lookback-days` | `180` | No | Number of days of scan results to retrieve on each sync (filtered on `created`). Stale results outside this window are removed from the graph by the cleanup job. |
 
