@@ -35,7 +35,7 @@ class FakeGmp:
             "get_results": GET_RESULTS_RESPONSE,
             "get_tls_certificates": GET_TLS_CERTIFICATES_RESPONSE,
             "get_targets": GET_TARGETS_RESPONSE,
-            "get_configs": GET_CONFIGS_RESPONSE,
+            "get_scan_configs": GET_CONFIGS_RESPONSE,
             "get_schedules": GET_SCHEDULES_RESPONSE,
             "get_port_lists": GET_PORT_LISTS_RESPONSE,
             "get_credentials": GET_CREDENTIALS_RESPONSE,
