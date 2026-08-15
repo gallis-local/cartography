@@ -194,6 +194,7 @@ def _fetch_all(
     command: str,
     filter_string: Optional[str] = None,
     gmp_method: Optional[str] = None,
+    extra_kwargs: Optional[dict] = None,
 ) -> list:
     """
     Fetch every page of a GMP list command, honoring its count tag.
@@ -204,7 +205,9 @@ def _fetch_all(
 
     `command` keys `_ITEMS_TAGS` for the response element tag; `gmp_method`
     overrides the attribute called on `gmp` when it differs from `command`
-    (e.g. get_configs -> gmp.get_scan_configs).
+    (e.g. get_configs -> gmp.get_scan_configs). `extra_kwargs` is passed
+    through to the gmp method call (e.g. `details=True` for get_tasks, which
+    GMP requires in order to include each task's `<last_report>` element).
     """
     all_items: list = []
     first = 1
@@ -219,7 +222,9 @@ def _fetch_all(
         page_filter = f"first={first} rows={_PAGE_SIZE}"
         if filter_string:
             page_filter = f"{filter_string} {page_filter}"
-        response = getattr(gmp, gmp_method or command)(filter_string=page_filter)
+        response = getattr(gmp, gmp_method or command)(
+            filter_string=page_filter, **(extra_kwargs or {})
+        )
         items = _children(response, _ITEMS_TAGS[command])
         all_items.extend(items)
         # List responses carry a <X_count> element. When no filter applies the
@@ -243,7 +248,11 @@ def get_hosts(gmp: Any) -> list:
 
 
 def get_tasks(gmp: Any) -> list:
-    return _fetch_all(gmp, "get_tasks")
+    # details=True is required for GMP to include each task's <last_report>
+    # element (last_report_timestamp/scan_start/scan_end/severity); without
+    # it, get_tasks only returns summary fields like creation_time and
+    # modification_time, which reflect task config edits, not scan runs.
+    return _fetch_all(gmp, "get_tasks", extra_kwargs={"details": True})
 
 
 def get_results(gmp: Any, since: Optional[datetime] = None) -> list:
