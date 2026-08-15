@@ -13,8 +13,8 @@ import socket
 import ssl
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import UTC
 from datetime import datetime
+from datetime import UTC
 from typing import Any
 from typing import Optional
 
