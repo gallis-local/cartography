@@ -261,7 +261,12 @@ def get_results(gmp: Any, since: Optional[datetime] = None) -> list:
         filter_string = (
             f"created>{since.astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}"
         )
-    return _fetch_all(gmp, "get_results", filter_string=filter_string)
+    # details=True is required for GMP to include each result's <created> and
+    # <task> elements; without it, get_results omits them, which is why
+    # created/task_id/task_name previously loaded as null.
+    return _fetch_all(
+        gmp, "get_results", filter_string=filter_string, extra_kwargs={"details": True}
+    )
 
 
 def get_tls_certificates(gmp: Any) -> list:
