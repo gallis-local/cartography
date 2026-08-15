@@ -6,7 +6,6 @@ import cartography.intel.openvas.hosts
 import cartography.intel.openvas.tls_certificates
 from tests.data.openvas.responses import CERT_ID_1
 from tests.data.openvas.responses import CERT_ID_2
-from tests.data.openvas.responses import HOST_ID_1
 from tests.data.openvas.responses import INSTANCE_ID
 from tests.integration.cartography.intel.openvas.util import common_job_parameters
 from tests.integration.cartography.intel.openvas.util import FakeGmp
@@ -77,8 +76,8 @@ def test_sync_tls_certificates(neo4j_session):
         )
         or set()
     )
-    assert (CERT_ID_1, HOST_ID_1) in rels
-    assert (CERT_ID_2, HOST_ID_1) not in rels
+    assert (CERT_ID_1, "10.0.0.5") in rels
+    assert (CERT_ID_2, "10.0.0.5") not in rels
 
 
 def test_sync_tls_certificates_cleans_stale_links(neo4j_session):
@@ -127,4 +126,4 @@ def test_sync_tls_certificates_cleans_stale_links(neo4j_session):
         )
         or set()
     )
-    assert (CERT_ID_1, HOST_ID_1) not in rels
+    assert (CERT_ID_1, "10.0.0.5") not in rels
