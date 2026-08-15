@@ -211,7 +211,7 @@ GET_RESULTS_RESPONSE = f"""
     <task id="{TASK_ID_1}"><name>Full Scan</name></task>
     <source_ip>10.0.0.1</source_ip>
     <asset asset_id="asset-1"/>
-    <created>2024-06-01T12:05:00+00:00</created>
+    <creation_time>2024-06-01T12:05:00+00:00</creation_time>
   </result>
   <result id="{RESULT_ID_2}">
     <name>TCP timestamps</name>
@@ -231,7 +231,7 @@ GET_RESULTS_RESPONSE = f"""
     <original_threat>Log</original_threat>
     <description>TCP timestamps are enabled.</description>
     <task id="{TASK_ID_2}"><name>Quick Scan</name></task>
-    <created>2024-06-02T10:00:00+00:00</created>
+    <creation_time>2024-06-02T10:00:00+00:00</creation_time>
   </result>
 </get_results_response>
 """

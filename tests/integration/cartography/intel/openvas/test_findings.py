@@ -66,7 +66,16 @@ def test_sync_results(neo4j_session):
         check_nodes(
             neo4j_session,
             "OpenVASResult",
-            ["id", "host", "severity", "threat", "has_cve", "cve_id"],
+            [
+                "id",
+                "host",
+                "severity",
+                "threat",
+                "has_cve",
+                "cve_id",
+                "created",
+                "task_id",
+            ],
         )
         or set()
     )
@@ -77,8 +86,19 @@ def test_sync_results(neo4j_session):
         "High",
         "true",
         "CVE-2024-1000",
+        "2024-06-01T12:05:00+00:00",
+        TASK_ID_1,
     ) in result_nodes
-    assert (RESULT_ID_2, "10.0.0.6", 0.0, "Log", "false", None) in result_nodes
+    assert (
+        RESULT_ID_2,
+        "10.0.0.6",
+        0.0,
+        "Log",
+        "false",
+        None,
+        "2024-06-02T10:00:00+00:00",
+        TASK_ID_2,
+    ) in result_nodes
 
     # Only detected NVTs are ingested, deduped by OID.
     nvt_nodes = check_nodes(neo4j_session, "OpenVASNVT", ["id", "oid"]) or set()
