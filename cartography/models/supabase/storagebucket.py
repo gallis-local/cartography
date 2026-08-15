@@ -16,15 +16,40 @@ from cartography.models.ontology.labels import OBJECT_STORAGE
 class SupabaseStorageBucketNodeProperties(CartographyNodeProperties):
     # Synthesised as "<project ref>/<bucket id>": bucket ids are only unique
     # within a project.
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Synthesised as `<project ref>/<bucket id>`"
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    bucket_id: PropertyRef = PropertyRef("bucket_id", extra_index=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
+    bucket_id: PropertyRef = PropertyRef(
+        "bucket_id",
+        extra_index=True,
+        description="The bucket id, unique within the project",
+    )
+    name: PropertyRef = PropertyRef(
+        "name", extra_index=True, description="Name of the bucket"
+    )
     # True means every object in the bucket is readable without authentication.
-    public: PropertyRef = PropertyRef("public")
-    owner: PropertyRef = PropertyRef("owner")
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
+    public: PropertyRef = PropertyRef(
+        "public",
+        description="Whether every object in the bucket is readable without authentication",
+    )
+    exposed_internet: PropertyRef = PropertyRef(
+        "exposed_internet",
+        extra_index=True,
+        description="`True` when the bucket is public, meaning every object is readable without authentication.",
+    )
+    exposed_internet_type: PropertyRef = PropertyRef(
+        "exposed_internet_type",
+        extra_index=True,
+        description="How it is exposed. Always `direct`, since the objects are served from the bucket itself.",
+    )
+    owner: PropertyRef = PropertyRef("owner", description="Owner of the bucket")
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="When the bucket was created"
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at", description="When the bucket was last changed"
+    )
 
 
 @dataclass(frozen=True)
@@ -48,6 +73,8 @@ class SupabaseStorageBucketToProjectRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class SupabaseStorageBucketSchema(CartographyNodeSchema):
+    """Represents a Supabase Storage bucket."""
+
     label: str = "SupabaseStorageBucket"
     properties: SupabaseStorageBucketNodeProperties = (
         SupabaseStorageBucketNodeProperties()

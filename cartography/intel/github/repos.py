@@ -46,6 +46,7 @@ from cartography.models.github.branch_protection_rules import (
 )
 from cartography.models.github.dependencies import GitHubDependencySchema
 from cartography.models.github.manifests import DependencyGraphManifestSchema
+from cartography.models.github.repos import GITHUB_COLLABORATOR_REL_LABELS
 from cartography.models.github.repos import GitHubBranchSchema
 from cartography.models.github.repos import GitHubOwnerOrganizationSchema
 from cartography.models.github.repos import GitHubOwnerUserSchema
@@ -119,6 +120,10 @@ GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
                     isArchived
                     isDisabled
                     isLocked
+                    isFork
+                    parent{
+                        url
+                    }
                     owner{
                         url
                         login
@@ -1176,6 +1181,11 @@ def _transform_repo_objects(input_repo_object: Dict, out_repo_list: List[Dict]) 
     owner = input_repo_object["owner"]
     owner_type = owner["__typename"]
 
+    # A fork's upstream repo. It is null when the repo is not a fork, and also when the repo is a
+    # fork whose upstream has been deleted, so we read `isFork` for the boolean rather than
+    # inferring it from the parent's presence.
+    parent = input_repo_object.get("parent")
+
     out_repo_list.append(
         {
             "id": input_repo_object["url"],
@@ -1195,6 +1205,8 @@ def _transform_repo_objects(input_repo_object: Dict, out_repo_list: List[Dict]) 
             "disabled": input_repo_object["isDisabled"],
             "archived": input_repo_object["isArchived"],
             "locked": input_repo_object["isLocked"],
+            "fork": input_repo_object.get("isFork", False),
+            "parent": parent["url"] if parent else None,
             "giturl": git_url,
             "url": input_repo_object["url"],
             "sshurl": ssh_url,
@@ -2413,12 +2425,11 @@ def cleanup_github_collaborators(
     neo4j_session: neo4j.Session,
     common_job_parameters: Dict[str, Any],
 ) -> None:
-    for affiliation in ("DIRECT", "OUTSIDE"):
-        for permission in ("ADMIN", "MAINTAIN", "READ", "TRIAGE", "WRITE"):
-            GraphJob.from_node_schema(
-                make_github_collaborator_schema(f"{affiliation}_COLLAB_{permission}"),
-                common_job_parameters,
-            ).run(neo4j_session)
+    for _, _, rel_label in GITHUB_COLLABORATOR_REL_LABELS:
+        GraphJob.from_node_schema(
+            make_github_collaborator_schema(rel_label),
+            common_job_parameters,
+        ).run(neo4j_session)
 
 
 @timeit

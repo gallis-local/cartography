@@ -576,6 +576,46 @@ vercel_mapping = OntologyMapping(
     ],
 )
 
+# Netlify team lifecycle_state. Only "active" has been observed on a live team; the rest are
+# the states Netlify's billing flow can put a team into, mapped defensively so a suspended or
+# cancelled team does not silently land on a NULL _ont_status (the generated CASE has no ELSE).
+_NETLIFY_ACCOUNT_STATUS = {
+    "active": "active",
+    "trial": "active",
+    "trialing": "active",
+    "frozen": "suspended",
+    "suspended": "suspended",
+    "deactivated": "suspended",
+    "disabled": "suspended",
+    "pending_deletion": "pending_deletion",
+    "cancelled": "closed",
+    "canceled": "closed",
+    "closed": "closed",
+}
+
+netlify_mapping = OntologyMapping(
+    module_name="netlify",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="NetlifyAccount",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="status",
+                    node_field="lifecycle_state",
+                    special_handling="mapping",
+                    extra={"map": _NETLIFY_ACCOUNT_STATUS},
+                ),
+                # domain: a Netlify team has no domain of its own. Its sites do, and
+                # team_registration_domains is a list of email domains allowed to self-join,
+                # which is a different concept.
+            ],
+        ),
+    ],
+)
+
 # Railway has two tenancy levels, like GCP's Organization/Project: a workspace owns
 # projects, and every resource is scoped to a project.
 railway_mapping = OntologyMapping(
@@ -672,6 +712,48 @@ supabase_mapping = OntologyMapping(
 )
 
 
+modal_mapping = OntologyMapping(
+    module_name="modal",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ModalWorkspace",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # status: Modal exposes no workspace lifecycle state.
+                # domain: a Modal workspace has a URL slug, not a domain.
+            ],
+        ),
+        OntologyNodeMapping(
+            node_label="ModalEnvironment",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # status: environments have no lifecycle state either.
+            ],
+        ),
+    ],
+)
+
+miradore_mapping = OntologyMapping(
+    module_name="miradore",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="MiradoreTenant",
+            fields=[
+                # The site name is the only identity Miradore exposes for a tenant.
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="id", required=True
+                ),
+                # status: Not available
+                # domain: Not available
+            ],
+        ),
+    ],
+)
+
 TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "airbyte": airbyte_mapping,
     "aws": aws_mapping,
@@ -680,6 +762,7 @@ TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "cloudflare": cloudflare_mapping,
     "crowdstrike": crowdstrike_mapping,
     "digitalocean": digitalocean_mapping,
+    "netlify": netlify_mapping,
     "microsoft": entra_mapping,
     "gcp": gcp_mapping,
     "github": github_mapping,
@@ -693,6 +776,7 @@ TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "sentry": sentry_mapping,
     "sentinelone": sentinelone_mapping,
     "jumpcloud": jumpcloud_mapping,
+    "miradore": miradore_mapping,
     "slack": slack_mapping,
     "spacelift": spacelift_mapping,
     "subimage": subimage_mapping,
@@ -724,4 +808,42 @@ TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
         ],
     ),
     "supabase": supabase_mapping,
+    "modal": modal_mapping,
+    "snowflake": OntologyMapping(
+        module_name="snowflake",
+        nodes=[
+            OntologyNodeMapping(
+                node_label="SnowflakeAccount",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="name", node_field="name", required=True
+                    ),
+                    OntologyFieldMapping(
+                        ontology_field="domain", node_field="account_url"
+                    ),
+                    # status: Snowflake exposes no account lifecycle state. A
+                    # dropped account has `dropped_on` set, but that is a deletion
+                    # timestamp rather than the active/suspended/closed distinction
+                    # the canonical field carries, so it is left unmapped.
+                ],
+            ),
+            OntologyNodeMapping(
+                node_label="SnowflakeOrganization",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="name", node_field="name", required=True
+                    ),
+                ],
+            ),
+            OntologyNodeMapping(
+                node_label="SnowflakeManagedAccount",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="name", node_field="name", required=True
+                    ),
+                    OntologyFieldMapping(ontology_field="domain", node_field="url"),
+                ],
+            ),
+        ],
+    ),
 }

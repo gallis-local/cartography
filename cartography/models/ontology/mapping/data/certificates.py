@@ -53,6 +53,24 @@ azure_mapping = OntologyMapping(
     ],
 )
 
+# Netlify site TLS certificate
+netlify_mapping = OntologyMapping(
+    module_name="netlify",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="NetlifyCertificate",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="domain", node_field="domain", required=True
+                ),
+                OntologyFieldMapping(ontology_field="expiry", node_field="expires_at"),
+                # issuer: Netlify provisions through Let's Encrypt but does not report the
+                # issuer on the certificate payload.
+            ],
+        ),
+    ],
+)
+
 proxmox_mapping = OntologyMapping(
     module_name="proxmox",
     nodes=[
@@ -90,4 +108,5 @@ CERTIFICATES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "azure": azure_mapping,
     "proxmox": proxmox_mapping,
     "openvas": openvas_mapping,
+    "netlify": netlify_mapping,
 }

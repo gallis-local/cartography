@@ -330,6 +330,9 @@ SUB_RESOURCE_REL_LABEL_EXCEPTIONS: Set[str] = {
 # entity.
 MODULES_WITHOUT_TENANT_ROOT: Set[str] = {
     "cartography.models.aibom",
+    # BBOT event nodes are associated to BbotScan with dynamic OBSERVED_IN
+    # MatchLinks rather than a static RESOURCE sub-resource relationship.
+    "cartography.models.bbot",
     "cartography.models.pagerduty",
     "cartography.models.trivy",
 }
@@ -372,8 +375,28 @@ GLOBAL_NODE_LABELS: Set[str] = {
     # global `name|requirements` id and is referenced by repos across orgs, so
     # it uses unscoped cleanup like PythonLibrary.
     "GitHubDependency",
+    # A Modal user keeps the same `us-...` id in every workspace they belong to. Anchoring the
+    # identity to one workspace would let that workspace's cleanup DETACH DELETE someone who
+    # merely left it, destroying the other workspaces' memberships, so the workspace link is a
+    # MatchLink carrying the membership instead (same reasoning as GitHubUser and RailwayUser).
+    "ModalUser",
     "ProgrammingLanguage",
     "PythonLibrary",
+    # A Netlify invitation is an email address that has not accepted yet, and the same address can
+    # be invited to several teams. Anchoring it to the team being synced would let that team's
+    # cleanup DETACH DELETE an invitation another team still has outstanding, so the team links are
+    # MatchLinks (same reasoning as NetlifyUser).
+    "NetlifyInvite",
+    # A Netlify deploy key comes from `GET /deploy_keys`, which takes no team parameter and
+    # returns every key the token can see. Anchoring it to the team being synced would let that
+    # team's cleanup DETACH DELETE keys another team's sync had just refreshed, so the team link
+    # is a MatchLink instead.
+    "NetlifyDeployKey",
+    # A Netlify user can belong to several teams with a different role in each, and one run syncs
+    # one team. Anchoring the identity to a team would let that team's cleanup DETACH DELETE a
+    # person still in another team, so the team links are MatchLinks (same reasoning as
+    # RailwayUser and GitHubUser).
+    "NetlifyUser",
     # A Railway user can belong to several workspaces, and project members need not be
     # members of the workspace at all. Anchoring the identity to one workspace would let
     # that workspace's cleanup DETACH DELETE a user still referenced by another, so the
@@ -391,6 +414,10 @@ ADDITIONAL_TOP_LEVEL_TENANT_LABELS: Set[str] = {
     # DatabricksAccount is a separate top-level tenant for the account hierarchy
     # (and is absent on the workspace-only path).
     "DatabricksAccount",
+    # SnowflakeAccount remains the root tenant for every Snowflake resource, while
+    # SnowflakeOrganization is a separate top-level tenant for the organization
+    # hierarchy (and is absent unless the collector holds ORGADMIN).
+    "SnowflakeOrganization",
 }
 
 

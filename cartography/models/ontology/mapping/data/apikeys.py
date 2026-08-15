@@ -216,23 +216,6 @@ github_mapping = OntologyMapping(
     ],
 )
 
-proxmox_mapping = OntologyMapping(
-    module_name="proxmox",
-    nodes=[
-        OntologyNodeMapping(
-            node_label="ProxmoxAPIToken",
-            fields=[
-                OntologyFieldMapping(
-                    ontology_field="name", node_field="tokenid", required=True
-                ),
-                OntologyFieldMapping(ontology_field="expires_at", node_field="expire"),
-                # created_at: Not available
-                # last_used_at: Not available
-            ],
-        ),
-    ],
-)
-
 # Railway has two token kinds: account/workspace-scoped API tokens and project tokens that
 # are pinned to a single environment. Neither exposes a last-used timestamp.
 railway_mapping = OntologyMapping(
@@ -289,11 +272,45 @@ supabase_mapping = OntologyMapping(
     ],
 )
 
+
+modal_mapping = OntologyMapping(
+    module_name="modal",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ModalApiToken",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="created_at", node_field="created_at"
+                ),
+                OntologyFieldMapping(
+                    ontology_field="last_used_at", node_field="last_used_at"
+                ),
+                # updated_at: not exposed.
+                # expires_at: Modal API tokens do not expire.
+            ],
+        ),
+        OntologyNodeMapping(
+            node_label="ModalProxyToken",
+            fields=[
+                # Modal proxy tokens are unnamed, so the token id is the only stable label.
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="token_id", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="created_at", node_field="created_at"
+                ),
+            ],
+        ),
+    ],
+)
+
 APIKEYS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "anthropic": anthropic_mapping,
     "github": github_mapping,
     "openai": openai_mapping,
-    "proxmox": proxmox_mapping,
     "scaleway": scaleway_mapping,
     "workos": workos_apikeys_mapping,
     "subimage": subimage_mapping,
@@ -301,4 +318,27 @@ APIKEYS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "gcp": gcp_mapping,
     "railway": railway_mapping,
     "supabase": supabase_mapping,
+    "modal": modal_mapping,
+    "snowflake": OntologyMapping(
+        module_name="snowflake",
+        nodes=[
+            OntologyNodeMapping(
+                node_label="SnowflakeProgrammaticAccessToken",
+                fields=[
+                    OntologyFieldMapping(
+                        ontology_field="name", node_field="name", required=True
+                    ),
+                    OntologyFieldMapping(
+                        ontology_field="created_at", node_field="created_on"
+                    ),
+                    OntologyFieldMapping(
+                        ontology_field="expires_at", node_field="expires_at"
+                    ),
+                    # last_used_at: SHOW USER PROGRAMMATIC ACCESS TOKENS does not
+                    # report it; the SnowflakeCredential node sourced from
+                    # ACCOUNT_USAGE carries last_used_on instead.
+                ],
+            ),
+        ],
+    ),
 }
