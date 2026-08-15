@@ -27,31 +27,44 @@ CERT_ID_1 = "dddddddd-dddd-dddd-dddd-dddddddddddd"
 CERT_ID_2 = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
 
 GET_HOSTS_RESPONSE = f"""
-<get_hosts_response status="200" status_text="OK">
-  <host_count>2</host_count>
-  <host id="{HOST_ID_1}">
+<get_assets_response status="200" status_text="OK">
+  <asset_count>2<filtered>2</filtered></asset_count>
+  <asset id="{HOST_ID_1}">
     <name>10.0.0.5</name>
     <comment>web server</comment>
     <creation_time>2024-01-01T00:00:00+00:00</creation_time>
     <modification_time>2024-06-01T00:00:00+00:00</modification_time>
-    <hostname>web-01.example.com</hostname>
-    <ip>10.0.0.5</ip>
-    <os>Linux</os>
-    <asset id="asset-1"/>
-    <severity>8.1</severity>
-    <latest_scan>
-      <date>2024-06-01T12:00:00+00:00</date>
-      <task id="{TASK_ID_1}"><name>Full Scan</name></task>
-    </latest_scan>
-    <source_type>scan</source_type>
-    <identifiers>ip: 10.0.0.5</identifiers>
-  </host>
-  <host id="{HOST_ID_2}">
+    <identifiers>
+      <identifier id="ident-1">
+        <name>ip</name>
+        <value>10.0.0.5</value>
+      </identifier>
+      <identifier id="ident-2">
+        <name>hostname</name>
+        <value>web-01.example.com</value>
+      </identifier>
+    </identifiers>
+    <type>host</type>
+    <host>
+      <severity><value>8.1</value></severity>
+      <detail>
+        <name>best_os_txt</name>
+        <value>Linux</value>
+      </detail>
+    </host>
+  </asset>
+  <asset id="{HOST_ID_2}">
     <name>10.0.0.6</name>
-    <ip>10.0.0.6</ip>
-    <severity>0.0</severity>
-  </host>
-</get_hosts_response>
+    <comment></comment>
+    <creation_time>2024-01-01T00:00:00+00:00</creation_time>
+    <modification_time>2024-01-01T00:00:00+00:00</modification_time>
+    <identifiers></identifiers>
+    <type>host</type>
+    <host>
+      <severity><value>0.0</value></severity>
+    </host>
+  </asset>
+</get_assets_response>
 """
 
 GET_TASKS_RESPONSE = f"""

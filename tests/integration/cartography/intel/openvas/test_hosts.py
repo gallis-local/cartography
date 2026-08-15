@@ -6,7 +6,6 @@ import cartography.intel.openvas.hosts
 from tests.data.openvas.responses import HOST_ID_1
 from tests.data.openvas.responses import HOST_ID_2
 from tests.data.openvas.responses import INSTANCE_ID
-from tests.data.openvas.responses import TASK_ID_1
 from tests.integration.cartography.intel.openvas.util import common_job_parameters
 from tests.integration.cartography.intel.openvas.util import FakeGmp
 from tests.integration.cartography.intel.openvas.util import seed_instance
@@ -45,7 +44,7 @@ def test_sync_hosts(neo4j_session):
         "web-01.example.com",
         "Linux",
         8.1,
-        TASK_ID_1,
+        None,
     ) in nodes
     assert (HOST_ID_2, "10.0.0.6", None, None, 0.0, None) in nodes
 
@@ -60,15 +59,6 @@ def test_sync_hosts(neo4j_session):
         "OpenVASHost",
         "id",
         "RESOURCE",
-        rel_direction_right=True,
-    )
-    check_rels(
-        neo4j_session,
-        "OpenVASHost",
-        "id",
-        "OpenVASTask",
-        "id",
-        "LAST_SCANNED_BY",
         rel_direction_right=True,
     )
 
@@ -89,7 +79,9 @@ def test_sync_hosts_cleanup_stale(neo4j_session):
     stale_gmp = FakeGmp()
     # A sync with no hosts returned: both hosts must be cleaned up.
     stale_gmp._responses["get_hosts"] = (
-        '<get_hosts_response status="200" status_text="OK"><host_count>0</host_count></get_hosts_response>'
+        '<get_assets_response status="200" status_text="OK">'
+        "<asset_count>0<filtered>0</filtered></asset_count>"
+        "</get_assets_response>"
     )
     cartography.intel.openvas.hosts.sync_hosts(
         neo4j_session,
