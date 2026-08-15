@@ -108,18 +108,18 @@ def _make_connection(config: Config) -> Any:
     """
     if config.openvas_socket_path:
         return UnixSocketConnection(path=config.openvas_socket_path)
-    if config.openvas_tls:
-        return VerifiedTLSConnection(
-            hostname=config.openvas_host,
-            port=config.openvas_port,
-            cafile=config.openvas_tls_cafile or "",
-        )
     if config.openvas_ssh:
         return SSHConnection(
             hostname=config.openvas_host,
             port=config.openvas_port,
             username=config.openvas_user,
             password=config.openvas_password,
+        )
+    if config.openvas_tls:
+        return VerifiedTLSConnection(
+            hostname=config.openvas_host,
+            port=config.openvas_port,
+            cafile=config.openvas_tls_cafile or "",
         )
     logger.debug(
         "connecting to GVM over plain TCP — credentials will be sent "
