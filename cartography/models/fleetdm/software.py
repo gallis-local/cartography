@@ -12,15 +12,36 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMSoftwareNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    source: PropertyRef = PropertyRef("source")
-    browser: PropertyRef = PropertyRef("browser")
-    hosts_count: PropertyRef = PropertyRef("hosts_count")
-    versions_count: PropertyRef = PropertyRef("versions_count")
-    bundle_identifier: PropertyRef = PropertyRef("bundle_identifier")
-    display_name: PropertyRef = PropertyRef("display_name")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the resource.",
+    )
+    source: PropertyRef = PropertyRef(
+        "source",
+        description="Origin of the software inventory entry (e.g. apps, programs, deb_packages).",
+    )
+    browser: PropertyRef = PropertyRef(
+        "browser",
+        description="Browser the software extension/plugin belongs to, if applicable.",
+    )
+    hosts_count: PropertyRef = PropertyRef(
+        "hosts_count", description="Number of hosts with this software installed."
+    )
+    versions_count: PropertyRef = PropertyRef(
+        "versions_count",
+        description="Number of distinct versions of this software title observed.",
+    )
+    bundle_identifier: PropertyRef = PropertyRef(
+        "bundle_identifier", description="macOS bundle identifier for the software."
+    )
+    display_name: PropertyRef = PropertyRef(
+        "display_name", description="Human-readable display name."
+    )
 
 
 @dataclass(frozen=True)

@@ -161,6 +161,24 @@ def test_sync_fleetdm_versions_and_vulnerabilities(mock_api, neo4j_session):
         ),
     }
 
+    # Assert Vulnerabilities connected to their SoftwareVersion via AFFECTS
+    expected_affects_rels = {
+        ("1-CVE-2024-1234", "1"),
+        ("2-CVE-2024-5678", "2"),
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "FleetDMVulnerability",
+            "id",
+            "FleetDMSoftwareVersion",
+            "id",
+            "AFFECTS",
+            rel_direction_right=True,
+        )
+        == expected_affects_rels
+    )
+
     # Assert openssl version has 0 vulnerabilities_count
     openssl_result = neo4j_session.run(
         """

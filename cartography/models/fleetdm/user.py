@@ -15,17 +15,41 @@ from cartography.models.ontology.labels import USER_ACCOUNT
 
 @dataclass(frozen=True)
 class FleetDMUserNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    email: PropertyRef = PropertyRef("email", extra_index=True)
-    global_role: PropertyRef = PropertyRef("global_role")
-    sso_enabled: PropertyRef = PropertyRef("sso_enabled")
-    mfa_enabled: PropertyRef = PropertyRef("mfa_enabled")
-    api_only: PropertyRef = PropertyRef("api_only")
-    force_password_reset: PropertyRef = PropertyRef("force_password_reset")
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
+    name: PropertyRef = PropertyRef("name", description="Name of the resource.")
+    email: PropertyRef = PropertyRef(
+        "email",
+        extra_index=True,
+        description="Email address of the user.",
+    )
+    global_role: PropertyRef = PropertyRef(
+        "global_role", description="Fleet-wide role assigned to the user."
+    )
+    sso_enabled: PropertyRef = PropertyRef(
+        "sso_enabled", description="Whether the user authenticates via single sign-on."
+    )
+    mfa_enabled: PropertyRef = PropertyRef(
+        "mfa_enabled",
+        description="Whether multi-factor authentication is enabled for the user.",
+    )
+    api_only: PropertyRef = PropertyRef(
+        "api_only",
+        description="Whether this user is an API-only (non-interactive) account.",
+    )
+    force_password_reset: PropertyRef = PropertyRef(
+        "force_password_reset",
+        description="Whether the user is required to reset their password on next login.",
+    )
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="Timestamp when the resource was created in Fleet."
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at",
+        description="Timestamp when the resource was last updated in Fleet.",
+    )
 
 
 @dataclass(frozen=True)

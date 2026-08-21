@@ -12,22 +12,57 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMPolicyNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    query: PropertyRef = PropertyRef("query")
-    description: PropertyRef = PropertyRef("description")
-    resolution: PropertyRef = PropertyRef("resolution")
-    platform: PropertyRef = PropertyRef("platform")
-    critical: PropertyRef = PropertyRef("critical")
-    author_id: PropertyRef = PropertyRef("author_id")
-    author_name: PropertyRef = PropertyRef("author_name")
-    author_email: PropertyRef = PropertyRef("author_email")
-    team_id: PropertyRef = PropertyRef("team_id")
-    passing_host_count: PropertyRef = PropertyRef("passing_host_count")
-    failing_host_count: PropertyRef = PropertyRef("failing_host_count")
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the resource.",
+    )
+    query: PropertyRef = PropertyRef(
+        "query", description="Osquery SQL query used to evaluate this resource."
+    )
+    description: PropertyRef = PropertyRef(
+        "description", description="Description of the resource."
+    )
+    resolution: PropertyRef = PropertyRef(
+        "resolution", description="Guidance on how to resolve a failing policy."
+    )
+    platform: PropertyRef = PropertyRef(
+        "platform", description="Target platform(s) this resource applies to."
+    )
+    critical: PropertyRef = PropertyRef(
+        "critical", description="Whether this policy is marked as critical."
+    )
+    author_id: PropertyRef = PropertyRef(
+        "author_id", description="Fleet user ID of the policy's author."
+    )
+    author_name: PropertyRef = PropertyRef(
+        "author_name", description="Name of the policy's author."
+    )
+    author_email: PropertyRef = PropertyRef(
+        "author_email", description="Email of the policy's author."
+    )
+    team_id: PropertyRef = PropertyRef(
+        "team_id", description="ID of the Fleet team this policy belongs to."
+    )
+    passing_host_count: PropertyRef = PropertyRef(
+        "passing_host_count",
+        description="Number of hosts currently passing this policy.",
+    )
+    failing_host_count: PropertyRef = PropertyRef(
+        "failing_host_count",
+        description="Number of hosts currently failing this policy.",
+    )
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="Timestamp when the resource was created in Fleet."
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at",
+        description="Timestamp when the resource was last updated in Fleet.",
+    )
 
 
 @dataclass(frozen=True)

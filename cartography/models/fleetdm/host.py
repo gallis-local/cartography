@@ -15,52 +15,140 @@ from cartography.models.ontology.labels import DEVICE
 
 @dataclass(frozen=True)
 class FleetDMHostNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    hostname: PropertyRef = PropertyRef("hostname", extra_index=True)
-    display_name: PropertyRef = PropertyRef("display_name")
-    uuid: PropertyRef = PropertyRef("uuid", extra_index=True)
-    platform: PropertyRef = PropertyRef("platform")
-    os_version: PropertyRef = PropertyRef("os_version")
-    osquery_version: PropertyRef = PropertyRef("osquery_version")
-    build: PropertyRef = PropertyRef("build")
-    platform_like: PropertyRef = PropertyRef("platform_like")
-    code_name: PropertyRef = PropertyRef("code_name")
-    cpu_type: PropertyRef = PropertyRef("cpu_type")
-    cpu_subtype: PropertyRef = PropertyRef("cpu_subtype")
-    cpu_brand: PropertyRef = PropertyRef("cpu_brand")
-    cpu_physical_cores: PropertyRef = PropertyRef("cpu_physical_cores")
-    cpu_logical_cores: PropertyRef = PropertyRef("cpu_logical_cores")
-    hardware_vendor: PropertyRef = PropertyRef("hardware_vendor")
-    hardware_model: PropertyRef = PropertyRef("hardware_model")
-    hardware_version: PropertyRef = PropertyRef("hardware_version")
-    hardware_serial: PropertyRef = PropertyRef("hardware_serial", extra_index=True)
-    computer_name: PropertyRef = PropertyRef("computer_name")
-    memory: PropertyRef = PropertyRef("memory")
-    uptime: PropertyRef = PropertyRef("uptime")
-    public_ip: PropertyRef = PropertyRef("public_ip")
-    primary_ip: PropertyRef = PropertyRef("primary_ip")
-    primary_mac: PropertyRef = PropertyRef("primary_mac")
-    status: PropertyRef = PropertyRef("status")
-    seen_time: PropertyRef = PropertyRef("seen_time")
-    last_enrolled_at: PropertyRef = PropertyRef("last_enrolled_at")
-    distributed_interval: PropertyRef = PropertyRef("distributed_interval")
-    config_tls_refresh: PropertyRef = PropertyRef("config_tls_refresh")
-    logger_tls_period: PropertyRef = PropertyRef("logger_tls_period")
-    gigs_disk_space_available: PropertyRef = PropertyRef("gigs_disk_space_available")
+    hostname: PropertyRef = PropertyRef(
+        "hostname",
+        extra_index=True,
+        description="Hostname reported by the host.",
+    )
+    display_name: PropertyRef = PropertyRef(
+        "display_name", description="Human-readable display name."
+    )
+    uuid: PropertyRef = PropertyRef(
+        "uuid",
+        extra_index=True,
+        description="Unique identifier (UUID) for the host, as reported by osquery.",
+    )
+    platform: PropertyRef = PropertyRef(
+        "platform", description="Target platform(s) this resource applies to."
+    )
+    os_version: PropertyRef = PropertyRef(
+        "os_version",
+        description="Operating system name and version running on the host.",
+    )
+    osquery_version: PropertyRef = PropertyRef(
+        "osquery_version", description="Version of osquery running on the host."
+    )
+    build: PropertyRef = PropertyRef("build", description="OS build identifier.")
+    platform_like: PropertyRef = PropertyRef(
+        "platform_like", description="Platform family the host's OS is derived from."
+    )
+    code_name: PropertyRef = PropertyRef(
+        "code_name", description="OS release code name."
+    )
+    cpu_type: PropertyRef = PropertyRef(
+        "cpu_type", description="CPU type/architecture of the host."
+    )
+    cpu_subtype: PropertyRef = PropertyRef(
+        "cpu_subtype", description="CPU subtype of the host."
+    )
+    cpu_brand: PropertyRef = PropertyRef("cpu_brand", description="CPU brand string.")
+    cpu_physical_cores: PropertyRef = PropertyRef(
+        "cpu_physical_cores", description="Number of physical CPU cores."
+    )
+    cpu_logical_cores: PropertyRef = PropertyRef(
+        "cpu_logical_cores", description="Number of logical CPU cores."
+    )
+    hardware_vendor: PropertyRef = PropertyRef(
+        "hardware_vendor", description="Hardware vendor of the host."
+    )
+    hardware_model: PropertyRef = PropertyRef(
+        "hardware_model", description="Hardware model of the host."
+    )
+    hardware_version: PropertyRef = PropertyRef(
+        "hardware_version", description="Hardware version of the host."
+    )
+    hardware_serial: PropertyRef = PropertyRef(
+        "hardware_serial",
+        extra_index=True,
+        description="Hardware serial number of the host.",
+    )
+    computer_name: PropertyRef = PropertyRef(
+        "computer_name", description="User-configured computer name of the host."
+    )
+    memory: PropertyRef = PropertyRef(
+        "memory", description="Total physical memory of the host, in bytes."
+    )
+    uptime: PropertyRef = PropertyRef("uptime", description="Host uptime, in seconds.")
+    public_ip: PropertyRef = PropertyRef(
+        "public_ip", description="Public IP address the host last connected from."
+    )
+    primary_ip: PropertyRef = PropertyRef(
+        "primary_ip", description="Primary internal IP address of the host."
+    )
+    primary_mac: PropertyRef = PropertyRef(
+        "primary_mac", description="Primary MAC address of the host."
+    )
+    status: PropertyRef = PropertyRef(
+        "status", description="Fleet-reported online status of the host."
+    )
+    seen_time: PropertyRef = PropertyRef(
+        "seen_time",
+        description="Timestamp the host was last seen checking in to Fleet.",
+    )
+    last_enrolled_at: PropertyRef = PropertyRef(
+        "last_enrolled_at", description="Timestamp the host last enrolled in Fleet."
+    )
+    distributed_interval: PropertyRef = PropertyRef(
+        "distributed_interval",
+        description="Osquery distributed query interval, in seconds.",
+    )
+    config_tls_refresh: PropertyRef = PropertyRef(
+        "config_tls_refresh",
+        description="Osquery configuration refresh interval, in seconds.",
+    )
+    logger_tls_period: PropertyRef = PropertyRef(
+        "logger_tls_period", description="Osquery logger TLS period, in seconds."
+    )
+    gigs_disk_space_available: PropertyRef = PropertyRef(
+        "gigs_disk_space_available",
+        description="Available disk space on the host, in gigabytes.",
+    )
     percent_disk_space_available: PropertyRef = PropertyRef(
         "percent_disk_space_available",
+        description="Percentage of disk space available on the host.",
     )
-    gigs_total_disk_space: PropertyRef = PropertyRef("gigs_total_disk_space")
-    team_name: PropertyRef = PropertyRef("team_name")
-    fleet_name: PropertyRef = PropertyRef("fleet_name")
-    failing_policies_count: PropertyRef = PropertyRef("failing_policies_count")
+    gigs_total_disk_space: PropertyRef = PropertyRef(
+        "gigs_total_disk_space",
+        description="Total disk space on the host, in gigabytes.",
+    )
+    team_name: PropertyRef = PropertyRef(
+        "team_name", description="Name of the Fleet team the host belongs to."
+    )
+    fleet_name: PropertyRef = PropertyRef(
+        "fleet_name", description="Name of the Fleet the host belongs to."
+    )
+    failing_policies_count: PropertyRef = PropertyRef(
+        "failing_policies_count",
+        description="Number of policies the host is currently failing.",
+    )
     critical_vulnerabilities_count: PropertyRef = PropertyRef(
         "critical_vulnerabilities_count",
+        description="Number of critical vulnerabilities affecting the host.",
     )
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
-    last_restarted_at: PropertyRef = PropertyRef("last_restarted_at")
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="Timestamp when the resource was created in Fleet."
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at",
+        description="Timestamp when the resource was last updated in Fleet.",
+    )
+    last_restarted_at: PropertyRef = PropertyRef(
+        "last_restarted_at", description="Timestamp the host was last restarted."
+    )
 
 
 @dataclass(frozen=True)

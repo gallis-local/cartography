@@ -12,14 +12,31 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMFleetNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    description: PropertyRef = PropertyRef("description")
-    host_count: PropertyRef = PropertyRef("host_count")
-    user_count: PropertyRef = PropertyRef("user_count")
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the resource.",
+    )
+    description: PropertyRef = PropertyRef(
+        "description", description="Description of the resource."
+    )
+    host_count: PropertyRef = PropertyRef(
+        "host_count", description="Number of hosts associated with this resource."
+    )
+    user_count: PropertyRef = PropertyRef(
+        "user_count", description="Number of users associated with this resource."
+    )
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="Timestamp when the resource was created in Fleet."
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at",
+        description="Timestamp when the resource was last updated in Fleet.",
+    )
 
 
 @dataclass(frozen=True)
