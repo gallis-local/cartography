@@ -60,6 +60,7 @@ def _transform_nvt(nvt: Any) -> dict:
     qod = nvt.find("qod")
     tags = _parse_tags(nvt.findtext("tags"))
     cves = _extract_cves(nvt)
+    solution = nvt.find("solution")
 
     return {
         "id": oid,
@@ -70,6 +71,15 @@ def _transform_nvt(nvt: Any) -> dict:
         "cvss_base": nvt.findtext("cvss_base"),
         "cvss_base_vector": tags.get("cvss_base_vector"),
         "solution": nvt.findtext("solution"),
+        # GMP's <solution> element carries the remediation category (e.g.
+        # VendorFix, WillNotFix, Mitigation, Workaround, NoneAvailable) and
+        # the mechanism to apply it (e.g. DebianAPTUpgrade) as attributes,
+        # not text -- see the get_nvts response schema in the GMP protocol
+        # docs (https://docs.greenbone.net/API/GMP/gmp-22.5.html#get_nvts).
+        # Without these, there was no way to tell "no fix available" apart
+        # from "vendor already shipped a fix" without parsing solution prose.
+        "solution_type": solution.get("type") if solution is not None else None,
+        "solution_method": solution.get("method") if solution is not None else None,
         "qod": qod.get("value") if qod is not None else None,
         "qod_type": qod.get("type") if qod is not None else None,
         "description": nvt.findtext("description"),
