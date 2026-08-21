@@ -63,6 +63,10 @@ class UnifiClientNodeProperties(CartographyNodeProperties):
     last_seen_by_switch: PropertyRef = PropertyRef("last_seen_by_switch")
     # Historical flag - True for clients from clients_all (historical), False for current clients
     is_historical: PropertyRef = PropertyRef("is_historical")
+    # Network/authentication properties (aiounifi TypedClient: network_id, authorized, gw_mac)
+    network_id: PropertyRef = PropertyRef("network_id", extra_index=True)
+    authorized: PropertyRef = PropertyRef("authorized")
+    gw_mac: PropertyRef = PropertyRef("gw_mac")
 
 
 @dataclass(frozen=True)
@@ -170,6 +174,23 @@ class UnifiClientToPortRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiClientToGatewayRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiClient)-[:CONNECTED_TO_GATEWAY]->(:UnifiDevice)  -- via gw_mac (aiounifi TypedClient.gw_mac)
+class UnifiClientToGatewayRel(CartographyRelSchema):
+    target_node_label: str = "UnifiDevice"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("gw_mac")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "CONNECTED_TO_GATEWAY"
+    properties: UnifiClientToGatewayRelProperties = UnifiClientToGatewayRelProperties()
+
+
+@dataclass(frozen=True)
 class UnifiClientToUserAccountRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
@@ -203,6 +224,7 @@ class UnifiClientSchema(CartographyNodeSchema):
             UnifiClientToAPSwitchRel(),
             UnifiClientToWlanRel(),
             UnifiClientToPortRel(),
+            UnifiClientToGatewayRel(),
             UnifiClientToUserAccountRel(),
         ],
     )

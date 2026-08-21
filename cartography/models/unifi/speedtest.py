@@ -17,7 +17,6 @@ from cartography.models.unifi.extra_labels import NETWORK_PERFORMANCE_TEST
 class UnifiSpeedtestNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    interface_name: PropertyRef = PropertyRef("interface_name")
     download: PropertyRef = PropertyRef("download")
     upload: PropertyRef = PropertyRef("upload")
     ping: PropertyRef = PropertyRef("ping")

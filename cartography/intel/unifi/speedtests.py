@@ -17,37 +17,35 @@ async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     """
     Retrieve UniFi speedtest results from the controller.
 
+    aiounifi has no dedicated speedtest handler/endpoint -- the controller only
+    surfaces the most recent speedtest run as a per-device field
+    (Device.speedtest_status, sourced from the device's raw "speedtest-status"
+    object), typically populated only on gateway devices (UDM/USG/UXG). This
+    reads that field off the already-fetched controller.devices collection
+    rather than calling a nonexistent controller.speedtest API.
+
     :param controller: Controller instance
-    :param site_id: Site ID the speedtests belong to. Interface names (e.g. "wan",
-        "wan2") are not globally unique across sites on the same controller, so the
-        site_id is folded into the node id to avoid identity collisions when
-        multiple sites are synced.
+    :param site_id: Site ID the speedtests belong to. Device MACs are unique per
+        controller, but folding site_id into the node id keeps identity
+        consistent with the rest of this module when multiple sites are synced.
     :return: List of speedtest data
     """
     logger.debug("Fetching UniFi speedtest results")
-    await controller.speedtest.update()
 
-    # Convert aiounifi SpeedtestStatus objects to dictionaries
-    # The obj_id_key for speedtest is "interface_name", so the dict keys are interface names
     speedtests = []
-    for interface_name, speedtest in controller.speedtest.items():
-        # Find the gateway device that ran the speedtest
-        # The speedtest is typically run on the gateway (UGW)
-        gateway_mac = None
-        for device in controller.devices.values():
-            if device.type == "ugw" or device.type == "udm":
-                gateway_mac = device.mac
-                break
+    for device in controller.devices.values():
+        speedtest = device.speedtest_status
+        if not speedtest:
+            continue
 
         speedtests.append(
             {
-                "id": f"{site_id}_{interface_name}",
-                "interface_name": interface_name,
-                "download": speedtest.download,
-                "upload": speedtest.upload,
-                "ping": speedtest.ping,
-                "timestamp": speedtest.timestamp,
-                "gateway_mac": gateway_mac,
+                "id": f"{site_id}_{device.mac}",
+                "download": speedtest.get("xput_download"),
+                "upload": speedtest.get("xput_upload"),
+                "ping": speedtest.get("latency"),
+                "timestamp": speedtest.get("rundate"),
+                "gateway_mac": device.mac,
             }
         )
     logger.debug("Fetched %d UniFi speedtest results", len(speedtests))

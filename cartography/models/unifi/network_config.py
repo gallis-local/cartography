@@ -8,11 +8,8 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
-from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
-from cartography.models.unifi.extra_labels import NETWORK_QOS_POLICY
-from cartography.models.unifi.extra_labels import NETWORK_ROUTING_POLICY
-from cartography.models.unifi.extra_labels import NETWORK_SECURITY_POLICY
+from cartography.models.unifi.extra_labels import NETWORK_INTERFACE
 
 
 @dataclass(frozen=True)
@@ -21,20 +18,52 @@ class UnifiNetworkConfigNodeProperties(CartographyNodeProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     name: PropertyRef = PropertyRef("name", extra_index=True)
     enabled: PropertyRef = PropertyRef("enabled")
-    target_type: PropertyRef = PropertyRef("target_type")
-    targets: PropertyRef = PropertyRef("targets", one_to_many=True)
-    # Secure configuration (nested dict)
-    secure_enabled: PropertyRef = PropertyRef("secure_enabled")
-    secure_firewall_rules: PropertyRef = PropertyRef("secure_firewall_rules")
-    secure_group_ids: PropertyRef = PropertyRef("secure_group_ids")
-    # QoS configuration (nested dict)
-    qos_enabled: PropertyRef = PropertyRef("qos_enabled")
-    qos_bandwidth_limit: PropertyRef = PropertyRef("qos_bandwidth_limit")
-    qos_dscp: PropertyRef = PropertyRef("qos_dscp")
-    # Route configuration (nested dict)
-    route_enabled: PropertyRef = PropertyRef("route_enabled")
-    route_nexthop: PropertyRef = PropertyRef("route_nexthop")
-    route_network: PropertyRef = PropertyRef("route_network")
+    purpose: PropertyRef = PropertyRef(
+        "purpose",
+        description='Role of the network, e.g. "corporate", "guest", "wan", "vlan-only".',
+    )
+    networkgroup: PropertyRef = PropertyRef(
+        "networkgroup", description="Interface group the network is attached to."
+    )
+    domain_name: PropertyRef = PropertyRef(
+        "domain_name", description="DNS domain name advertised to clients."
+    )
+    vlan_enabled: PropertyRef = PropertyRef(
+        "vlan_enabled", description="Whether this network is tagged to a VLAN."
+    )
+    vlan: PropertyRef = PropertyRef("vlan", description="VLAN ID, if tagged.")
+    ip_subnet: PropertyRef = PropertyRef(
+        "ip_subnet", description="Gateway IP and subnet mask for this network."
+    )
+    is_guest: PropertyRef = PropertyRef(
+        "is_guest", description="Whether this is a guest network."
+    )
+    is_nat: PropertyRef = PropertyRef(
+        "is_nat", description="Whether traffic from this network is NAT'd."
+    )
+    attr_no_delete: PropertyRef = PropertyRef(
+        "attr_no_delete",
+        description="Whether this is a built-in network that cannot be deleted.",
+    )
+    dhcpd_enabled: PropertyRef = PropertyRef(
+        "dhcpd_enabled", description="Whether the DHCP server is enabled."
+    )
+    dhcpd_start: PropertyRef = PropertyRef(
+        "dhcpd_start", description="Start of the DHCP address pool."
+    )
+    dhcpd_stop: PropertyRef = PropertyRef(
+        "dhcpd_stop", description="End of the DHCP address pool."
+    )
+    dhcpd_leasetime: PropertyRef = PropertyRef(
+        "dhcpd_leasetime", description="DHCP lease time, in seconds."
+    )
+    dhcpd_dns_enabled: PropertyRef = PropertyRef(
+        "dhcpd_dns_enabled",
+        description="Whether a custom DNS server is pushed to DHCP clients.",
+    )
+    dhcpd_dns_1: PropertyRef = PropertyRef(
+        "dhcpd_dns_1", description="Primary DNS server pushed to DHCP clients."
+    )
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
@@ -58,36 +87,10 @@ class UnifiNetworkConfigToSiteRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
-class UnifiNetworkConfigToFirewallZoneRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
-
-@dataclass(frozen=True)
-# (:UnifiNetworkConfig)-[:REFERENCES_ZONE]->(:UnifiFirewallZone)
-class UnifiNetworkConfigToFirewallZoneRel(CartographyRelSchema):
-    target_node_label: str = "UnifiFirewallZone"
-    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("secure_group_ids", one_to_many=True)},
-    )
-    direction: LinkDirection = LinkDirection.OUTWARD
-    rel_label: str = "REFERENCES_ZONE"
-    properties: UnifiNetworkConfigToFirewallZoneRelProperties = (
-        UnifiNetworkConfigToFirewallZoneRelProperties()
-    )
-
-
-@dataclass(frozen=True)
 class UnifiNetworkConfigSchema(CartographyNodeSchema):
     label: str = "UnifiNetworkConfig"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        [NETWORK_QOS_POLICY, NETWORK_SECURITY_POLICY, NETWORK_ROUTING_POLICY]
-    )
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_INTERFACE])
     properties: UnifiNetworkConfigNodeProperties = UnifiNetworkConfigNodeProperties()
     sub_resource_relationship: UnifiNetworkConfigToSiteRel = (
         UnifiNetworkConfigToSiteRel()
-    )
-    other_relationships: OtherRelationships = OtherRelationships(
-        [
-            UnifiNetworkConfigToFirewallZoneRel(),
-        ],
     )

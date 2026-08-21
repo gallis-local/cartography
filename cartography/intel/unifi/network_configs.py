@@ -3,6 +3,10 @@ from typing import Any
 
 import neo4j
 from aiounifi.controller import Controller
+from aiounifi.errors import AiounifiException
+from aiounifi.errors import LoginRequired
+from aiounifi.errors import NoPermission
+from aiounifi.models.api import ApiRequest
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
@@ -15,43 +19,65 @@ logger = logging.getLogger(__name__)
 @timeit
 async def get(controller: Controller) -> list[dict[str, Any]]:
     """
-    Retrieve UniFi object-oriented network configurations from the controller.
+    Retrieve UniFi network (VLAN) configurations from the controller.
+
+    aiounifi has no dedicated handler for this resource, so this hits the raw
+    `/rest/networkconf` endpoint directly (the same source that populates each
+    device's `network_table`), following the same raw-ApiRequest pattern used
+    by admins.py for `/rest/admin`.
 
     :param controller: Controller instance
     :return: List of network config data
     """
     logger.debug("Fetching UniFi network configurations")
-    await controller.object_oriented_network_configs.update()
+    try:
+        response = await controller.request(
+            ApiRequest(method="get", path="/rest/networkconf")
+        )
+    except NoPermission:
+        logger.warning(
+            "UniFi network config listing requires elevated privileges. "
+            "Grant the service account access to network settings to enable this.",
+        )
+        return []
+    except LoginRequired:
+        logger.warning(
+            "UniFi network config listing failed: session expired or credentials "
+            "rejected (LoginRequired). Check that the service account credentials "
+            "are valid.",
+        )
+        return []
+    except AiounifiException as exc:
+        logger.warning(
+            "UniFi network config listing failed with unexpected API error "
+            "(%s: %s). Skipping network config sync.",
+            type(exc).__name__,
+            exc,
+        )
+        return []
 
-    # Convert aiounifi ObjectOrientedNetworkConfig objects to dictionaries
     configs = []
-    for config in controller.object_oriented_network_configs.values():
-        # Extract secure configuration
-        secure = config.secure or {}
-        # Extract QoS configuration
-        qos = config.qos or {}
-        # Extract route configuration
-        route = config.route or {}
-
+    for raw in response.get("data", []):
         configs.append(
             {
-                "id": config.id,
-                "name": config.name,
-                "enabled": config.enabled,
-                "target_type": config.target_type,
-                "targets": config.targets or [],
-                # Secure configuration
-                "secure_enabled": secure.get("enabled", False),
-                "secure_firewall_rules": secure.get("firewall_rules"),
-                "secure_group_ids": secure.get("group_ids") or [],
-                # QoS configuration
-                "qos_enabled": qos.get("enabled", False),
-                "qos_bandwidth_limit": qos.get("bandwidth_limit"),
-                "qos_dscp": qos.get("dscp"),
-                # Route configuration
-                "route_enabled": route.get("enabled", False),
-                "route_nexthop": route.get("nexthop"),
-                "route_network": route.get("network"),
+                "id": raw.get("_id"),
+                "name": raw.get("name"),
+                "enabled": raw.get("enabled", True),
+                "purpose": raw.get("purpose"),
+                "networkgroup": raw.get("networkgroup"),
+                "domain_name": raw.get("domain_name"),
+                "vlan_enabled": raw.get("vlan_enabled", False),
+                "vlan": raw.get("vlan"),
+                "ip_subnet": raw.get("ip_subnet"),
+                "is_guest": raw.get("is_guest", False),
+                "is_nat": raw.get("is_nat", False),
+                "attr_no_delete": raw.get("attr_no_delete", False),
+                "dhcpd_enabled": raw.get("dhcpd_enabled", False),
+                "dhcpd_start": raw.get("dhcpd_start"),
+                "dhcpd_stop": raw.get("dhcpd_stop"),
+                "dhcpd_leasetime": raw.get("dhcpd_leasetime"),
+                "dhcpd_dns_enabled": raw.get("dhcpd_dns_enabled", False),
+                "dhcpd_dns_1": raw.get("dhcpd_dns_1"),
             }
         )
     logger.debug("Fetched %d UniFi network configurations", len(configs))

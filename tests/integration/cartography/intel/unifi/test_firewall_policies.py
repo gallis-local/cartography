@@ -4,8 +4,11 @@ from unittest.mock import patch
 
 import pytest
 
+import cartography.intel.unifi.clients
+import cartography.intel.unifi.devices
 import cartography.intel.unifi.firewall_policies
 import cartography.intel.unifi.firewall_zones
+import cartography.intel.unifi.sites
 import tests.data.unifi
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
@@ -144,6 +147,96 @@ async def test_unifi_firewall_policy_properties(mock_get, neo4j_session):
     assert record["enabled"] is True
     assert record["logging"] is True
     assert record["predefined"] is False
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.firewall_policies,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_FIREWALL_POLICIES,
+)
+async def test_unifi_firewall_policy_matching_target_properties(
+    mock_get, neo4j_session
+):
+    """
+    Ensure that source/destination matching_target (aiounifi FirewallPolicyEndpoint)
+    are stored on the firewall policy node.
+    """
+    mock_controller = MagicMock()
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
+    }
+
+    await cartography.intel.unifi.firewall_policies.sync(
+        neo4j_session,
+        mock_controller,
+        common_job_parameters,
+    )
+
+    result = neo4j_session.run(
+        """
+        MATCH (fp:UnifiFirewallPolicy {id: 'fw_policy_002'})
+        RETURN fp.source_matching_target as source_matching_target,
+               fp.destination_matching_target as destination_matching_target
+        """
+    ).data()
+    assert len(result) == 1
+    assert result[0]["source_matching_target"] == "CLIENT"
+    assert result[0]["destination_matching_target"] == "NETWORK"
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.firewall_policies,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_FIREWALL_POLICIES,
+)
+async def test_unifi_firewall_policy_to_client_relationship(mock_get, neo4j_session):
+    """
+    Ensure that firewall policies scoped to specific clients (source/destination
+    client_macs) are linked to those UnifiClient nodes via APPLIES_TO_CLIENT.
+    """
+    # Load the client that fw_policy_002 targets
+    cartography.intel.unifi.sites.load_sites(
+        neo4j_session, tests.data.unifi.UNIFI_SITES, TEST_UPDATE_TAG
+    )
+    cartography.intel.unifi.devices.load_devices(
+        neo4j_session, tests.data.unifi.UNIFI_DEVICES, "default", TEST_UPDATE_TAG
+    )
+    cartography.intel.unifi.clients.load_clients(
+        neo4j_session, tests.data.unifi.UNIFI_CLIENTS, "default", TEST_UPDATE_TAG
+    )
+
+    mock_controller = MagicMock()
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "site_id": "default",
+    }
+
+    await cartography.intel.unifi.firewall_policies.sync(
+        neo4j_session,
+        mock_controller,
+        common_job_parameters,
+    )
+
+    expected_rels = {
+        ("fw_policy_002", "77:88:99:AA:BB:CC"),
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiFirewallPolicy",
+            "id",
+            "UnifiClient",
+            "id",
+            "APPLIES_TO_CLIENT",
+            rel_direction_right=True,
+        )
+        == expected_rels
+    )
 
 
 @pytest.mark.asyncio

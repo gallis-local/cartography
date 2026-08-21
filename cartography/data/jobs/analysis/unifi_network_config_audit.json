@@ -10,19 +10,19 @@
       "iterative": false
     },
     {
-      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.secure_enabled = true AND (c.secure_firewall_rules IS NULL OR c.secure_firewall_rules = []) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'secure_no_firewall_rules'",
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.vlan_enabled = true AND c.vlan IS NULL SET c.audit_issues = COALESCE(c.audit_issues, []) + 'vlan_enabled_without_vlan_id'",
       "iterative": false
     },
     {
-      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.qos_enabled = true AND (c.qos_bandwidth_limit IS NULL OR c.qos_bandwidth_limit <= 0) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'qos_no_bandwidth_limit'",
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.is_guest = true AND c.dhcpd_enabled = false SET c.audit_issues = COALESCE(c.audit_issues, []) + 'guest_network_without_dhcp'",
       "iterative": false
     },
     {
-      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.route_enabled = true AND (c.route_nexthop IS NULL OR c.route_network IS NULL) SET c.audit_issues = COALESCE(c.audit_issues, []) + 'route_incomplete'",
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.is_guest = true AND c.is_nat = false SET c.audit_issues = COALESCE(c.audit_issues, []) + 'guest_network_not_natted'",
       "iterative": false
     },
     {
-      "query": "MATCH (c:UnifiNetworkConfig) WHERE size(COALESCE(c.targets, [])) = 0 SET c.audit_issues = COALESCE(c.audit_issues, []) + 'no_targets'",
+      "query": "MATCH (c:UnifiNetworkConfig) WHERE c.dhcpd_enabled = true AND c.dhcpd_dns_enabled = true AND c.dhcpd_dns_1 IS NULL SET c.audit_issues = COALESCE(c.audit_issues, []) + 'dhcp_dns_enabled_without_dns_server'",
       "iterative": false
     },
     {
