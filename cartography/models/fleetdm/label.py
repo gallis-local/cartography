@@ -12,17 +12,41 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMLabelNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    description: PropertyRef = PropertyRef("description")
-    query: PropertyRef = PropertyRef("query")
-    platform: PropertyRef = PropertyRef("platform")
-    label_type: PropertyRef = PropertyRef("label_type")
-    label_membership_type: PropertyRef = PropertyRef("label_membership_type")
-    host_count: PropertyRef = PropertyRef("host_count")
-    created_at: PropertyRef = PropertyRef("created_at")
-    updated_at: PropertyRef = PropertyRef("updated_at")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the resource.",
+    )
+    description: PropertyRef = PropertyRef(
+        "description", description="Description of the resource."
+    )
+    query: PropertyRef = PropertyRef(
+        "query", description="Osquery SQL query used to evaluate this resource."
+    )
+    platform: PropertyRef = PropertyRef(
+        "platform", description="Target platform(s) this resource applies to."
+    )
+    label_type: PropertyRef = PropertyRef(
+        "label_type", description="Type of label (e.g. builtin or regular)."
+    )
+    label_membership_type: PropertyRef = PropertyRef(
+        "label_membership_type",
+        description="How host membership in this label is determined (dynamic or manual).",
+    )
+    host_count: PropertyRef = PropertyRef(
+        "host_count", description="Number of hosts associated with this resource."
+    )
+    created_at: PropertyRef = PropertyRef(
+        "created_at", description="Timestamp when the resource was created in Fleet."
+    )
+    updated_at: PropertyRef = PropertyRef(
+        "updated_at",
+        description="Timestamp when the resource was last updated in Fleet.",
+    )
 
 
 @dataclass(frozen=True)

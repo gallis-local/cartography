@@ -30,13 +30,21 @@ def sync(
         fleets = get(api_session, base_url)
     except requests.HTTPError as e:
         status = e.response.status_code if e.response is not None else None
+        # 402/403 indicate the Fleet Premium license is not present, which is
+        # expected on Fleet CE - treat this as "no fleets" so that any
+        # previously-synced FleetDMFleet nodes get cleaned up (e.g. after a
+        # license downgrade). Any other status code is unexpected and should
+        # propagate so operational issues (auth failures, rate limits, server
+        # errors) are not silently swallowed.
+        if status not in (402, 403):
+            raise
         logger.warning(
             "FleetDM fleets endpoint returned HTTP %s "
             "(this is expected on Fleet CE without Premium license). "
-            "Skipping fleets sync.",
+            "Treating as no fleets.",
             status,
         )
-        return
+        fleets = []
 
     transformed = transform(fleets)
     load_fleets(neo4j_session, transformed, tenant_id, update_tag)

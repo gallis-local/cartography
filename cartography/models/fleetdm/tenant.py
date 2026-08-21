@@ -8,10 +8,14 @@ from cartography.models.core.nodes import ExtraNodeLabels
 
 @dataclass(frozen=True)
 class FleetDMTenantNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id", description="Unique identifier for this resource in Fleet."
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    base_url: PropertyRef = PropertyRef("base_url")
+    name: PropertyRef = PropertyRef("name", description="Name of the resource.")
+    base_url: PropertyRef = PropertyRef(
+        "base_url", description="Base URL of the Fleet instance this tenant represents."
+    )
 
 
 @dataclass(frozen=True)
