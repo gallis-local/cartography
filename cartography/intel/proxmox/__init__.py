@@ -5,11 +5,13 @@ This module syncs Proxmox infrastructure including clusters, nodes, VMs,
 containers, storage, networks, users, and backup configurations.
 """
 
-import backoff
 import logging
 import os
+from typing import Any
+from typing import Callable
 from typing import TYPE_CHECKING
 
+import backoff
 import neo4j
 
 if TYPE_CHECKING:
@@ -154,7 +156,7 @@ def _proxmox_retry_predicate(exception: Exception) -> bool:
     return False
 
 
-def _with_proxmox_retry(config: Config):
+def _with_proxmox_retry(config: Config) -> Callable[[Callable], Callable]:
     """
     Decorator factory that applies retry logic with exponential backoff.
 
@@ -173,9 +175,16 @@ def _with_proxmox_retry(config: Config):
     )
 
 
-def _best_effort_wrapper(config: Config, func, *args, **kwargs):
+def _best_effort_wrapper(
+    config: Config, func: Callable[..., Any], *args: Any, **kwargs: Any
+) -> Any:
     """
-    Wrapper that logs errors instead of raising if best-effort mode is enabled.
+    Wrapper that retries transient failures with backoff, then logs errors
+    instead of raising if best-effort mode is enabled.
+
+    Applies ``_with_proxmox_retry`` around the call so a submodule sync that
+    fails on a transient error (connection reset, 5xx, rate limiting) gets
+    retried with exponential backoff before best-effort mode swallows it.
 
     :param config: Cartography configuration object
     :param func: Function to wrap
@@ -183,8 +192,9 @@ def _best_effort_wrapper(config: Config, func, *args, **kwargs):
     :param kwargs: Keyword arguments for func
     :return: Result of func or None if error occurred in best-effort mode
     """
+    retrying_func = _with_proxmox_retry(config)(func)
     try:
-        return func(*args, **kwargs)
+        return retrying_func(*args, **kwargs)
     except Exception as e:
         if config.proxmox_best_effort_mode:
             logger.error(
@@ -453,7 +463,9 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
 
-    # Run centralized cleanup job to remove stale cross-module resources
+    # ProxmoxCluster is the module's root node (no sub_resource_relationship),
+    # so no per-module GraphJob.from_node_schema() cleanup covers it. This
+    # hand-written job is the only place a stale ProxmoxCluster gets removed.
     run_cleanup_job(
         "proxmox_import_cleanup.json",
         neo4j_session,

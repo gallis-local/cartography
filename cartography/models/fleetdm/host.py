@@ -7,15 +7,17 @@ from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
+from cartography.models.core.relationships import make_source_node_matcher
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
-from cartography.models.core.relationships import make_source_node_matcher
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
 @dataclass(frozen=True)
 class FleetDMHostNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMHost node (an osquery-enrolled device)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -175,11 +177,15 @@ class FleetDMHostNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMHostToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMHost->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMHostToTenantRel(CartographyRelSchema):
+    """Connects a host to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -191,11 +197,15 @@ class FleetDMHostToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMHostToFleetRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMHost->FleetDMFleet PART_OF_FLEET relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMHostToFleetRel(CartographyRelSchema):
+    """Connects a host to the Fleet team it is assigned to."""
+
     target_node_label: str = "FleetDMFleet"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("fleet_id")},
@@ -207,6 +217,8 @@ class FleetDMHostToFleetRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMHostToSoftwareVersionRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMHost->FleetDMSoftwareVersion HAS_SOFTWARE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
@@ -251,6 +263,8 @@ class FleetDMHostToLabelRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMHostSchema(CartographyNodeSchema):
+    """An osquery-enrolled device managed by Fleet."""
+
     label: str = "FleetDMHost"
     properties: FleetDMHostNodeProperties = FleetDMHostNodeProperties()
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Device"])
@@ -266,6 +280,8 @@ class FleetDMHostSchema(CartographyNodeSchema):
 
 @dataclass(frozen=True)
 class FleetDMHostToPolicyRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMHost->FleetDMPolicy CHECKS MatchLink relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
     _sub_resource_label: PropertyRef = PropertyRef(
         "_sub_resource_label", set_in_kwargs=True

@@ -28,11 +28,15 @@ def get_tokens_for_user(
     :param userid: User ID (format: user@realm)
     :return: List of token dicts
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.access.users(userid).token.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(f"Could not fetch tokens for user {userid}: {e}")
         return []
+
 
 def get_all_tokens(
     proxmox_client: Any,
@@ -152,7 +156,10 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove stale API token data.
 

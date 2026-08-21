@@ -12,6 +12,8 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMFleetNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMFleet node (a Fleet 'team' grouping hosts and policies)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -41,11 +43,15 @@ class FleetDMFleetNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMFleetToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMFleet->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMFleetToTenantRel(CartographyRelSchema):
+    """Connects a fleet (team) to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -57,6 +63,8 @@ class FleetDMFleetToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMFleetSchema(CartographyNodeSchema):
+    """A Fleet 'team': a named grouping of hosts, policies, and users."""
+
     label: str = "FleetDMFleet"
     properties: FleetDMFleetNodeProperties = FleetDMFleetNodeProperties()
     sub_resource_relationship: FleetDMFleetToTenantRel = FleetDMFleetToTenantRel()

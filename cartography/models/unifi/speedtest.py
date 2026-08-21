@@ -14,23 +14,35 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class UnifiSpeedtestNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    download: PropertyRef = PropertyRef("download")
-    upload: PropertyRef = PropertyRef("upload")
-    ping: PropertyRef = PropertyRef("ping")
-    timestamp: PropertyRef = PropertyRef("timestamp")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiSpeedtest."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    download: PropertyRef = PropertyRef("download", description="Download.")
+    upload: PropertyRef = PropertyRef("upload", description="Upload.")
+    ping: PropertyRef = PropertyRef("ping", description="Ping.")
+    timestamp: PropertyRef = PropertyRef("timestamp", description="Timestamp.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiSpeedtestToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiSpeedtestToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiSpeedtest)
 class UnifiSpeedtestToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiSpeedtestToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -42,12 +54,18 @@ class UnifiSpeedtestToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiSpeedtestToDeviceRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiSpeedtestToDevice relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSpeedtest)-[:MEASURED_BY]->(:UnifiDevice) (gateway device)
 class UnifiSpeedtestToDeviceRel(CartographyRelSchema):
+    """Relationship: UnifiSpeedtestToDevice."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("gateway_mac")},
@@ -61,6 +79,8 @@ class UnifiSpeedtestToDeviceRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiSpeedtestSchema(CartographyNodeSchema):
+    """A UnifiSpeedtest."""
+
     label: str = "UnifiSpeedtest"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkPerformanceTest"])
     properties: UnifiSpeedtestNodeProperties = UnifiSpeedtestNodeProperties()

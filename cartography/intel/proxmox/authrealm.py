@@ -25,9 +25,12 @@ def get_auth_realms(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmox API client
     :return: List of auth realm dicts
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.access.domains.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(f"Could not fetch authentication realms: {e}")
         return []
 
@@ -117,7 +120,10 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove stale auth realm data.
 
