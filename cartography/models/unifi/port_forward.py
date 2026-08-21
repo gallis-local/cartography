@@ -14,27 +14,41 @@ from cartography.models.unifi.extra_labels import NETWORK_ADDRESS_TRANSLATION
 
 @dataclass(frozen=True)
 class UnifiPortForwardNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    enabled: PropertyRef = PropertyRef("enabled")
-    destination_port: PropertyRef = PropertyRef("destination_port")
-    forward_port: PropertyRef = PropertyRef("forward_port")
-    forward_ip: PropertyRef = PropertyRef("forward_ip")
-    protocol: PropertyRef = PropertyRef("protocol")
-    interface: PropertyRef = PropertyRef("interface")
-    source: PropertyRef = PropertyRef("source")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiPortForward."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    name: PropertyRef = PropertyRef("name", description="Name.")
+    enabled: PropertyRef = PropertyRef("enabled", description="Enabled.")
+    destination_port: PropertyRef = PropertyRef(
+        "destination_port", description="Destination port."
+    )
+    forward_port: PropertyRef = PropertyRef("forward_port", description="Forward port.")
+    forward_ip: PropertyRef = PropertyRef("forward_ip", description="Forward ip.")
+    protocol: PropertyRef = PropertyRef("protocol", description="Protocol.")
+    interface: PropertyRef = PropertyRef("interface", description="Interface.")
+    source: PropertyRef = PropertyRef("source", description="Source.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiPortForwardToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiPortForwardToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiPortForward)
 class UnifiPortForwardToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiPortForwardToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -48,6 +62,8 @@ class UnifiPortForwardToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiPortForwardSchema(CartographyNodeSchema):
+    """A UnifiPortForward."""
+
     label: str = "UnifiPortForward"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ADDRESS_TRANSLATION])
     properties: UnifiPortForwardNodeProperties = UnifiPortForwardNodeProperties()

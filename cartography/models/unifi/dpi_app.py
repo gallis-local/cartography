@@ -14,22 +14,34 @@ from cartography.models.unifi.extra_labels import NETWORK_SECURITY_POLICY
 
 @dataclass(frozen=True)
 class UnifiDPIAppNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    blocked: PropertyRef = PropertyRef("blocked")
-    enabled: PropertyRef = PropertyRef("enabled")
-    log: PropertyRef = PropertyRef("log")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiDPIApp."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    blocked: PropertyRef = PropertyRef("blocked", description="Blocked.")
+    enabled: PropertyRef = PropertyRef("enabled", description="Enabled.")
+    log: PropertyRef = PropertyRef("log", description="Log.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiDPIAppToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiDPIAppToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiDPIApp)
 class UnifiDPIAppToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiDPIAppToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -41,6 +53,8 @@ class UnifiDPIAppToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiDPIAppSchema(CartographyNodeSchema):
+    """A UnifiDPIApp."""
+
     label: str = "UnifiDPIApp"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_SECURITY_POLICY])
     properties: UnifiDPIAppNodeProperties = UnifiDPIAppNodeProperties()

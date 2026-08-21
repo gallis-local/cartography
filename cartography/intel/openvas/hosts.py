@@ -60,6 +60,11 @@ def _transform_host(asset: Any) -> dict:
 
     asset_id = asset.get("id")
     resolved_ip = ip or asset.findtext("name")
+    if not resolved_ip:
+        raise ValueError(
+            f"OpenVAS host asset {asset_id} has no resolvable IP (no ip "
+            "identifier and no name) to use as its node id"
+        )
 
     return {
         # Keyed by IP, not GMP's asset id: GVM issues a fresh asset id per

@@ -6,8 +6,8 @@ never the full NVT feed, which would pull tens of thousands of unused nodes.
 """
 
 import logging
-from datetime import UTC
 from datetime import datetime
+from datetime import UTC
 from typing import Any
 from typing import Optional
 
@@ -57,6 +57,8 @@ def _extract_cves(nvt: Any) -> list:
 
 def _transform_nvt(nvt: Any) -> dict:
     oid = nvt.get("id") or nvt.get("oid")
+    if not oid:
+        raise ValueError("OpenVAS NVT element is missing its id/oid attribute")
     qod = nvt.find("qod")
     tags = _parse_tags(nvt.findtext("tags"))
     cves = _extract_cves(nvt)
@@ -101,8 +103,12 @@ def _transform_result(result: Any) -> dict:
     except ValueError:
         severity = None
 
+    result_id = result.get("id")
+    if not result_id:
+        raise ValueError("OpenVAS result element is missing its id attribute")
+
     return {
-        "id": result.get("id"),
+        "id": result_id,
         "name": result.findtext("name"),
         "host": result.findtext("host"),
         "hostname": result.findtext("hostname"),

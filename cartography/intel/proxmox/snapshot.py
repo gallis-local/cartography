@@ -32,6 +32,9 @@ def get_snapshots_for_vm(
     :param vm_type: VM type (qemu or lxc)
     :return: List of snapshot dicts
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         if vm_type == "qemu":
             response = proxmox_client.nodes(node_name).qemu(vmid).snapshot.get()
@@ -45,7 +48,7 @@ def get_snapshots_for_vm(
         snapshots = [s for s in response if s.get("name") != "current"]
         return snapshots
 
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(
             f"Could not fetch snapshots for {vm_type} {vmid} on node {node_name}: {e}"
         )

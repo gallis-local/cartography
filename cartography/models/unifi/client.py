@@ -16,67 +16,115 @@ from cartography.models.unifi.extra_labels import NETWORK_ENDPOINT
 
 @dataclass(frozen=True)
 class UnifiClientNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("mac")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    is_guest: PropertyRef = PropertyRef("is_guest")
-    mac: PropertyRef = PropertyRef("mac")
-    ip: PropertyRef = PropertyRef("ip", extra_index=True)
-    oui: PropertyRef = PropertyRef("oui")
-    satisfaction: PropertyRef = PropertyRef("satisfaction")
-    channel: PropertyRef = PropertyRef("channel")
-    radio: PropertyRef = PropertyRef("radio")
-    is_wired: PropertyRef = PropertyRef("is_wired")
-    qos_policy_applied: PropertyRef = PropertyRef("qos_policy_applied")
-    hostname: PropertyRef = PropertyRef("hostname")
-    name: PropertyRef = PropertyRef("name")
-    essid: PropertyRef = PropertyRef("essid")
-    blocked: PropertyRef = PropertyRef("blocked")
-    uptime: PropertyRef = PropertyRef("uptime")
-    last_seen: PropertyRef = PropertyRef("last_seen")
-    vlan: PropertyRef = PropertyRef("vlan")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiClient."""
+
+    id: PropertyRef = PropertyRef("mac", description="Mac.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    is_guest: PropertyRef = PropertyRef("is_guest", description="Is guest.")
+    mac: PropertyRef = PropertyRef("mac", description="Mac.")
+    ip: PropertyRef = PropertyRef("ip", extra_index=True, description="Ip.")
+    oui: PropertyRef = PropertyRef("oui", description="Oui.")
+    satisfaction: PropertyRef = PropertyRef("satisfaction", description="Satisfaction.")
+    channel: PropertyRef = PropertyRef("channel", description="Channel.")
+    radio: PropertyRef = PropertyRef("radio", description="Radio.")
+    is_wired: PropertyRef = PropertyRef("is_wired", description="Is wired.")
+    qos_policy_applied: PropertyRef = PropertyRef(
+        "qos_policy_applied", description="Qos policy applied."
+    )
+    hostname: PropertyRef = PropertyRef("hostname", description="Hostname.")
+    name: PropertyRef = PropertyRef("name", description="Name.")
+    essid: PropertyRef = PropertyRef("essid", description="Essid.")
+    blocked: PropertyRef = PropertyRef("blocked", description="Blocked.")
+    uptime: PropertyRef = PropertyRef("uptime", description="Uptime.")
+    last_seen: PropertyRef = PropertyRef("last_seen", description="Last seen.")
+    vlan: PropertyRef = PropertyRef("vlan", description="Vlan.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
     # Security-relevant properties
-    first_seen: PropertyRef = PropertyRef("first_seen")
-    fixed_ip: PropertyRef = PropertyRef("fixed_ip")
-    idle_time: PropertyRef = PropertyRef("idle_time")
-    latest_association_time: PropertyRef = PropertyRef("latest_association_time")
-    rx_bytes: PropertyRef = PropertyRef("rx_bytes")
-    rx_bytes_r: PropertyRef = PropertyRef("rx_bytes_r")
-    tx_bytes: PropertyRef = PropertyRef("tx_bytes")
-    tx_bytes_r: PropertyRef = PropertyRef("tx_bytes_r")
-    wired_rx_bytes: PropertyRef = PropertyRef("wired_rx_bytes")
-    wired_rx_bytes_r: PropertyRef = PropertyRef("wired_rx_bytes_r")
-    wired_tx_bytes: PropertyRef = PropertyRef("wired_tx_bytes")
-    wired_tx_bytes_r: PropertyRef = PropertyRef("wired_tx_bytes_r")
-    wired_rate_mbps: PropertyRef = PropertyRef("wired_rate_mbps")
-    uptime_by_access_point: PropertyRef = PropertyRef("uptime_by_access_point")
-    uptime_by_gateway: PropertyRef = PropertyRef("uptime_by_gateway")
-    uptime_by_switch: PropertyRef = PropertyRef("uptime_by_switch")
-    switch_depth: PropertyRef = PropertyRef("switch_depth")
-    powersave_enabled: PropertyRef = PropertyRef("powersave_enabled")
-    device_name: PropertyRef = PropertyRef("device_name")
-    firmware_version: PropertyRef = PropertyRef("firmware_version")
-    association_time: PropertyRef = PropertyRef("association_time")
-    last_seen_by_access_point: PropertyRef = PropertyRef("last_seen_by_access_point")
-    last_seen_by_gateway: PropertyRef = PropertyRef("last_seen_by_gateway")
-    last_seen_by_switch: PropertyRef = PropertyRef("last_seen_by_switch")
+    first_seen: PropertyRef = PropertyRef("first_seen", description="First seen.")
+    fixed_ip: PropertyRef = PropertyRef("fixed_ip", description="Fixed ip.")
+    idle_time: PropertyRef = PropertyRef("idle_time", description="Idle time.")
+    latest_association_time: PropertyRef = PropertyRef(
+        "latest_association_time", description="Latest association time."
+    )
+    rx_bytes: PropertyRef = PropertyRef("rx_bytes", description="Rx bytes.")
+    rx_bytes_r: PropertyRef = PropertyRef("rx_bytes_r", description="Rx bytes r.")
+    tx_bytes: PropertyRef = PropertyRef("tx_bytes", description="Tx bytes.")
+    tx_bytes_r: PropertyRef = PropertyRef("tx_bytes_r", description="Tx bytes r.")
+    wired_rx_bytes: PropertyRef = PropertyRef(
+        "wired_rx_bytes", description="Wired rx bytes."
+    )
+    wired_rx_bytes_r: PropertyRef = PropertyRef(
+        "wired_rx_bytes_r", description="Wired rx bytes r."
+    )
+    wired_tx_bytes: PropertyRef = PropertyRef(
+        "wired_tx_bytes", description="Wired tx bytes."
+    )
+    wired_tx_bytes_r: PropertyRef = PropertyRef(
+        "wired_tx_bytes_r", description="Wired tx bytes r."
+    )
+    wired_rate_mbps: PropertyRef = PropertyRef(
+        "wired_rate_mbps", description="Wired rate mbps."
+    )
+    uptime_by_access_point: PropertyRef = PropertyRef(
+        "uptime_by_access_point", description="Uptime by access point."
+    )
+    uptime_by_gateway: PropertyRef = PropertyRef(
+        "uptime_by_gateway", description="Uptime by gateway."
+    )
+    uptime_by_switch: PropertyRef = PropertyRef(
+        "uptime_by_switch", description="Uptime by switch."
+    )
+    switch_depth: PropertyRef = PropertyRef("switch_depth", description="Switch depth.")
+    powersave_enabled: PropertyRef = PropertyRef(
+        "powersave_enabled", description="Powersave enabled."
+    )
+    device_name: PropertyRef = PropertyRef("device_name", description="Device name.")
+    firmware_version: PropertyRef = PropertyRef(
+        "firmware_version", description="Firmware version."
+    )
+    association_time: PropertyRef = PropertyRef(
+        "association_time", description="Association time."
+    )
+    last_seen_by_access_point: PropertyRef = PropertyRef(
+        "last_seen_by_access_point", description="Last seen by access point."
+    )
+    last_seen_by_gateway: PropertyRef = PropertyRef(
+        "last_seen_by_gateway", description="Last seen by gateway."
+    )
+    last_seen_by_switch: PropertyRef = PropertyRef(
+        "last_seen_by_switch", description="Last seen by switch."
+    )
     # Historical flag - True for clients from clients_all (historical), False for current clients
-    is_historical: PropertyRef = PropertyRef("is_historical")
+    is_historical: PropertyRef = PropertyRef(
+        "is_historical", description="Is historical."
+    )
     # Network/authentication properties (aiounifi TypedClient: network_id, authorized, gw_mac)
-    network_id: PropertyRef = PropertyRef("network_id", extra_index=True)
-    authorized: PropertyRef = PropertyRef("authorized")
-    gw_mac: PropertyRef = PropertyRef("gw_mac")
+    network_id: PropertyRef = PropertyRef(
+        "network_id", extra_index=True, description="Network id."
+    )
+    authorized: PropertyRef = PropertyRef("authorized", description="Authorized.")
+    gw_mac: PropertyRef = PropertyRef("gw_mac", description="Gw mac.")
 
 
 @dataclass(frozen=True)
 class UnifiClientToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiClient)
 class UnifiClientToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiClientToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -88,12 +136,18 @@ class UnifiClientToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToAPRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToAP relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:CONNECTED_TO_AP]->(:UnifiDevice)  -- wireless clients only
 class UnifiClientToAPRel(CartographyRelSchema):
+    """Relationship: UnifiClientToAP."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ap_mac")},
@@ -105,12 +159,18 @@ class UnifiClientToAPRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToSwitchRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToSwitch relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:CONNECTED_TO_SWITCH]->(:UnifiDevice)  -- wired clients only
 class UnifiClientToSwitchRel(CartographyRelSchema):
+    """Relationship: UnifiClientToSwitch."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("sw_mac")},
@@ -122,12 +182,18 @@ class UnifiClientToSwitchRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToAPSwitchRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToAPSwitch relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:UPLINKED_TO_SWITCH]->(:UnifiDevice)  -- wireless clients (AP uplinks to this switch)
 class UnifiClientToAPSwitchRel(CartographyRelSchema):
+    """Relationship: UnifiClientToAPSwitch."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("ap_switch_mac")},
@@ -141,12 +207,18 @@ class UnifiClientToAPSwitchRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToWlanRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToWlan relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:CONNECTED_TO_WLAN]->(:UnifiWlan)
 class UnifiClientToWlanRel(CartographyRelSchema):
+    """Relationship: UnifiClientToWlan."""
+
     target_node_label: str = "UnifiWlan"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("wlanconf_id")},
@@ -158,12 +230,18 @@ class UnifiClientToWlanRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToPortRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToPort relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:CONNECTED_VIA]->(:UnifiPort)  -- wired clients only
 class UnifiClientToPortRel(CartographyRelSchema):
+    """Relationship: UnifiClientToPort."""
+
     target_node_label: str = "UnifiPort"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("port_id")},
@@ -175,12 +253,18 @@ class UnifiClientToPortRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToGatewayRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToGateway relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:CONNECTED_TO_GATEWAY]->(:UnifiDevice)  -- via gw_mac (aiounifi TypedClient.gw_mac)
 class UnifiClientToGatewayRel(CartographyRelSchema):
+    """Relationship: UnifiClientToGateway."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("gw_mac")},
@@ -192,12 +276,18 @@ class UnifiClientToGatewayRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientToUserAccountRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiClientToUserAccount relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiClient)-[:HAS_ACCOUNT]->(:UserAccount) via hostname (best effort)
 class UnifiClientToUserAccountRel(CartographyRelSchema):
+    """Relationship: UnifiClientToUserAccount."""
+
     target_node_label: str = "UserAccount"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"name": PropertyRef("hostname")},
@@ -211,6 +301,8 @@ class UnifiClientToUserAccountRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiClientSchema(CartographyNodeSchema):
+    """A UnifiClient."""
+
     label: str = "UnifiClient"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
         [NETWORK_ENDPOINT, USER_ACCOUNT]

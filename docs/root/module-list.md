@@ -22,6 +22,7 @@ modules/databricks/index
 modules/digitalocean/index
 modules/docker_scout/index
 modules/duo/index
+modules/fleetdm/index
 modules/gcp/index
 modules/github/index
 modules/gitlab/index
@@ -41,7 +42,9 @@ modules/oci/index
 modules/okta/index
 modules/ontology/index
 modules/openai/index
+modules/openvas/index
 modules/pagerduty/index
+modules/proxmox/index
 modules/railway/index
 modules/salesforce/index
 modules/scaleway/index
@@ -60,6 +63,7 @@ modules/tailscale/index
 modules/tenable/index
 modules/trivy/index
 modules/ubuntu/index
+modules/unifi/index
 modules/vercel/index
 modules/wiz/index
 modules/workday/index

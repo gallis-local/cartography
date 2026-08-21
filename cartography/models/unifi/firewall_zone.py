@@ -14,24 +14,36 @@ from cartography.models.unifi.extra_labels import NETWORK_ZONE
 
 @dataclass(frozen=True)
 class UnifiFirewallZoneNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    attr_no_edit: PropertyRef = PropertyRef("attr_no_edit")
-    default_zone: PropertyRef = PropertyRef("default_zone")
-    zone_key: PropertyRef = PropertyRef("zone_key")
-    network_ids: PropertyRef = PropertyRef("network_ids")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiFirewallZone."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    name: PropertyRef = PropertyRef("name", extra_index=True, description="Name.")
+    attr_no_edit: PropertyRef = PropertyRef("attr_no_edit", description="Attr no edit.")
+    default_zone: PropertyRef = PropertyRef("default_zone", description="Default zone.")
+    zone_key: PropertyRef = PropertyRef("zone_key", description="Zone key.")
+    network_ids: PropertyRef = PropertyRef("network_ids", description="Network ids.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiFirewallZoneToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiFirewallZoneToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiFirewallZone)
 class UnifiFirewallZoneToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiFirewallZoneToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -45,6 +57,8 @@ class UnifiFirewallZoneToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiFirewallZoneSchema(CartographyNodeSchema):
+    """A UnifiFirewallZone."""
+
     label: str = "UnifiFirewallZone"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ZONE])
     properties: UnifiFirewallZoneNodeProperties = UnifiFirewallZoneNodeProperties()

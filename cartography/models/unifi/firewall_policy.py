@@ -15,36 +15,56 @@ from cartography.models.ontology.labels import NETWORK_ACCESS_CONTROL
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    description: PropertyRef = PropertyRef("description")
-    enabled: PropertyRef = PropertyRef("enabled")
-    action: PropertyRef = PropertyRef("action")
-    protocol: PropertyRef = PropertyRef("protocol")
-    predefined: PropertyRef = PropertyRef("predefined")
-    index: PropertyRef = PropertyRef("index")
-    ip_version: PropertyRef = PropertyRef("ip_version")
-    connection_state_type: PropertyRef = PropertyRef("connection_state_type")
-    logging: PropertyRef = PropertyRef("logging")
-    source_zone_id: PropertyRef = PropertyRef("source_zone_id")
-    destination_zone_id: PropertyRef = PropertyRef("destination_zone_id")
+    """Properties of a UnifiFirewallPolicy."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    name: PropertyRef = PropertyRef("name", description="Name.")
+    description: PropertyRef = PropertyRef("description", description="Description.")
+    enabled: PropertyRef = PropertyRef("enabled", description="Enabled.")
+    action: PropertyRef = PropertyRef("action", description="Action.")
+    protocol: PropertyRef = PropertyRef("protocol", description="Protocol.")
+    predefined: PropertyRef = PropertyRef("predefined", description="Predefined.")
+    index: PropertyRef = PropertyRef("index", description="Index.")
+    ip_version: PropertyRef = PropertyRef("ip_version", description="Ip version.")
+    connection_state_type: PropertyRef = PropertyRef(
+        "connection_state_type", description="Connection state type."
+    )
+    logging: PropertyRef = PropertyRef("logging", description="Logging.")
+    source_zone_id: PropertyRef = PropertyRef(
+        "source_zone_id", description="Source zone id."
+    )
+    destination_zone_id: PropertyRef = PropertyRef(
+        "destination_zone_id", description="Destination zone id."
+    )
     # aiounifi FirewallPolicyEndpoint: matching_target ("IP", "NETWORK", "CLIENT", etc.)
-    source_matching_target: PropertyRef = PropertyRef("source_matching_target")
+    source_matching_target: PropertyRef = PropertyRef(
+        "source_matching_target", description="Source matching target."
+    )
     destination_matching_target: PropertyRef = PropertyRef(
         "destination_matching_target"
     )
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicyToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiFirewallPolicyToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiFirewallPolicy)
 class UnifiFirewallPolicyToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiFirewallPolicyToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -58,12 +78,18 @@ class UnifiFirewallPolicyToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicyToSourceZoneRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiFirewallPolicyToSourceZone relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiFirewallPolicy)-[:FROM_ZONE]->(:UnifiFirewallZone)
 class UnifiFirewallPolicyToSourceZoneRel(CartographyRelSchema):
+    """Relationship: UnifiFirewallPolicyToSourceZone."""
+
     target_node_label: str = "UnifiFirewallZone"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("source_zone_id")},
@@ -77,12 +103,18 @@ class UnifiFirewallPolicyToSourceZoneRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicyToDestZoneRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiFirewallPolicyToDestZone relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiFirewallPolicy)-[:TO_ZONE]->(:UnifiFirewallZone)
 class UnifiFirewallPolicyToDestZoneRel(CartographyRelSchema):
+    """Relationship: UnifiFirewallPolicyToDestZone."""
+
     target_node_label: str = "UnifiFirewallZone"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("destination_zone_id")},
@@ -96,13 +128,19 @@ class UnifiFirewallPolicyToDestZoneRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicyToClientRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiFirewallPolicyToClient relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiFirewallPolicy)-[:APPLIES_TO_CLIENT]->(:UnifiClient)
 # via source/destination client_macs (aiounifi FirewallPolicyEndpoint.client_macs)
 class UnifiFirewallPolicyToClientRel(CartographyRelSchema):
+    """Relationship: UnifiFirewallPolicyToClient."""
+
     target_node_label: str = "UnifiClient"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("client_macs", one_to_many=True)},
@@ -116,6 +154,8 @@ class UnifiFirewallPolicyToClientRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiFirewallPolicySchema(CartographyNodeSchema):
+    """A UnifiFirewallPolicy."""
+
     label: str = "UnifiFirewallPolicy"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ACCESS_CONTROL])
     properties: UnifiFirewallPolicyNodeProperties = UnifiFirewallPolicyNodeProperties()

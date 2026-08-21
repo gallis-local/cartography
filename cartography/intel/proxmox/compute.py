@@ -33,6 +33,7 @@ def get_vms_for_node(proxmox_client: Any, node_name: str) -> list[dict[str, Any]
         vm["node"] = node_name
     return vms
 
+
 @timeit
 def get_containers_for_node(
     proxmox_client: Any, node_name: str
@@ -50,6 +51,7 @@ def get_containers_for_node(
         ct["type"] = "lxc"
         ct["node"] = node_name
     return containers
+
 
 @timeit
 def get_vm_config(
@@ -70,6 +72,7 @@ def get_vm_config(
     else:
         return proxmox_client.nodes(node_name).lxc(vmid).config.get()
 
+
 @timeit
 def get_guest_agent_info(
     proxmox_client: Any, node_name: str, vmid: int
@@ -85,6 +88,7 @@ def get_guest_agent_info(
     :param vmid: VM ID
     :return: Guest agent data dict (empty if unavailable)
     """
+    import requests
     from proxmoxer.core import ResourceException
 
     guest_data: dict[str, Any] = {}
@@ -111,7 +115,10 @@ def get_guest_agent_info(
 
         # Get network interfaces with actual IPs
         network_info = (
-            proxmox_client.nodes(node_name).qemu(vmid).agent("network-get-interfaces").get()
+            proxmox_client.nodes(node_name)
+            .qemu(vmid)
+            .agent("network-get-interfaces")
+            .get()
         )
         if network_info and "result" in network_info:
             # Store raw network interface data for later processing
@@ -126,8 +133,8 @@ def get_guest_agent_info(
             f"Guest agent not available for VM {vmid} on node {node_name}: {e}"
         )
         guest_data["agent_enabled"] = False
-    except Exception as e:
-        # Unexpected error
+    except (requests.exceptions.RequestException, KeyError, ValueError) as e:
+        # Connection failure, or malformed/unexpected guest-agent response shape
         logger.warning(
             f"Error fetching guest agent data for VM {vmid} on node {node_name}: {e}"
         )
@@ -232,6 +239,7 @@ def transform_vm_data(
         )
 
     return transformed_vms
+
 
 def extract_disk_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str, Any]]:
     """
@@ -396,6 +404,7 @@ def extract_disk_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str, An
 
     return disks
 
+
 def extract_network_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str, Any]]:
     """
     Extract network interface configurations from VM config.
@@ -489,6 +498,7 @@ def extract_network_data(vm_config: dict[str, Any], vmid: str) -> list[dict[str,
 
     return interfaces
 
+
 def enrich_interfaces_with_guest_data(
     interfaces: list[dict[str, Any]],
     guest_network_interfaces: list[dict[str, Any]],
@@ -568,6 +578,7 @@ def load_vms(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_disks(
     neo4j_session: neo4j.Session,
     disks: list[dict[str, Any]],
@@ -592,6 +603,7 @@ def load_disks(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_network_interfaces(
     neo4j_session: neo4j.Session,
@@ -776,6 +788,7 @@ def sync(
     # Return VMs for use by snapshot sync
     return all_vms
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -786,8 +799,12 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common parameters for GraphJob
     """
-    GraphJob.from_node_schema(ProxmoxVMSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxDiskSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxNetworkInterfaceSchema(), common_job_parameters).run(
+    GraphJob.from_node_schema(ProxmoxVMSchema(), common_job_parameters).run(
         neo4j_session
     )
+    GraphJob.from_node_schema(ProxmoxDiskSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(
+        ProxmoxNetworkInterfaceSchema(), common_job_parameters
+    ).run(neo4j_session)

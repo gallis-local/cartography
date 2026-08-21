@@ -15,27 +15,43 @@ from cartography.models.unifi.extra_labels import NETWORK_ROUTING_RULE
 
 @dataclass(frozen=True)
 class UnifiTrafficRouteNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    description: PropertyRef = PropertyRef("description")
-    enabled: PropertyRef = PropertyRef("enabled")
-    matching_target: PropertyRef = PropertyRef("matching_target")
-    network_id: PropertyRef = PropertyRef("network_id")
-    next_hop: PropertyRef = PropertyRef("next_hop")
-    regions: PropertyRef = PropertyRef("regions")
-    domains: PropertyRef = PropertyRef("domains")
-    target_client_macs: PropertyRef = PropertyRef("target_client_macs")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiTrafficRoute."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    description: PropertyRef = PropertyRef("description", description="Description.")
+    enabled: PropertyRef = PropertyRef("enabled", description="Enabled.")
+    matching_target: PropertyRef = PropertyRef(
+        "matching_target", description="Matching target."
+    )
+    network_id: PropertyRef = PropertyRef("network_id", description="Network id.")
+    next_hop: PropertyRef = PropertyRef("next_hop", description="Next hop.")
+    regions: PropertyRef = PropertyRef("regions", description="Regions.")
+    domains: PropertyRef = PropertyRef("domains", description="Domains.")
+    target_client_macs: PropertyRef = PropertyRef(
+        "target_client_macs", description="Target client macs."
+    )
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiTrafficRouteToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiTrafficRouteToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiTrafficRoute)
 class UnifiTrafficRouteToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiTrafficRouteToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -49,12 +65,18 @@ class UnifiTrafficRouteToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiTrafficRouteToClientRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiTrafficRouteToClient relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiTrafficRoute)-[:APPLIES_TO_CLIENT]->(:UnifiClient)
 class UnifiTrafficRouteToClientRel(CartographyRelSchema):
+    """Relationship: UnifiTrafficRouteToClient."""
+
     target_node_label: str = "UnifiClient"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("target_client_macs", one_to_many=True)},
@@ -68,6 +90,8 @@ class UnifiTrafficRouteToClientRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiTrafficRouteSchema(CartographyNodeSchema):
+    """A UnifiTrafficRoute."""
+
     label: str = "UnifiTrafficRoute"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ROUTING_RULE])
     properties: UnifiTrafficRouteNodeProperties = UnifiTrafficRouteNodeProperties()

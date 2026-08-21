@@ -15,6 +15,8 @@ from cartography.models.ontology.labels import USER_ACCOUNT
 
 @dataclass(frozen=True)
 class FleetDMUserNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMUser node (a Fleet console user)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -54,11 +56,15 @@ class FleetDMUserNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMUserToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMUser->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMUserToTenantRel(CartographyRelSchema):
+    """Connects a user to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -70,11 +76,15 @@ class FleetDMUserToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMUserToHumanRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMUser->Human IDENTITY_FLEETDM relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMUserToHumanRel(CartographyRelSchema):
+    """Links a Fleet user account to its canonical Human identity, matched by email."""
+
     target_node_label: str = "Human"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"email": PropertyRef("email")},
@@ -86,6 +96,8 @@ class FleetDMUserToHumanRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMUserSchema(CartographyNodeSchema):
+    """A Fleet console user account."""
+
     label: str = "FleetDMUser"
     properties: FleetDMUserNodeProperties = FleetDMUserNodeProperties()
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_ACCOUNT])

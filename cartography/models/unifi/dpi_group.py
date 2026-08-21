@@ -15,23 +15,39 @@ from cartography.models.unifi.extra_labels import NETWORK_SECURITY_POLICY
 
 @dataclass(frozen=True)
 class UnifiDPIGroupNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    attr_no_delete: PropertyRef = PropertyRef("attr_no_delete")
-    attr_hidden_id: PropertyRef = PropertyRef("attr_hidden_id")
-    dpiapp_ids: PropertyRef = PropertyRef("dpiapp_ids")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiDPIGroup."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    name: PropertyRef = PropertyRef("name", description="Name.")
+    attr_no_delete: PropertyRef = PropertyRef(
+        "attr_no_delete", description="Attr no delete."
+    )
+    attr_hidden_id: PropertyRef = PropertyRef(
+        "attr_hidden_id", description="Attr hidden id."
+    )
+    dpiapp_ids: PropertyRef = PropertyRef("dpiapp_ids", description="Dpiapp ids.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiDPIGroupToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiDPIGroupToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiDPIGroup)
 class UnifiDPIGroupToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiDPIGroupToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -43,12 +59,18 @@ class UnifiDPIGroupToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiDPIGroupToAppRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiDPIGroupToApp relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiDPIGroup)-[:CONTAINS_APP]->(:UnifiDPIApp)
 class UnifiDPIGroupToAppRel(CartographyRelSchema):
+    """Relationship: UnifiDPIGroupToApp."""
+
     target_node_label: str = "UnifiDPIApp"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("dpiapp_ids", one_to_many=True)},
@@ -60,6 +82,8 @@ class UnifiDPIGroupToAppRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiDPIGroupSchema(CartographyNodeSchema):
+    """A UnifiDPIGroup."""
+
     label: str = "UnifiDPIGroup"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_SECURITY_POLICY])
     properties: UnifiDPIGroupNodeProperties = UnifiDPIGroupNodeProperties()

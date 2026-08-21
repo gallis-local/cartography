@@ -1,12 +1,17 @@
-## Proxmox Configuration
+# Proxmox Configuration
 
 Follow these steps to analyze Proxmox Virtual Environment infrastructure with Cartography.
 
-1. **Prepare your Proxmox credentials**
+## Prerequisites
 
-    Proxmox VE 7.0+ is required (tested with 8.x). Read-only access is sufficient - the `PVEAuditor` role is recommended.
+Proxmox VE 7.0+ is required (tested with 8.x). Read-only access is sufficient — the
+built-in `PVEAuditor` role is recommended.
 
-### Option 1: API Token Authentication (Recommended)
+## Authentication
+
+Cartography supports two authentication methods against the Proxmox API. Pick one.
+
+### API Token Authentication (Recommended)
 
 1. Create an API token in Proxmox:
     1. Navigate to **Datacenter → Permissions → API Tokens** in the Proxmox web interface.
@@ -16,35 +21,80 @@ Follow these steps to analyze Proxmox Virtual Environment infrastructure with Ca
     1. Uncheck **Privilege Separation** (or grant the `PVEAuditor` role separately).
     1. Click **Add** and save the token value securely.
 
-1. Populate environment variables with the token name and value. You can pass the environment variable names via CLI with the `--proxmox-token-name-env-var` and `--proxmox-token-value-env-var` parameters.
+1. Populate environment variables with the token name and value:
 
     ```bash
     export PROXMOX_TOKEN_NAME="cartography"
     export PROXMOX_TOKEN_VALUE="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     ```
 
-### Option 2: Password Authentication
+### Password Authentication
 
-1. Populate an environment variable with the password. You can pass the environment variable name via CLI with the `--proxmox-password-env-var` parameter.
+1. Populate an environment variable with the password:
 
     ```bash
     export PROXMOX_PASSWORD="your-password"
     ```
 
-1. The Proxmox user or API token needs the following permissions:
+## Required Permissions
 
-    - **VM.Audit**: Read VM and container configurations
-    - **Datastore.Audit**: Read storage information
-    - **Sys.Audit**: Read system and node information
+| Permission | Purpose |
+| --- | --- |
+| `VM.Audit` | Read VM and container configurations |
+| `Datastore.Audit` | Read storage information |
+| `Sys.Audit` | Read system and node information |
 
-    The built-in **PVEAuditor** role provides all necessary permissions for read-only access.
+The built-in `PVEAuditor` role grants all of the above and is sufficient for a
+full, read-only sync.
 
-1. Provide the Proxmox host using the `--proxmox-host` parameter and user using the `--proxmox-user` parameter (e.g., `root@pam`).
+## Optional Permissions
 
-1. [Optional] To use a custom port, use the `--proxmox-port` parameter (default is 8006).
+Token enumeration (`ProxmoxAPIToken` nodes) requires elevated rights beyond
+`PVEAuditor`. If the configured user or token cannot list other users' API
+tokens, Cartography logs a debug-level "Could not fetch tokens" message per
+user and continues the rest of the sync — this is expected unless you've
+granted broader access.
 
-1. [Optional] To disable SSL verification (not recommended for production), use the `--proxmox-verify-ssl false` parameter.
+## Configure Cartography
 
-1. [Optional] To enable QEMU Guest Agent data collection (requires guest agent installed in VMs), use the `--proxmox-enable-guest-agent` flag.
+| CLI flag | Environment variable it reads | Purpose |
+| --- | --- | --- |
+| `--proxmox-host` | — | Proxmox host to sync (e.g., `proxmox.example.com`) |
+| `--proxmox-port` | — | API port (default `8006`) |
+| `--proxmox-user` | — | Proxmox user, e.g. `root@pam` |
+| `--proxmox-token-name-env-var` | Name of the env var holding the token name | Token auth (recommended) |
+| `--proxmox-token-value-env-var` | Name of the env var holding the token value | Token auth (recommended) |
+| `--proxmox-password-env-var` | Name of the env var holding the password | Password auth (fallback) |
+| `--proxmox-verify-ssl` | — | Verify TLS certificates (default `true`) |
+| `--proxmox-timeout` | — | API request timeout in seconds (default `30`) |
+| `--proxmox-enable-guest-agent` | — | Collect QEMU Guest Agent data (requires the agent installed in VMs) |
+| `--proxmox-best-effort-mode` | — | Log and continue past a failing submodule sync instead of aborting the whole Proxmox sync |
+| `--proxmox-max-retries` | — | Max retry attempts for transient API failures (connection errors, 5xx, rate limiting) |
+| `--proxmox-retry-backoff` | — | Exponential backoff factor between retries |
 
-1. [Optional] To sync multiple Proxmox clusters, run Cartography separately for each cluster. Each cluster will be represented as a separate `ProxmoxCluster` node in the graph.
+## Run Cartography
+
+```bash
+export PROXMOX_TOKEN_NAME="cartography"
+export PROXMOX_TOKEN_VALUE="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+cartography --neo4j-uri bolt://localhost:7687 \
+    --proxmox-host proxmox.example.com \
+    --proxmox-user root@pam \
+    --proxmox-token-name-env-var PROXMOX_TOKEN_NAME \
+    --proxmox-token-value-env-var PROXMOX_TOKEN_VALUE
+```
+
+## Advanced Configuration
+
+To sync multiple Proxmox clusters, run Cartography separately (with its own
+`--proxmox-host` and credentials) once per cluster. Each cluster is
+represented as its own `ProxmoxCluster` node in the graph, and cleanup is
+scoped per cluster so syncing one cluster never deletes another cluster's
+nodes.
+
+## Troubleshooting
+
+If SSL verification fails against a self-signed Proxmox certificate, either
+install the certificate in your system trust store or pass
+`--proxmox-verify-ssl false` (not recommended for production).

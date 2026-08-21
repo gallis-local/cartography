@@ -15,29 +15,41 @@ from cartography.models.unifi.extra_labels import NETWORK_INTERFACE
 
 @dataclass(frozen=True)
 class UnifiPortNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    port_idx: PropertyRef = PropertyRef("port_idx")
-    name: PropertyRef = PropertyRef("name")
-    port_poe: PropertyRef = PropertyRef("port_poe")
-    poe_enable: PropertyRef = PropertyRef("poe_enable")
-    poe_mode: PropertyRef = PropertyRef("poe_mode")
-    poe_voltage: PropertyRef = PropertyRef("poe_voltage")
-    portconf_id: PropertyRef = PropertyRef("portconf_id")
-    up: PropertyRef = PropertyRef("up")
-    speed: PropertyRef = PropertyRef("speed")
-    full_duplex: PropertyRef = PropertyRef("full_duplex")
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    """Properties of a UnifiPort."""
+
+    id: PropertyRef = PropertyRef("id", description="Id.")
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    port_idx: PropertyRef = PropertyRef("port_idx", description="Port idx.")
+    name: PropertyRef = PropertyRef("name", description="Name.")
+    port_poe: PropertyRef = PropertyRef("port_poe", description="Port poe.")
+    poe_enable: PropertyRef = PropertyRef("poe_enable", description="Poe enable.")
+    poe_mode: PropertyRef = PropertyRef("poe_mode", description="Poe mode.")
+    poe_voltage: PropertyRef = PropertyRef("poe_voltage", description="Poe voltage.")
+    portconf_id: PropertyRef = PropertyRef("portconf_id", description="Portconf id.")
+    up: PropertyRef = PropertyRef("up", description="Up.")
+    speed: PropertyRef = PropertyRef("speed", description="Speed.")
+    full_duplex: PropertyRef = PropertyRef("full_duplex", description="Full duplex.")
+    site_id: PropertyRef = PropertyRef(
+        "site_id", set_in_kwargs=True, description="Site id."
+    )
 
 
 @dataclass(frozen=True)
 class UnifiPortToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiPortToSite relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiSite)-[:RESOURCE]->(:UnifiPort)
 class UnifiPortToSiteRel(CartographyRelSchema):
+    """Relationship: UnifiPortToSite."""
+
     target_node_label: str = "UnifiSite"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("site_id", set_in_kwargs=True)},
@@ -49,12 +61,18 @@ class UnifiPortToSiteRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiPortToDeviceRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    """Properties of the UnifiPortToDevice relationship."""
+
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
 # (:UnifiDevice)-[:HAS_PORT]->(:UnifiPort)
 class UnifiPortToDeviceRel(CartographyRelSchema):
+    """Relationship: UnifiPortToDevice."""
+
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("device_mac")},
@@ -66,6 +84,8 @@ class UnifiPortToDeviceRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class UnifiPortSchema(CartographyNodeSchema):
+    """A UnifiPort."""
+
     label: str = "UnifiPort"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_INTERFACE])
     properties: UnifiPortNodeProperties = UnifiPortNodeProperties()

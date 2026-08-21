@@ -463,9 +463,12 @@ def sync(
     # https://pve.proxmox.com/pve-docs/api-viewer/ -> /nodes/{node}/status
     for node in nodes:
         node_name = node["node"]
+        from proxmoxer.core import ResourceException
+        from requests.exceptions import RequestException
+
         try:
             status = get_node_status(proxmox_client, node_name)
-        except Exception as e:
+        except (ResourceException, RequestException) as e:
             logger.warning(f"Could not fetch node status for {node_name}: {e}")
             status = {}
 

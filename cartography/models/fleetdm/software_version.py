@@ -12,6 +12,8 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMSoftwareVersionNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMSoftwareVersion node (one specific version of a software title)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -62,11 +64,15 @@ class FleetDMSoftwareVersionNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMSoftwareVersionToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMSoftwareVersion->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMSoftwareVersionToTenantRel(CartographyRelSchema):
+    """Connects a software version to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -80,6 +86,8 @@ class FleetDMSoftwareVersionToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMSoftwareVersionSchema(CartographyNodeSchema):
+    """A specific version of a software title observed on one or more hosts."""
+
     label: str = "FleetDMSoftwareVersion"
     properties: FleetDMSoftwareVersionNodeProperties = (
         FleetDMSoftwareVersionNodeProperties()

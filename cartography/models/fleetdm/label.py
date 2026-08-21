@@ -12,6 +12,8 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMLabelNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMLabel node (a static or dynamic host grouping)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -51,11 +53,15 @@ class FleetDMLabelNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMLabelToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMLabel->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMLabelToTenantRel(CartographyRelSchema):
+    """Connects a label to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -67,6 +73,8 @@ class FleetDMLabelToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMLabelSchema(CartographyNodeSchema):
+    """A Fleet label: a static or dynamic (query-based) grouping of hosts."""
+
     label: str = "FleetDMLabel"
     properties: FleetDMLabelNodeProperties = FleetDMLabelNodeProperties()
     sub_resource_relationship: FleetDMLabelToTenantRel = FleetDMLabelToTenantRel()

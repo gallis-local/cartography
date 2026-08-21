@@ -12,6 +12,8 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 @dataclass(frozen=True)
 class FleetDMPolicyNodeProperties(CartographyNodeProperties):
+    """Properties of a FleetDMPolicy node (an osquery-based compliance check)."""
+
     id: PropertyRef = PropertyRef(
         "id", description="Unique identifier for this resource in Fleet."
     )
@@ -67,11 +69,15 @@ class FleetDMPolicyNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class FleetDMPolicyToTenantRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMPolicy->FleetDMTenant RESOURCE relationship."""
+
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
 
 @dataclass(frozen=True)
 class FleetDMPolicyToTenantRel(CartographyRelSchema):
+    """Connects a policy to the tenant it belongs to."""
+
     target_node_label: str = "FleetDMTenant"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
         {"id": PropertyRef("TENANT_ID", set_in_kwargs=True)},
@@ -85,6 +91,8 @@ class FleetDMPolicyToTenantRel(CartographyRelSchema):
 
 @dataclass(frozen=True)
 class FleetDMPolicySchema(CartographyNodeSchema):
+    """An osquery-based compliance policy that hosts are checked against."""
+
     label: str = "FleetDMPolicy"
     properties: FleetDMPolicyNodeProperties = FleetDMPolicyNodeProperties()
     sub_resource_relationship: FleetDMPolicyToTenantRel = FleetDMPolicyToTenantRel()

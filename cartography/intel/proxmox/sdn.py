@@ -32,9 +32,12 @@ def get_sdn_zones(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of zone data dictionaries
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.sdn.zones.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.warning(f"Failed to get SDN zones: {e}")
         return []
 
@@ -47,9 +50,12 @@ def get_sdn_vnets(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of VNet data dictionaries
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.sdn.vnets.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.warning(f"Failed to get SDN VNets: {e}")
         return []
 
@@ -63,9 +69,12 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
     :param vnet: VNet ID
     :return: List of subnet data dictionaries
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.sdn.vnets(vnet).subnets.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(f"No subnets found for VNet {vnet}: {e}")
         return []
 
@@ -78,9 +87,12 @@ def get_sdn_controllers(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of controller data dictionaries
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.sdn.controllers.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.warning(f"Failed to get SDN controllers: {e}")
         return []
 
@@ -93,9 +105,12 @@ def get_sdn_ipams(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of IPAM data dictionaries
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.sdn.ipams.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.warning(f"Failed to get SDN IPAMs: {e}")
         return []
 

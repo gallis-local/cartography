@@ -25,11 +25,15 @@ def get_cluster_firewall_options(proxmox_client: Any) -> dict[str, Any]:
     :param proxmox_client: Proxmox API client
     :return: Dict of firewall options
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.cluster.firewall.options.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(f"Could not fetch cluster firewall options: {e}")
         return {}
+
 
 @timeit
 def get_node_firewall_options(proxmox_client: Any, node_name: str) -> dict[str, Any]:
@@ -40,9 +44,12 @@ def get_node_firewall_options(proxmox_client: Any, node_name: str) -> dict[str, 
     :param node_name: Node name
     :return: Dict of firewall options
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     try:
         return proxmox_client.nodes(node_name).firewall.options.get()
-    except Exception as e:
+    except (ResourceException, RequestException) as e:
         logger.debug(f"Could not fetch firewall options for node {node_name}: {e}")
         return {}
 
@@ -72,14 +79,20 @@ def transform_firewall_options_data(
         options_id = f"{cluster_id}/vm/{scope_id}/firewall/options"
     else:
         # Fallback for unknown scopes
-        options_id = f"{cluster_id}/firewall/{scope}/{scope_id}/options" if scope_id else f"{cluster_id}/firewall/{scope}/options"
+        options_id = (
+            f"{cluster_id}/firewall/{scope}/{scope_id}/options"
+            if scope_id
+            else f"{cluster_id}/firewall/{scope}/options"
+        )
 
     return {
         "id": options_id,
         "cluster_id": cluster_id,
         "scope": scope,
         "scope_id": scope_id,
-        "node_id": f"{cluster_id}/node/{scope_id}" if scope == "node" and scope_id else None,
+        "node_id": (
+            f"{cluster_id}/node/{scope_id}" if scope == "node" and scope_id else None
+        ),
         "enable": options.get("enable", 0) == 1,  # Convert to boolean
         "policy_in": options.get("policy_in"),  # ACCEPT, REJECT, DROP
         "policy_out": options.get("policy_out"),
@@ -162,13 +175,16 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove stale firewall options data.
 
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common parameters for GraphJob
     """
-    GraphJob.from_node_schema(ProxmoxFirewallOptionsSchema(), common_job_parameters).run(
-        neo4j_session
-    )
+    GraphJob.from_node_schema(
+        ProxmoxFirewallOptionsSchema(), common_job_parameters
+    ).run(neo4j_session)

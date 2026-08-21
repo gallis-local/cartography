@@ -43,6 +43,7 @@ def load_sites(
     neo4j_session: neo4j.Session,
     data: list[dict[str, Any]],
     update_tag: int,
+    host: str = "unknown",
 ) -> None:
     """
     Load UniFi sites into Neo4j.
@@ -50,6 +51,9 @@ def load_sites(
     :param neo4j_session: Neo4j session
     :param data: List of site data
     :param update_tag: Update tag for the sync
+    :param host: Hostname of the UniFi controller these sites belong to.
+        Defaults to "unknown" for callers (mostly tests setting up fixture
+        data for other modules) that don't care about cleanup scoping.
     """
     logger.debug("Loading %d UniFi sites to the graph.", len(data))
     load(
@@ -57,6 +61,7 @@ def load_sites(
         UnifiSiteSchema(),
         data,
         lastupdated=update_tag,
+        host=host,
     )
 
 
@@ -72,13 +77,22 @@ def cleanup(
     We use a direct Cypher query instead so that sites removed from the
     controller are properly cleaned up.
 
+    Scoped to the controller `host` being synced: without this scope, every
+    cronjob run for any single UniFi controller would delete every OTHER
+    controller's UnifiSite node (since it wasn't touched by this run's
+    UPDATE_TAG), stranding that controller's clients/port forwards/etc with
+    a dangling site_id until its own cronjob happens to run again. That
+    caused real orphaned nodes in production when syncing multiple
+    controllers (e.g. east and west) into the same graph.
+
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common job parameters
     """
     logger.debug("Running UniFi site cleanup job")
     run_write_query(
         neo4j_session,
-        "MATCH (s:UnifiSite) WHERE s.lastupdated <> $UPDATE_TAG DETACH DELETE s",
+        "MATCH (s:UnifiSite {host: $HOST}) WHERE s.lastupdated <> $UPDATE_TAG DETACH DELETE s",
+        HOST=common_job_parameters["host"],
         UPDATE_TAG=common_job_parameters["UPDATE_TAG"],
     )
 
@@ -97,5 +111,10 @@ async def sync(
     :param common_job_parameters: Common job parameters
     """
     sites = await get(controller)
-    load_sites(neo4j_session, sites, common_job_parameters["UPDATE_TAG"])
+    load_sites(
+        neo4j_session,
+        sites,
+        common_job_parameters["UPDATE_TAG"],
+        host=common_job_parameters["host"],
+    )
     cleanup(neo4j_session, common_job_parameters)

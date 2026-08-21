@@ -72,9 +72,12 @@ def get_group_members(
             continue
 
         # Get detailed group info including members
+        from proxmoxer.core import ResourceException
+        from requests.exceptions import RequestException
+
         try:
             group_detail = proxmox_client.access.groups(groupid).get()
-        except Exception as e:
+        except (ResourceException, RequestException) as e:
             logger.warning(f"Could not fetch member details for group {groupid}: {e}")
             continue
 

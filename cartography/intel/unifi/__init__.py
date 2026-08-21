@@ -26,10 +26,10 @@ import cartography.intel.unifi.wlans
 from cartography.config import Config
 from cartography.intel.unifi.util import close_controller
 from cartography.intel.unifi.util import create_unifi_controller
+from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
 from cartography.util import run_analysis_and_ensure_deps
 from cartography.util import timeit
-from cartography.stats import get_stats_client
 
 logger = logging.getLogger(__name__)
 stat_handler = get_stats_client(__name__)
@@ -136,6 +136,7 @@ async def _sync_unifi(
         common_job_parameters = {
             "UPDATE_TAG": update_tag,
             "site_id": site_id,
+            "host": host,
         }
 
         # Sync in hierarchical order.
