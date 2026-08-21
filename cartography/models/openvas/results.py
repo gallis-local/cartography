@@ -145,6 +145,8 @@ class OpenVASNVTNodeProperties(CartographyNodeProperties):
     cvss_base: PropertyRef = PropertyRef("cvss_base")
     cvss_base_vector: PropertyRef = PropertyRef("cvss_base_vector")
     solution: PropertyRef = PropertyRef("solution")
+    solution_type: PropertyRef = PropertyRef("solution_type", extra_index=True)
+    solution_method: PropertyRef = PropertyRef("solution_method")
     qod: PropertyRef = PropertyRef("qod")
     qod_type: PropertyRef = PropertyRef("qod_type")
     description: PropertyRef = PropertyRef("description")

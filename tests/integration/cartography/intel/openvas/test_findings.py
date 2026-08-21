@@ -106,6 +106,14 @@ def test_sync_results(neo4j_session):
     assert (NVT_OID_2, NVT_OID_2) in nvt_nodes
     assert len(nvt_nodes) == 2
 
+    # The <solution> element's type/method attributes (remediation category
+    # and mechanism) are captured, not just its text.
+    nvt_solutions = (
+        check_nodes(neo4j_session, "OpenVASNVT", ["id", "solution_type"]) or set()
+    )
+    assert (NVT_OID_1, "VendorFix") in nvt_solutions
+    assert (NVT_OID_2, None) in nvt_solutions
+
     # Results with a CVE carry the CVE semantic label.
     cve_labeled = check_nodes(neo4j_session, "CVE", ["id"]) or set()
     assert (RESULT_ID_1,) in cve_labeled
