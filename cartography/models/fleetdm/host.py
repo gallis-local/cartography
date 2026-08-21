@@ -9,6 +9,8 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
+from cartography.models.core.relationships import make_source_node_matcher
+from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 from cartography.models.ontology.labels import DEVICE
 
@@ -149,6 +151,27 @@ class FleetDMHostNodeProperties(CartographyNodeProperties):
     last_restarted_at: PropertyRef = PropertyRef(
         "last_restarted_at", description="Timestamp the host was last restarted."
     )
+    team_id: PropertyRef = PropertyRef(
+        "team_id", description="ID of the Fleet team the host belongs to."
+    )
+    mdm_enrollment_status: PropertyRef = PropertyRef(
+        "mdm_enrollment_status",
+        description="Mobile device management (MDM) enrollment status of the host.",
+    )
+    mdm_name: PropertyRef = PropertyRef(
+        "mdm_name", description="Name of the MDM solution managing the host, if any."
+    )
+    mdm_server_url: PropertyRef = PropertyRef(
+        "mdm_server_url", description="URL of the MDM server managing the host, if any."
+    )
+    geolocation_country_iso: PropertyRef = PropertyRef(
+        "geolocation_country_iso",
+        description="ISO country code of the host's last known location, derived from its public IP.",
+    )
+    geolocation_city_name: PropertyRef = PropertyRef(
+        "geolocation_city_name",
+        description="City name of the host's last known location, derived from its public IP.",
+    )
 
 
 @dataclass(frozen=True)
@@ -184,6 +207,50 @@ class FleetDMHostToFleetRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class FleetDMHostToSoftwareVersionRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class FleetDMHostToSoftwareVersionRel(CartographyRelSchema):
+    """
+    The host has this software version installed, per the Fleet API's per-host
+    software inventory (`populate_software` on `GET /api/v1/fleet/hosts`).
+    """
+
+    target_node_label: str = "FleetDMSoftwareVersion"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("software_version_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_SOFTWARE"
+    properties: FleetDMHostToSoftwareVersionRelProperties = (
+        FleetDMHostToSoftwareVersionRelProperties()
+    )
+
+
+@dataclass(frozen=True)
+class FleetDMHostToLabelRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class FleetDMHostToLabelRel(CartographyRelSchema):
+    """
+    The host is a member of this label, per the Fleet API's per-host label
+    membership (`populate_labels` on `GET /api/v1/fleet/hosts`).
+    """
+
+    target_node_label: str = "FleetDMLabel"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("label_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "MEMBER_OF_LABEL"
+    properties: FleetDMHostToLabelRelProperties = FleetDMHostToLabelRelProperties()
+
+
+@dataclass(frozen=True)
 class FleetDMHostSchema(CartographyNodeSchema):
     label: str = "FleetDMHost"
     properties: FleetDMHostNodeProperties = FleetDMHostNodeProperties()
@@ -192,5 +259,38 @@ class FleetDMHostSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             FleetDMHostToFleetRel(),
+            FleetDMHostToSoftwareVersionRel(),
+            FleetDMHostToLabelRel(),
         ]
     )
+
+
+@dataclass(frozen=True)
+class FleetDMHostToPolicyRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    _sub_resource_label: PropertyRef = PropertyRef(
+        "_sub_resource_label", set_in_kwargs=True
+    )
+    _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+    response: PropertyRef = PropertyRef(
+        "response",
+        description="The host's result for this policy: 'pass', 'fail', or 'unsupported'.",
+    )
+
+
+@dataclass(frozen=True)
+# (:FleetDMHost)-[:CHECKS]->(:FleetDMPolicy)
+class FleetDMHostToPolicyMatchLink(CartographyRelSchema):
+    """Records whether a host passes or fails a given policy check."""
+
+    target_node_label: str = "FleetDMPolicy"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("policy_id")},
+    )
+    source_node_label: str = "FleetDMHost"
+    source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
+        {"id": PropertyRef("host_id")},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "CHECKS"
+    properties: FleetDMHostToPolicyRelProperties = FleetDMHostToPolicyRelProperties()

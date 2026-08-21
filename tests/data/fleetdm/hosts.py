@@ -59,7 +59,36 @@ MOCK_HOSTS_RESPONSE = [
             "encryption_key_available": True,
             "enrollment_status": "Enrolled",
             "name": "Fleet",
+            "server_url": "https://fleet.example.com/mdm/apple/mdm",
         },
+        "software": [
+            {
+                "id": 1,
+                "name": "1password",
+                "version": "8.10.36",
+                "source": "apps",
+                "generated_cpe": "cpe:2.3:a:1password:1password:8.10.36:*:*:*:*:*:*:*",
+                "vulnerabilities": [],
+            },
+        ],
+        "policies": [
+            {
+                "id": 1,
+                "name": "Gatekeeper enabled",
+                "query": "SELECT 1 FROM gatekeeper WHERE assessments_enabled = 1;",
+                "response": "pass",
+            },
+            {
+                "id": 2,
+                "name": "Full disk encryption",
+                "query": "SELECT 1 FROM disk_encryption WHERE user_authenticated = 1;",
+                "response": "fail",
+            },
+        ],
+        "labels": [
+            {"id": 1, "name": "All Hosts"},
+            {"id": 2, "name": "macOS"},
+        ],
     },
     {
         "created_at": "2024-02-20T14:00:00Z",

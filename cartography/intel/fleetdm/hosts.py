@@ -5,9 +5,11 @@ import neo4j
 import requests
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.intel.fleetdm.utils import paginated_get
 from cartography.models.fleetdm.host import FleetDMHostSchema
+from cartography.models.fleetdm.host import FleetDMHostToPolicyMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,9 @@ def sync(
     logger.info("Starting FleetDM hosts sync")
     hosts = get(api_session, base_url)
     transformed = transform(hosts)
+    policy_links = transform_policy_links(hosts)
     load_hosts(neo4j_session, transformed, tenant_id, update_tag)
+    load_host_policy_links(neo4j_session, policy_links, tenant_id, update_tag)
     cleanup(neo4j_session, common_job_parameters)
     logger.info("Completed FleetDM hosts sync")
 
@@ -51,6 +55,10 @@ def transform(api_result: list[dict[str, Any]]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     for host in api_result:
         issues = host.get("issues") or {}
+        geolocation = host.get("geolocation") or {}
+        mdm = host.get("mdm") or {}
+        software = host.get("software") or []
+        labels = host.get("labels") or []
         result.append(
             {
                 "id": str(host.get("id")),
@@ -99,8 +107,40 @@ def transform(api_result: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "created_at": host.get("created_at"),
                 "updated_at": host.get("updated_at"),
                 "last_restarted_at": host.get("last_restarted_at"),
+                "team_id": str(host["team_id"]) if host.get("team_id") else None,
+                "mdm_enrollment_status": mdm.get("enrollment_status"),
+                "mdm_name": mdm.get("name"),
+                "mdm_server_url": mdm.get("server_url"),
+                "geolocation_country_iso": geolocation.get("country_iso"),
+                "geolocation_city_name": geolocation.get("city_name"),
+                "software_version_ids": [
+                    str(s["id"]) for s in software if s.get("id") is not None
+                ],
+                "label_ids": [
+                    str(label["id"]) for label in labels if label.get("id") is not None
+                ],
             }
         )
+    return result
+
+
+def transform_policy_links(api_result: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build one row per (host, policy) pair from each host's per-host policy
+    results (`populate_policies=true` on `GET /api/v1/fleet/hosts`), so the
+    host's pass/fail response for each policy can be modeled as a MatchLink."""
+    result: list[dict[str, Any]] = []
+    for host in api_result:
+        host_id = str(host.get("id"))
+        for policy in host.get("policies") or []:
+            if policy.get("id") is None:
+                continue
+            result.append(
+                {
+                    "host_id": host_id,
+                    "policy_id": str(policy["id"]),
+                    "response": policy.get("response"),
+                }
+            )
     return result
 
 
@@ -121,10 +161,33 @@ def load_hosts(
 
 
 @timeit
+def load_host_policy_links(
+    neo4j_session: neo4j.Session,
+    data: list[dict[str, Any]],
+    tenant_id: str,
+    update_tag: int,
+) -> None:
+    load_matchlinks(
+        neo4j_session,
+        FleetDMHostToPolicyMatchLink(),
+        data,
+        lastupdated=update_tag,
+        _sub_resource_label="FleetDMTenant",
+        _sub_resource_id=tenant_id,
+    )
+
+
+@timeit
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
 ) -> None:
+    GraphJob.from_matchlink(
+        FleetDMHostToPolicyMatchLink(),
+        "FleetDMTenant",
+        common_job_parameters["TENANT_ID"],
+        common_job_parameters["UPDATE_TAG"],
+    ).run(neo4j_session)
     GraphJob.from_node_schema(FleetDMHostSchema(), common_job_parameters).run(
         neo4j_session,
     )
