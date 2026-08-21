@@ -88,6 +88,34 @@ class ProxmoxSnapshotToVMRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProxmoxSnapshotToParentRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxSnapshotToParentRel(CartographyRelSchema):
+    """
+    Snapshots form a chain: each snapshot (other than the root) has a parent
+    snapshot it was taken from. Proxmox exposes this via the `parent` field
+    on GET /nodes/{node}/qemu|lxc/{vmid}/snapshot (see
+    https://pve.proxmox.com/pve-docs/api-viewer/). Modeling this lets callers
+    walk the snapshot lineage of a VM/container.
+    """
+
+    target_node_label: str = "ProxmoxSnapshot"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("parent_snapshot_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "CHILD_OF"
+    properties: ProxmoxSnapshotToParentRelProperties = (
+        ProxmoxSnapshotToParentRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class ProxmoxSnapshotSchema(CartographyNodeSchema):
     """
     Schema for ProxmoxSnapshot.
@@ -103,5 +131,6 @@ class ProxmoxSnapshotSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxSnapshotToVMRel(),
+            ProxmoxSnapshotToParentRel(),
         ]
     )

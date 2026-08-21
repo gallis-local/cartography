@@ -138,6 +138,27 @@ def test_sdn_zones_transform():
     assert zones[0]["cluster_id"] == CLUSTER_ID
 
 
+def test_sdn_zone_node_relationships_transform():
+    """Test building zone->node relationship rows from the zone `nodes` field."""
+    zones = [
+        {"id": f"{CLUSTER_ID}/sdn/zone/zone1", "nodes": "node1,node2"},
+        # No `nodes` restriction -> available on all nodes -> no rows produced
+        {"id": f"{CLUSTER_ID}/sdn/zone/zone2", "nodes": None},
+    ]
+
+    relationships = sdn.transform_sdn_zone_node_relationships(zones, CLUSTER_ID)
+
+    assert len(relationships) == 2
+    assert {
+        "zone_id": f"{CLUSTER_ID}/sdn/zone/zone1",
+        "node_id": f"{CLUSTER_ID}/node/node1",
+    } in relationships
+    assert {
+        "zone_id": f"{CLUSTER_ID}/sdn/zone/zone1",
+        "node_id": f"{CLUSTER_ID}/node/node2",
+    } in relationships
+
+
 def test_sdn_vnets_transform():
     """Test transforming SDN VNet data."""
     vnets_data = [
@@ -164,6 +185,7 @@ def test_sdn_subnets_transform():
     subnets_data = [
         {
             "subnet": "10.0.1.0/24",
+            "type": "subnet",
             "gateway": "10.0.1.1",
             "snat": 1,
         },
@@ -176,6 +198,7 @@ def test_sdn_subnets_transform():
     assert subnets[0]["id"] == f"{CLUSTER_ID}/sdn/vnet/vnet100/subnet/10.0.1.0_24"
     assert subnets[0]["subnet"] == "10.0.1.0/24"
     assert subnets[0]["vnet"] == "vnet100"
+    assert subnets[0]["type"] == "subnet"
     assert subnets[0]["gateway"] == "10.0.1.1"
     assert subnets[0]["cluster_id"] == CLUSTER_ID
 
@@ -227,12 +250,18 @@ def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
     update_tag = 12345
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
-    # Create cluster node so RESOURCE relationship can be attached
+    # Create cluster and node nodes so relationships can be attached
     neo4j_session.run(
         "MERGE (c:ProxmoxCluster {id: $id}) SET c.lastupdated = $tag",
         id=CLUSTER_ID,
         tag=update_tag,
     )
+    for node_name in ("node1", "node2"):
+        neo4j_session.run(
+            "MERGE (n:ProxmoxNode {id: $id}) SET n.lastupdated = $tag",
+            id=f"{CLUSTER_ID}/node/{node_name}",
+            tag=update_tag,
+        )
 
     sdn.sync(
         neo4j_session,
@@ -266,6 +295,31 @@ def test_sync_sdn_zones(neo4j_session: neo4j.Session, proxmox_client_mock):
         cluster_id=CLUSTER_ID,
     )
     assert result.single()["count"] == 1
+
+    # Verify zone1 (nodes="node1,node2") is AVAILABLE_ON both nodes
+    result = neo4j_session.run(
+        """
+        MATCH (z:ProxmoxSDNZone{id: $zone_id})-[:AVAILABLE_ON]->(n:ProxmoxNode)
+        RETURN n.id as node_id
+        ORDER BY node_id
+        """,
+        zone_id=f"{CLUSTER_ID}/sdn/zone/zone1",
+    )
+    node_ids = {r["node_id"] for r in result}
+    assert node_ids == {
+        f"{CLUSTER_ID}/node/node1",
+        f"{CLUSTER_ID}/node/node2",
+    }
+
+    # zone2 has no "nodes" restriction -> no AVAILABLE_ON edges produced
+    result = neo4j_session.run(
+        """
+        MATCH (z:ProxmoxSDNZone{id: $zone_id})-[:AVAILABLE_ON]->(n:ProxmoxNode)
+        RETURN count(n) as count
+        """,
+        zone_id=f"{CLUSTER_ID}/sdn/zone/zone2",
+    )
+    assert result.single()["count"] == 0
 
 
 def test_sync_sdn_vnets(neo4j_session: neo4j.Session, proxmox_client_mock):

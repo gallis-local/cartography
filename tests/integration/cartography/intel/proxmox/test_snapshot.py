@@ -80,7 +80,9 @@ def test_snapshot_sync(mock_get_snapshots, neo4j_session):
 def test_snapshot_to_cluster_relationship(mock_get_snapshots, neo4j_session):
     """Test ProxmoxSnapshot RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1
+    )
     proxmox_client = MagicMock()
 
     # Mock snapshot data
@@ -198,6 +200,67 @@ def test_snapshot_to_vm_relationship(mock_get_snapshots, neo4j_session):
 
 
 @patch.object(cartography.intel.proxmox.snapshot, "get_all_snapshots")
+def test_snapshot_chain_parent_relationship(mock_get_snapshots, neo4j_session):
+    """Test ProxmoxSnapshot CHILD_OF relationship links a snapshot to its parent."""
+    # Setup
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    proxmox_client = MagicMock()
+
+    mock_snapshot_data = []
+    for snapshot in MOCK_QEMU_SNAPSHOTS:
+        if snapshot["name"] != "current":
+            snapshot_copy = snapshot.copy()
+            snapshot_copy["node"] = "pve1"
+            snapshot_copy["vmid"] = 100
+            snapshot_copy["vm_type"] = "qemu"
+            mock_snapshot_data.append(snapshot_copy)
+
+    mock_get_snapshots.return_value = mock_snapshot_data
+
+    common_job_parameters = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": cluster_id,
+    }
+
+    # Act
+    sync(
+        neo4j_session,
+        proxmox_client,
+        cluster_id,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+        MOCK_VMS_FOR_SNAPSHOT,
+    )
+
+    # Assert - snapshot2 (parent="snapshot1") should link CHILD_OF -> snapshot1
+    result = neo4j_session.run(
+        """
+        MATCH (child:ProxmoxSnapshot)-[:CHILD_OF]->(parent:ProxmoxSnapshot)
+        WHERE child.cluster_id = $cluster_id
+        RETURN child.name as child_name, parent.name as parent_name
+        """,
+        cluster_id=cluster_id,
+    )
+
+    rels = list(result)
+    assert len(rels) == 1
+    assert rels[0]["child_name"] == "snapshot2"
+    assert rels[0]["parent_name"] == "snapshot1"
+
+    # snapshot1 has no parent (parent=""), so it should have no outgoing CHILD_OF
+    result = neo4j_session.run(
+        """
+        MATCH (s:ProxmoxSnapshot {name: 'snapshot1'})
+        WHERE s.cluster_id = $cluster_id
+        OPTIONAL MATCH (s)-[:CHILD_OF]->(p:ProxmoxSnapshot)
+        RETURN p
+        """,
+        cluster_id=cluster_id,
+    )
+    assert result.single()["p"] is None
+
+
+@patch.object(cartography.intel.proxmox.snapshot, "get_all_snapshots")
 def test_snapshot_multi_cluster_isolation(mock_get_snapshots, neo4j_session):
     """Test snapshots from different clusters don't merge."""
     # Setup two clusters
@@ -264,7 +327,9 @@ def test_snapshot_multi_cluster_isolation(mock_get_snapshots, neo4j_session):
 def test_snapshot_cleanup_stale_data(mock_get_snapshots, neo4j_session):
     """Test cleanup removes stale snapshots from previous sync."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2
+    )
     proxmox_client = MagicMock()
 
     # First sync - create snapshot1 and snapshot2

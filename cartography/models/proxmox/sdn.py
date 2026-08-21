@@ -13,8 +13,10 @@ from cartography.models.core.nodes import ExtraNodeLabels
 from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
+from cartography.models.core.relationships import make_source_node_matcher
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
+from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
 from cartography.models.ontology.labels import SUBNET
 from cartography.models.ontology.labels import VIRTUAL_NETWORK
@@ -100,6 +102,51 @@ class ProxmoxSDNZoneSchema(CartographyNodeSchema):
     properties: ProxmoxSDNZoneNodeProperties = ProxmoxSDNZoneNodeProperties()
     sub_resource_relationship: ProxmoxSDNZoneToClusterRel = ProxmoxSDNZoneToClusterRel()
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([VIRTUAL_NETWORK])
+
+
+# MatchLink Schema for Zone Availability Relationships
+
+
+@dataclass(frozen=True)
+class ProxmoxSDNZoneToNodeMatchLinkProperties(CartographyRelProperties):
+    """
+    Properties for zone to node AVAILABLE_ON relationship.
+    """
+
+    # Required for all MatchLinks
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    _sub_resource_label: PropertyRef = PropertyRef(
+        "_sub_resource_label", set_in_kwargs=True
+    )
+    _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class ProxmoxSDNZoneToNodeMatchLink(CartographyRelSchema):
+    """
+    Connects an SDN zone to the nodes it is restricted to (the zone's
+    `nodes` field - see https://pve.proxmox.com/pve-docs/api-viewer/ ->
+    /cluster/sdn/zones). A zone with no `nodes` restriction applies to all
+    cluster nodes, so no edges are produced for it (see transform_sdn_zone_node_relationships).
+    """
+
+    target_node_label: str = "ProxmoxNode"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "id": PropertyRef("node_id"),
+        }
+    )
+    source_node_label: str = "ProxmoxSDNZone"
+    source_node_matcher: SourceNodeMatcher = make_source_node_matcher(
+        {
+            "id": PropertyRef("zone_id"),
+        }
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "AVAILABLE_ON"
+    properties: ProxmoxSDNZoneToNodeMatchLinkProperties = (
+        ProxmoxSDNZoneToNodeMatchLinkProperties()
+    )
 
 
 # ProxmoxSDNVNet Node Schema
@@ -208,6 +255,7 @@ class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
     subnet: PropertyRef = PropertyRef("subnet", extra_index=True)
     vnet: PropertyRef = PropertyRef("vnet")
     cluster_id: PropertyRef = PropertyRef("cluster_id")
+    type: PropertyRef = PropertyRef("type")
 
     # Subnet configuration
     gateway: PropertyRef = PropertyRef("gateway")

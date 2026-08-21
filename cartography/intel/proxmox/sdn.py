@@ -11,15 +11,18 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
 from cartography.models.proxmox.sdn import ProxmoxSDNControllerSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNIPAMSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNSubnetSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNVNetSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNZoneSchema
+from cartography.models.proxmox.sdn import ProxmoxSDNZoneToNodeMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
+
 
 @timeit
 def get_sdn_zones(proxmox_client: Any) -> list[dict[str, Any]]:
@@ -35,6 +38,7 @@ def get_sdn_zones(proxmox_client: Any) -> list[dict[str, Any]]:
         logger.warning(f"Failed to get SDN zones: {e}")
         return []
 
+
 @timeit
 def get_sdn_vnets(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -48,6 +52,7 @@ def get_sdn_vnets(proxmox_client: Any) -> list[dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Failed to get SDN VNets: {e}")
         return []
+
 
 @timeit
 def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
@@ -64,6 +69,7 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
         logger.debug(f"No subnets found for VNet {vnet}: {e}")
         return []
 
+
 @timeit
 def get_sdn_controllers(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -78,6 +84,7 @@ def get_sdn_controllers(proxmox_client: Any) -> list[dict[str, Any]]:
         logger.warning(f"Failed to get SDN controllers: {e}")
         return []
 
+
 @timeit
 def get_sdn_ipams(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -91,6 +98,7 @@ def get_sdn_ipams(proxmox_client: Any) -> list[dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Failed to get SDN IPAMs: {e}")
         return []
+
 
 @timeit
 def transform_sdn_zones(
@@ -133,6 +141,44 @@ def transform_sdn_zones(
         )
     return transformed_zones
 
+
+@timeit
+def transform_sdn_zone_node_relationships(
+    zones: list[dict[str, Any]], cluster_id: str
+) -> list[dict[str, Any]]:
+    """
+    Build zone -> node relationship rows from each zone's `nodes` field.
+
+    A zone with no `nodes` restriction is available on every node in the
+    cluster, so it produces no explicit rows here (there's nothing scoped
+    to link).
+
+    :param zones: Transformed zone data (must include "zone" and "nodes")
+    :param cluster_id: Cluster identifier
+    :return: List of dicts with zone_id and node_id, for use with
+        ProxmoxSDNZoneToNodeMatchLink.
+    """
+    relationships = []
+    for zone in zones:
+        nodes_str = zone.get("nodes")
+        if not nodes_str:
+            continue
+
+        for node_name in str(nodes_str).split(","):
+            node_name = node_name.strip()
+            if not node_name:
+                continue
+
+            relationships.append(
+                {
+                    "zone_id": zone["id"],
+                    "node_id": f"{cluster_id}/node/{node_name}",
+                }
+            )
+
+    return relationships
+
+
 @timeit
 def transform_sdn_vnets(
     vnets_data: list[dict[str, Any]], cluster_id: str
@@ -164,6 +210,7 @@ def transform_sdn_vnets(
         )
     return transformed_vnets
 
+
 @timeit
 def transform_sdn_subnets(
     subnets_data: list[dict[str, Any]], vnet_id: str, cluster_id: str
@@ -191,6 +238,9 @@ def transform_sdn_subnets(
                 "subnet": subnet_cidr,
                 "vnet": vnet_id,
                 "cluster_id": cluster_id,
+                # Config type discriminator (currently always "subnet"), see
+                # https://pve.proxmox.com/pve-docs/api-viewer/ -> /cluster/sdn/vnets/{vnet}/subnets
+                "type": subnet.get("type"),
                 "gateway": subnet.get("gateway"),
                 "snat": subnet.get("snat"),
                 "dhcp_range": subnet.get("dhcp-range"),
@@ -198,6 +248,7 @@ def transform_sdn_subnets(
             }
         )
     return transformed_subnets
+
 
 @timeit
 def transform_sdn_controllers(
@@ -227,10 +278,13 @@ def transform_sdn_controllers(
                 "node": controller.get("node"),
                 "ebgp": controller.get("ebgp"),
                 "loopback": controller.get("loopback"),
-                "bgp_multipath_as_path_relax": controller.get("bgp-multipath-as-path-relax"),
+                "bgp_multipath_as_path_relax": controller.get(
+                    "bgp-multipath-as-path-relax"
+                ),
             }
         )
     return transformed_controllers
+
 
 @timeit
 def transform_sdn_ipams(
@@ -263,6 +317,7 @@ def transform_sdn_ipams(
         )
     return transformed_ipams
 
+
 @timeit
 def load_sdn_zones(
     neo4j_session: neo4j.Session,
@@ -285,6 +340,37 @@ def load_sdn_zones(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
+
+@timeit
+def load_sdn_zone_node_relationships(
+    neo4j_session: neo4j.Session,
+    relationships: list[dict[str, Any]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Create AVAILABLE_ON relationships between SDN zones and the nodes
+    they're restricted to.
+
+    :param neo4j_session: Neo4j session
+    :param relationships: List of dicts with zone_id/node_id (see
+        transform_sdn_zone_node_relationships)
+    :param cluster_id: Cluster identifier
+    :param update_tag: Update tag for cleanup
+    """
+    if not relationships:
+        return
+
+    load_matchlinks(
+        neo4j_session,
+        ProxmoxSDNZoneToNodeMatchLink(),
+        relationships,
+        lastupdated=update_tag,
+        _sub_resource_label="ProxmoxCluster",
+        _sub_resource_id=cluster_id,
+    )
+
 
 @timeit
 def load_sdn_vnets(
@@ -309,6 +395,7 @@ def load_sdn_vnets(
         CLUSTER_ID=cluster_id,
     )
 
+
 @timeit
 def load_sdn_subnets(
     neo4j_session: neo4j.Session,
@@ -331,6 +418,7 @@ def load_sdn_subnets(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 @timeit
 def load_sdn_controllers(
@@ -355,6 +443,7 @@ def load_sdn_controllers(
         CLUSTER_ID=cluster_id,
     )
 
+
 @timeit
 def load_sdn_ipams(
     neo4j_session: neo4j.Session,
@@ -378,6 +467,7 @@ def load_sdn_ipams(
         CLUSTER_ID=cluster_id,
     )
 
+
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -400,6 +490,11 @@ def sync(
     zones_data = get_sdn_zones(proxmox_client)
     zones = transform_sdn_zones(zones_data, cluster_id)
     load_sdn_zones(neo4j_session, zones, cluster_id, update_tag)
+
+    zone_node_rels = transform_sdn_zone_node_relationships(zones, cluster_id)
+    load_sdn_zone_node_relationships(
+        neo4j_session, zone_node_rels, cluster_id, update_tag
+    )
 
     # Sync SDN VNets
     vnets_data = get_sdn_vnets(proxmox_client)
@@ -433,6 +528,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -443,10 +539,24 @@ def cleanup(
     :param neo4j_session: Neo4j session
     :param common_job_parameters: Common parameters for GraphJob
     """
-    GraphJob.from_node_schema(ProxmoxSDNZoneSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxSDNVNetSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxSDNSubnetSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNZoneSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_matchlink(
+        ProxmoxSDNZoneToNodeMatchLink(),
+        "ProxmoxCluster",
+        common_job_parameters["CLUSTER_ID"],
+        common_job_parameters["UPDATE_TAG"],
+    ).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNVNetSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxSDNSubnetSchema(), common_job_parameters).run(
+        neo4j_session
+    )
     GraphJob.from_node_schema(ProxmoxSDNControllerSchema(), common_job_parameters).run(
         neo4j_session
     )
-    GraphJob.from_node_schema(ProxmoxSDNIPAMSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxSDNIPAMSchema(), common_job_parameters).run(
+        neo4j_session
+    )
