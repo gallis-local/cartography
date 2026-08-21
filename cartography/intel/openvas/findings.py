@@ -172,6 +172,15 @@ def cleanup(
         OpenVASResultSchema(),
         common_job_parameters,
     ).run(neo4j_session)
+    # NVTs are loaded with the same lastupdated/instance scoping as results
+    # (see load_results_and_nvts) but were never cleaned up here, so NVTs no
+    # longer detected in any current result (patched, or aged out of the
+    # lookback window) would accumulate forever instead of being removed.
+    logger.debug("Running OpenVAS NVT cleanup job")
+    GraphJob.from_node_schema(
+        OpenVASNVTSchema(),
+        common_job_parameters,
+    ).run(neo4j_session)
 
 
 @timeit
