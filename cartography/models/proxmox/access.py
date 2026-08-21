@@ -50,8 +50,6 @@ class ProxmoxUserToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxUserToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxUser)
-
     Users belong to clusters.
     """
 
@@ -72,8 +70,6 @@ class ProxmoxUserToGroupRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxUserToGroupRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxUser)-[:MEMBER_OF]->(:ProxmoxGroup)
-
     Users are members of groups.
     """
 
@@ -95,8 +91,6 @@ class ProxmoxUserToAuthRealmRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxUserToAuthRealmRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxUser)-[:AUTHENTICATES_VIA]->(:ProxmoxAuthRealm)
-
     Users authenticate via a realm (PAM, LDAP, AD, OpenID, etc.).
     Enables queries like "find all users using LDAP" without string parsing.
     """
@@ -154,8 +148,6 @@ class ProxmoxGroupToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxGroupToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxGroup)
-
     Groups belong to clusters.
     """
 
@@ -208,8 +200,6 @@ class ProxmoxRoleToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxRoleToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxRole)
-
     Roles belong to clusters.
     """
 
@@ -266,8 +256,6 @@ class ProxmoxACLToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxACL)
-
     ACLs belong to clusters.
     """
 
@@ -288,8 +276,6 @@ class ProxmoxACLToRoleRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToRoleRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxACL)-[:GRANTS_ROLE]->(:ProxmoxRole)
-
     ACLs grant roles to users/groups.
     Includes metadata about permission scope and propagation.
     """
@@ -315,8 +301,6 @@ class ProxmoxACLToUserRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToUserRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxACL)-[:APPLIES_TO_USER]->(:ProxmoxUser)
-
     ACLs apply permissions to specific users.
     Includes metadata about permission scope, path, and propagation.
     """
@@ -342,8 +326,6 @@ class ProxmoxACLToGroupRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToGroupRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxACL)-[:APPLIES_TO_GROUP]->(:ProxmoxGroup)
-
     ACLs apply permissions to groups.
     Includes metadata about permission scope, path, and propagation.
     """
@@ -405,8 +387,6 @@ class ProxmoxACLToVMMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToVMMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxACL)-[:GRANTS_ACCESS_TO]->(:ProxmoxVM)
-
     Connects ACLs to the VMs they grant permissions to.
     """
 
@@ -447,8 +427,6 @@ class ProxmoxACLToStorageMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToStorageMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxACL)-[:GRANTS_ACCESS_TO]->(:ProxmoxStorage)
-
     Connects ACLs to the storage they grant permissions to.
     """
 
@@ -491,8 +469,6 @@ class ProxmoxACLToPoolMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToPoolMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxACL)-[:GRANTS_ACCESS_TO]->(:ProxmoxPool)
-
     Connects ACLs to the pools they grant permissions to.
     """
 
@@ -535,8 +511,6 @@ class ProxmoxACLToNodeMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToNodeMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxACL)-[:GRANTS_ACCESS_TO]->(:ProxmoxNode)
-
     Connects ACLs to the nodes they grant permissions to.
     """
 
@@ -579,8 +553,6 @@ class ProxmoxACLToClusterMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxACLToClusterMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxACL)-[:GRANTS_ACCESS_TO]->(:ProxmoxCluster)
-
     Connects ACLs to the cluster (root level permissions).
     """
 

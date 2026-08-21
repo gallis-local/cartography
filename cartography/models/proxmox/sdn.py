@@ -70,8 +70,6 @@ class ProxmoxSDNZoneToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNZoneToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSDNZone)
-
     SDN Zones are cluster-wide resources.
     """
 
@@ -158,8 +156,6 @@ class ProxmoxSDNVNetToZoneRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNVNetToZoneRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNVNet)-[:BELONGS_TO]->(:ProxmoxSDNZone)
-
     VNets belong to SDN Zones.
     """
 
@@ -251,8 +247,6 @@ class ProxmoxSDNSubnetToVNetRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSDNSubnetToVNetRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSDNSubnet)-[:BELONGS_TO]->(:ProxmoxSDNVNet)
-
     Subnets belong to VNets.
     """
 

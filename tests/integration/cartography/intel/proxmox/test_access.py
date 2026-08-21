@@ -541,3 +541,129 @@ def test_authenticates_via(
     assert ("disabled@pam", "pam") in rels
     assert ("admin@pve", "pve") in rels
     assert len(rels) == 4
+
+
+@patch.object(
+    cartography.intel.proxmox.access, "get_users", return_value=MOCK_USER_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.access, "get_groups", return_value=MOCK_GROUP_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.access, "get_roles", return_value=MOCK_ROLE_DATA
+)
+@patch.object(cartography.intel.proxmox.access, "get_acls", return_value=MOCK_ACL_DATA)
+@patch.object(
+    cartography.intel.proxmox.access,
+    "get_group_members",
+    return_value=MOCK_GROUP_MEMBERS_DATA,
+)
+def test_access_control_cleanup_stale_data(
+    mock_get_group_members,
+    mock_get_acls,
+    mock_get_roles,
+    mock_get_groups,
+    mock_get_users,
+    neo4j_session,
+):
+    """
+    Test that a second sync with fewer users/groups/roles/ACLs removes the stale
+    nodes from the previous sync. This is security-sensitive: a deleted user's
+    stale ACL/permission data lingering in the graph is a false-positive access
+    audit risk.
+    """
+    common_job_parameters: dict[str, Any] = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": TEST_CLUSTER_ID,
+    }
+
+    neo4j_session.run(
+        """
+        MERGE (c:ProxmoxCluster {id: $cluster_id})
+        SET c.name = $cluster_id,
+            c.lastupdated = $update_tag
+        """,
+        cluster_id=TEST_CLUSTER_ID,
+        update_tag=TEST_UPDATE_TAG,
+    )
+
+    # First sync - full mock dataset
+    cartography.intel.proxmox.access.sync(
+        neo4j_session,
+        None,
+        TEST_CLUSTER_ID,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    assert len(check_nodes(neo4j_session, "ProxmoxUser", ["id"])) == 4
+    assert len(check_nodes(neo4j_session, "ProxmoxGroup", ["id"])) == 3
+    assert len(check_nodes(neo4j_session, "ProxmoxRole", ["id"])) == 3
+    assert len(check_nodes(neo4j_session, "ProxmoxACL", ["id"])) == 7
+
+    # Second sync - only the first user/group/role/ACL remain (simulating
+    # deleted users, groups, roles, and ACL entries on the Proxmox side)
+    new_update_tag = TEST_UPDATE_TAG + 1
+    common_job_parameters["UPDATE_TAG"] = new_update_tag
+
+    with (
+        patch.object(
+            cartography.intel.proxmox.access,
+            "get_users",
+            return_value=[MOCK_USER_DATA[0]],
+        ),
+        patch.object(
+            cartography.intel.proxmox.access,
+            "get_groups",
+            return_value=[MOCK_GROUP_DATA[0]],
+        ),
+        patch.object(
+            cartography.intel.proxmox.access,
+            "get_roles",
+            return_value=[MOCK_ROLE_DATA[0]],
+        ),
+        patch.object(
+            cartography.intel.proxmox.access,
+            "get_acls",
+            return_value=[MOCK_ACL_DATA[0]],
+        ),
+        patch.object(
+            cartography.intel.proxmox.access,
+            "get_group_members",
+            return_value={"admins": ["root@pam"]},
+        ),
+    ):
+        cartography.intel.proxmox.access.sync(
+            neo4j_session,
+            None,
+            TEST_CLUSTER_ID,
+            new_update_tag,
+            common_job_parameters,
+        )
+
+    # Assert stale users/groups/roles/ACLs were removed
+    assert check_nodes(neo4j_session, "ProxmoxUser", ["id"]) == {
+        ("test-cluster/user/root@pam",),
+    }
+    assert check_nodes(neo4j_session, "ProxmoxGroup", ["id"]) == {
+        ("test-cluster/group/admins",),
+    }
+    assert check_nodes(neo4j_session, "ProxmoxRole", ["id"]) == {
+        ("test-cluster/role/Administrator",),
+    }
+    assert check_nodes(neo4j_session, "ProxmoxACL", ["id"]) == {
+        ("test-cluster/acl//root@pam/Administrator",),
+    }
+
+    # Assert stale GRANTS_ACCESS_TO matchlinks (to VM/Storage/Pool/Node) were
+    # removed along with their ACLs. Only the remaining root@pam ACL survives,
+    # and it is a cluster-root ("/") ACL, so its single GRANTS_ACCESS_TO edge
+    # still points at the ProxmoxCluster node.
+    result = neo4j_session.run(
+        """
+        MATCH (:ProxmoxACL)-[r:GRANTS_ACCESS_TO]->(target)
+        RETURN labels(target) as target_labels
+        """
+    )
+    remaining = [r["target_labels"] for r in result]
+    assert remaining == [["ProxmoxCluster"]]

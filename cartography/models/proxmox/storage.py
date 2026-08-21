@@ -49,8 +49,6 @@ class ProxmoxStorageToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxStorageToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxStorage)
-
     Storage belongs to clusters.
     """
 
@@ -117,8 +115,6 @@ class ProxmoxStorageToNodeMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxStorageToNodeMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxStorage)-[:AVAILABLE_ON]->(:ProxmoxNode)
-
     Connects storage to the nodes where it's available.
     """
 

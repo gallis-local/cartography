@@ -35,6 +35,7 @@ def get_users(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.access.users.get()
 
+
 @timeit
 def get_groups(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -45,6 +46,7 @@ def get_groups(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.access.groups.get()
+
 
 @timeit
 def get_group_members(
@@ -70,7 +72,12 @@ def get_group_members(
             continue
 
         # Get detailed group info including members
-        group_detail = proxmox_client.access.groups(groupid).get()
+        try:
+            group_detail = proxmox_client.access.groups(groupid).get()
+        except Exception as e:
+            logger.warning(f"Could not fetch member details for group {groupid}: {e}")
+            continue
+
         members = group_detail.get("members", [])
         if members:
             # Members is a list of user IDs
@@ -78,6 +85,7 @@ def get_group_members(
             logger.debug(f"Group {groupid} has {len(members)} members")
 
     return group_members
+
 
 @timeit
 def get_roles(proxmox_client: Any) -> list[dict[str, Any]]:
@@ -89,6 +97,7 @@ def get_roles(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.access.roles.get()
+
 
 @timeit
 def get_acls(proxmox_client: Any) -> list[dict[str, Any]]:
@@ -162,6 +171,7 @@ def transform_user_data(
 
     return transformed_users
 
+
 def transform_group_data(
     groups: list[dict[str, Any]],
     cluster_id: str,
@@ -187,6 +197,7 @@ def transform_group_data(
         )
 
     return transformed_groups
+
 
 def transform_role_data(
     roles: list[dict[str, Any]],
@@ -221,6 +232,7 @@ def transform_role_data(
 
     return transformed_roles
 
+
 def _parse_acl_path(path: str) -> tuple[str, str | None]:
     """
     Parse Proxmox ACL path to determine resource type and ID.
@@ -251,6 +263,7 @@ def _parse_acl_path(path: str) -> tuple[str, str | None]:
     else:
         # Unknown path format
         return "unknown", None
+
 
 def transform_acl_data(
     acls: list[dict[str, Any]],
@@ -331,6 +344,7 @@ def load_users(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_groups(
     neo4j_session: neo4j.Session,
     groups: list[dict[str, Any]],
@@ -353,6 +367,7 @@ def load_groups(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_roles(
     neo4j_session: neo4j.Session,
     roles: list[dict[str, Any]],
@@ -374,6 +389,7 @@ def load_roles(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_acls(
     neo4j_session: neo4j.Session,
@@ -399,6 +415,7 @@ def load_acls(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_acl_resource_relationships(
     neo4j_session: neo4j.Session,
@@ -554,6 +571,7 @@ def sync(
     # Return users for use by API token sync
     return users
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -568,10 +586,18 @@ def cleanup(
     :param cluster_id: Cluster ID for MatchLink cleanup scoping
     :param update_tag: Sync timestamp for MatchLink cleanup
     """
-    GraphJob.from_node_schema(ProxmoxUserSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxGroupSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxRoleSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxACLSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxUserSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxGroupSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxRoleSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxACLSchema(), common_job_parameters).run(
+        neo4j_session
+    )
     GraphJob.from_matchlink(
         ProxmoxACLToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
     ).run(neo4j_session)

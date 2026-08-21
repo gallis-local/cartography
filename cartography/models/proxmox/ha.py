@@ -44,8 +44,6 @@ class ProxmoxHAGroupToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAGroupToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxHAGroup)
-
     HA groups belong to clusters.
     """
 
@@ -100,8 +98,6 @@ class ProxmoxHAResourceToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAResourceToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxHAResource)
-
     HA resources belong to clusters.
     """
 
@@ -124,8 +120,6 @@ class ProxmoxHAResourceToHAGroupRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAResourceToHAGroupRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxHAResource)-[:MEMBER_OF_HA_GROUP]->(:ProxmoxHAGroup)
-
     HA resources are assigned to HA groups.
     """
 
@@ -179,8 +173,6 @@ class ProxmoxHAResourceToVMMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxHAResourceToVMMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxHAResource)-[:PROTECTS]->(:ProxmoxVM)
-
     Connects HA resources to the VMs they protect.
     """
 

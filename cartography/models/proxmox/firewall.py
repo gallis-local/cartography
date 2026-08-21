@@ -66,8 +66,6 @@ class ProxmoxFirewallRuleToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallRule)
-
     Firewall rules belong to clusters.
     """
 
@@ -123,8 +121,6 @@ class ProxmoxFirewallIPSetToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallIPSet)
-
     IP sets belong to clusters.
     """
 
@@ -175,8 +171,6 @@ class ProxmoxFirewallRuleToNodeMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToNodeMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxFirewallRule)-[:APPLIES_TO_NODE]->(:ProxmoxNode)
-
     Connects node-scoped firewall rules to the nodes they apply to.
     """
 
@@ -214,8 +208,6 @@ class ProxmoxFirewallRuleToVMMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToVMMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxFirewallRule)-[:APPLIES_TO_VM]->(:ProxmoxVM)
-
     Connects VM-scoped firewall rules to the VMs they apply to.
     """
 
@@ -258,8 +250,6 @@ class ProxmoxFirewallRuleToIPSetMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToIPSetMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxFirewallRule)-[:USES_IPSET]->(:ProxmoxFirewallIPSet)
-
     Connects firewall rules to the IPSets they reference in source/dest fields.
     """
 

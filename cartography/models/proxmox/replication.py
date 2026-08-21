@@ -48,8 +48,6 @@ class ProxmoxReplicationJobToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxReplicationJob)
-
     Replication jobs belong to clusters.
     """
 
@@ -70,8 +68,6 @@ class ProxmoxReplicationJobToVMRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxReplicationJob)-[:REPLICATES]->(:ProxmoxVM)
-
     Replication jobs replicate specific VMs/containers.
     """
 
@@ -93,8 +89,6 @@ class ProxmoxReplicationJobToTargetNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxReplicationJob)-[:REPLICATES_TO]->(:ProxmoxNode)
-
     Replication jobs replicate data to a target node (DR destination).
     """
 
@@ -115,8 +109,6 @@ class ProxmoxReplicationJobToSourceNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxReplicationJob)-[:REPLICATES_FROM]->(:ProxmoxNode)
-
     Replication jobs originate from a source node (optional, for cross-node jobs).
     """
 

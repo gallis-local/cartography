@@ -44,8 +44,6 @@ class ProxmoxPoolToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxPoolToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxPool)
-
     Pools belong to clusters.
     """
 
@@ -94,8 +92,6 @@ class ProxmoxPoolToVMMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxPoolToVMMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxPool)-[:CONTAINS_VM]->(:ProxmoxVM)
-
     Connects pools to the VMs they contain.
     """
 
@@ -138,8 +134,6 @@ class ProxmoxPoolToStorageMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxPoolToStorageMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxPool)-[:CONTAINS_STORAGE]->(:ProxmoxStorage)
-
     Connects pools to the storage resources they contain.
     """
 

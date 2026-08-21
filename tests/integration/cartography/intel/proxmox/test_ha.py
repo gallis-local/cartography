@@ -3,11 +3,14 @@ Integration tests for Proxmox HA sync.
 """
 
 from typing import Any
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import cartography.intel.proxmox.ha
+from cartography.intel.proxmox.ha import sync
 from tests.data.proxmox.ha import MOCK_HA_GROUP_DATA
 from tests.data.proxmox.ha import MOCK_HA_RESOURCE_DATA
+from tests.integration.cartography.intel.proxmox import create_test_cluster
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
@@ -168,3 +171,98 @@ def test_sync_ha(mock_get_resources, mock_get_groups, neo4j_session):
     record = result.single()
     assert record["restricted"] == 1  # Proxmox API returns 1 for true
     assert record["nofailback"] == 1  # Proxmox API returns 1 for true
+
+
+@patch.object(
+    cartography.intel.proxmox.ha, "get_ha_groups", return_value=MOCK_HA_GROUP_DATA
+)
+@patch.object(
+    cartography.intel.proxmox.ha, "get_ha_resources", return_value=MOCK_HA_RESOURCE_DATA
+)
+def test_ha_cleanup_stale_data(mock_get_resources, mock_get_groups, neo4j_session):
+    """
+    Test that a second sync with fewer HA groups/resources removes the stale
+    HAGroup/HAResource nodes and their MEMBER_OF_HA_GROUP/PROTECTS matchlinks.
+    """
+    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
+    proxmox_client = MagicMock()
+
+    # Create VMs referenced by the PROTECTS matchlink
+    neo4j_session.run(
+        """
+        MERGE (v1:ProxmoxVM {id: $cluster_id + '/vm/100'})
+        SET v1.vmid = 100, v1.cluster_id = $cluster_id, v1.lastupdated = $update_tag
+        MERGE (v2:ProxmoxVM {id: $cluster_id + '/vm/200'})
+        SET v2.vmid = 200, v2.cluster_id = $cluster_id, v2.lastupdated = $update_tag
+        MERGE (v3:ProxmoxVM {id: $cluster_id + '/vm/101'})
+        SET v3.vmid = 101, v3.cluster_id = $cluster_id, v3.lastupdated = $update_tag
+        """,
+        cluster_id=cluster_id,
+        update_tag=TEST_UPDATE_TAG,
+    )
+
+    common_job_parameters: dict[str, Any] = {
+        "UPDATE_TAG": TEST_UPDATE_TAG,
+        "CLUSTER_ID": cluster_id,
+    }
+
+    # First sync - full mock dataset (2 groups, 3 resources)
+    sync(
+        neo4j_session,
+        proxmox_client,
+        cluster_id,
+        TEST_UPDATE_TAG,
+        common_job_parameters,
+    )
+
+    assert len(check_nodes(neo4j_session, "ProxmoxHAGroup", ["id"])) == 2
+    assert len(check_nodes(neo4j_session, "ProxmoxHAResource", ["id"])) == 3
+
+    # Second sync - only one group and one resource remain
+    new_update_tag = TEST_UPDATE_TAG + 1
+    common_job_parameters["UPDATE_TAG"] = new_update_tag
+
+    with (
+        patch.object(
+            cartography.intel.proxmox.ha,
+            "get_ha_groups",
+            return_value=[MOCK_HA_GROUP_DATA[0]],
+        ),
+        patch.object(
+            cartography.intel.proxmox.ha,
+            "get_ha_resources",
+            return_value=[MOCK_HA_RESOURCE_DATA[0]],
+        ),
+    ):
+        sync(
+            neo4j_session,
+            proxmox_client,
+            cluster_id,
+            new_update_tag,
+            common_job_parameters,
+        )
+
+    # Assert stale HAGroup/HAResource nodes were removed
+    assert check_nodes(neo4j_session, "ProxmoxHAGroup", ["id"]) == {
+        ("test-cluster/ha/group/ha-group-1",),
+    }
+    assert check_nodes(neo4j_session, "ProxmoxHAResource", ["id"]) == {
+        ("test-cluster/ha/resource/vm:100",),
+    }
+
+    # Assert stale MEMBER_OF_HA_GROUP / PROTECTS matchlinks were removed too
+    result = neo4j_session.run(
+        """
+        MATCH (:ProxmoxHAResource)-[r:MEMBER_OF_HA_GROUP]->(:ProxmoxHAGroup)
+        RETURN count(r) as count
+        """
+    )
+    assert result.single()["count"] == 1
+
+    result = neo4j_session.run(
+        """
+        MATCH (:ProxmoxHAResource)-[r:PROTECTS]->(:ProxmoxVM)
+        RETURN count(r) as count
+        """
+    )
+    assert result.single()["count"] == 1
