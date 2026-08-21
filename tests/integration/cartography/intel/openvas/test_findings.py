@@ -198,3 +198,7 @@ def test_sync_results_cleanup_stale(neo4j_session):
 
     # Assert
     assert not check_nodes(neo4j_session, "OpenVASResult", ["id"])
+    # NVTs are loaded and scoped alongside results and must be cleaned up too
+    # -- otherwise vulnerabilities that are no longer detected (patched, or
+    # aged out of the lookback window) would accumulate as orphaned nodes.
+    assert not check_nodes(neo4j_session, "OpenVASNVT", ["id"])
