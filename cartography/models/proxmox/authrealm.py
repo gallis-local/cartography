@@ -46,8 +46,6 @@ class ProxmoxAuthRealmToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxAuthRealmToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxAuthRealm)
-
     Auth realms belong to clusters.
     """
 

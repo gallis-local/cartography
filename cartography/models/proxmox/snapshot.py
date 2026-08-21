@@ -48,8 +48,6 @@ class ProxmoxSnapshotToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSnapshotToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxSnapshot)
-
     Snapshots belong to clusters.
     """
 
@@ -74,8 +72,6 @@ class ProxmoxSnapshotToVMRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxSnapshotToVMRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxSnapshot)-[:SNAPSHOT_OF]->(:ProxmoxVM)
-
     Snapshots are snapshots of VMs/containers.
     """
 

@@ -47,8 +47,6 @@ class ProxmoxAPITokenToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxAPIToken)
-
     API tokens belong to clusters.
     """
 
@@ -73,8 +71,6 @@ class ProxmoxAPITokenToUserRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxAPITokenToUserRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxAPIToken)-[:OWNED_BY]->(:ProxmoxUser)
-
     API tokens belong to users.
     """
 

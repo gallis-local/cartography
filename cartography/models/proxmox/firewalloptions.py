@@ -52,8 +52,6 @@ class ProxmoxFirewallOptionsToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxFirewallOptions)
-
     Firewall options belong to clusters.
     """
 
@@ -78,8 +76,6 @@ class ProxmoxFirewallOptionsToNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxFirewallOptions)-[:APPLIES_TO_NODE]->(:ProxmoxNode)
-
     Node-level firewall options apply to a specific node.
     Only created when scope == "node".
     """

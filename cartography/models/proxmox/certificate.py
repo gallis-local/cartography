@@ -57,8 +57,6 @@ class ProxmoxCertificateToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxCertificateToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxCertificate)
-
     Certificates belong to clusters.
     """
 
@@ -83,8 +81,6 @@ class ProxmoxCertificateToNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxCertificateToNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNode)-[:HAS_CERTIFICATE]->(:ProxmoxCertificate)
-
     Nodes use SSL certificates.
     """
 

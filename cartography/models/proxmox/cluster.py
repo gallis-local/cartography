@@ -117,9 +117,7 @@ class ProxmoxNodeToClusterRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class ProxmoxNodeToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxNode)
-    """
+    """Nodes belong to clusters."""
 
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -213,8 +211,6 @@ class ProxmoxNodeNetworkInterfaceToNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxNodeNetworkInterfaceToNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNode)-[:HAS_NETWORK_INTERFACE]->(:ProxmoxNodeNetworkInterface)
-
     Nodes have physical/virtual network interfaces.
     """
 

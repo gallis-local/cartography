@@ -106,9 +106,7 @@ class ProxmoxVMToClusterRelProperties(CartographyRelProperties):
 
 @dataclass(frozen=True)
 class ProxmoxVMToClusterRel(CartographyRelSchema):
-    """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxVM)
-    """
+    """VMs belong to clusters."""
 
     target_node_label: str = "ProxmoxCluster"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
@@ -129,8 +127,6 @@ class ProxmoxVMToNodeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxVMToNodeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNode)-[:HOSTS_VM]->(:ProxmoxVM)
-
     This is an "other_relationship" showing which node hosts the VM.
     """
 
@@ -237,8 +233,6 @@ class ProxmoxDiskToVMRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxDiskToVMRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxVM)-[:HAS_DISK]->(:ProxmoxDisk)
-
     VMs have attached disks. Use vmid + cluster_id to match.
     """
 
@@ -262,8 +256,6 @@ class ProxmoxDiskToStorageRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxDiskToStorageRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxDisk)-[:STORED_ON]->(:ProxmoxStorage)
-
     Disks are stored on storage backends.
     """
 
@@ -371,8 +363,6 @@ class ProxmoxNetworkInterfaceToVMRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVMRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxVM)-[:HAS_NETWORK_INTERFACE]->(:ProxmoxNetworkInterface)
-
     VMs have network interfaces. Use vmid + cluster_id to match.
     """
 
@@ -405,8 +395,6 @@ class ProxmoxNetworkInterfaceToBridgeRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToBridgeRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNetworkInterface)-[:CONNECTED_TO_BRIDGE]->(:ProxmoxNodeNetworkInterface)
-
     VM network interfaces connect to node bridge interfaces for network topology.
     This enables lateral movement analysis and network segmentation verification.
     """
@@ -439,8 +427,6 @@ class ProxmoxNetworkInterfaceToVNetRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxNetworkInterfaceToVNetRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxNetworkInterface)-[:CONNECTED_TO_VNET]->(:ProxmoxSDNVNet)
-
     VM network interfaces connect to SDN VNets when the bridge name matches a VNet ID.
     This enables network segmentation queries and SDN topology analysis.
     """

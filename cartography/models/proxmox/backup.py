@@ -59,8 +59,6 @@ class ProxmoxBackupJobToClusterRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxBackupJobToClusterRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxCluster)-[:RESOURCE]->(:ProxmoxBackupJob)
-
     Backup jobs belong to clusters.
     """
 
@@ -85,8 +83,6 @@ class ProxmoxBackupJobToStorageRelProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxBackupJobToStorageRel(CartographyRelSchema):
     """
-    Relationship: (:ProxmoxBackupJob)-[:BACKS_UP_TO]->(:ProxmoxStorage)
-
     Backup jobs target storage backends.
     """
 
@@ -145,8 +141,6 @@ class ProxmoxBackupJobToVMMatchLinkProperties(CartographyRelProperties):
 @dataclass(frozen=True)
 class ProxmoxBackupJobToVMMatchLink(CartographyRelSchema):
     """
-    MatchLink: (:ProxmoxBackupJob)-[:BACKS_UP]->(:ProxmoxVM)
-
     Connects backup jobs to the VMs they back up.
     """
 
