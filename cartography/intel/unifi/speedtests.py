@@ -13,11 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 @timeit
-async def get(controller: Controller) -> list[dict[str, Any]]:
+async def get(controller: Controller, site_id: str) -> list[dict[str, Any]]:
     """
     Retrieve UniFi speedtest results from the controller.
 
     :param controller: Controller instance
+    :param site_id: Site ID the speedtests belong to. Interface names (e.g. "wan",
+        "wan2") are not globally unique across sites on the same controller, so the
+        site_id is folded into the node id to avoid identity collisions when
+        multiple sites are synced.
     :return: List of speedtest data
     """
     logger.debug("Fetching UniFi speedtest results")
@@ -37,7 +41,7 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
 
         speedtests.append(
             {
-                "id": interface_name,
+                "id": f"{site_id}_{interface_name}",
                 "interface_name": interface_name,
                 "download": speedtest.download,
                 "upload": speedtest.upload,
@@ -105,7 +109,7 @@ async def sync(
     :param common_job_parameters: Common job parameters
     """
     site_id = common_job_parameters["site_id"]
-    speedtests = await get(controller)
+    speedtests = await get(controller, site_id)
     load_speedtests(
         neo4j_session, speedtests, site_id, common_job_parameters["UPDATE_TAG"]
     )
