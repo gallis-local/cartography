@@ -69,6 +69,11 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "sw_port": sw_port,
                 "port_id": port_id,
                 "ap_switch_mac": ap_switch_mac,
+                # These are currently-connected clients, so they are never historical.
+                # Explicitly set (rather than omitted) so that this overwrites any
+                # is_historical=True previously set by the clients_all sync for a
+                # client that has since reconnected.
+                "is_historical": False,
                 # Security-relevant properties
                 "first_seen": client.raw.get("first_seen"),
                 "fixed_ip": client.raw.get("fixed_ip"),

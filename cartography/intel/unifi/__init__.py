@@ -167,15 +167,19 @@ async def _sync_unifi(
             common_job_parameters,
         )
 
-        # 5. Clients (connect to devices and WLANs)
-        await cartography.intel.unifi.clients.sync(
+        # 5. Historical clients (depends on devices for ap_switch_mac). This is
+        # synced BEFORE the currently-connected clients below so that clients.sync's
+        # explicit is_historical=False (and its cleanup job) always has the last
+        # word for clients that are presently connected -- otherwise every
+        # currently-connected client would incorrectly get flagged as historical.
+        await cartography.intel.unifi.clients_all.sync(
             neo4j_session,
             controller,
             common_job_parameters,
         )
 
-        # 6. Historical clients (depends on devices for ap_switch_mac)
-        await cartography.intel.unifi.clients_all.sync(
+        # 6. Clients (connect to devices and WLANs)
+        await cartography.intel.unifi.clients.sync(
             neo4j_session,
             controller,
             common_job_parameters,
