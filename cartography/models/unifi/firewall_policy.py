@@ -28,6 +28,11 @@ class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
     logging: PropertyRef = PropertyRef("logging")
     source_zone_id: PropertyRef = PropertyRef("source_zone_id")
     destination_zone_id: PropertyRef = PropertyRef("destination_zone_id")
+    # aiounifi FirewallPolicyEndpoint: matching_target ("IP", "NETWORK", "CLIENT", etc.)
+    source_matching_target: PropertyRef = PropertyRef("source_matching_target")
+    destination_matching_target: PropertyRef = PropertyRef(
+        "destination_matching_target"
+    )
     site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
 
 
@@ -89,6 +94,26 @@ class UnifiFirewallPolicyToDestZoneRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class UnifiFirewallPolicyToClientRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+# (:UnifiFirewallPolicy)-[:APPLIES_TO_CLIENT]->(:UnifiClient)
+# via source/destination client_macs (aiounifi FirewallPolicyEndpoint.client_macs)
+class UnifiFirewallPolicyToClientRel(CartographyRelSchema):
+    target_node_label: str = "UnifiClient"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("client_macs", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "APPLIES_TO_CLIENT"
+    properties: UnifiFirewallPolicyToClientRelProperties = (
+        UnifiFirewallPolicyToClientRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class UnifiFirewallPolicySchema(CartographyNodeSchema):
     label: str = "UnifiFirewallPolicy"
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkAccessControl"])
@@ -100,5 +125,6 @@ class UnifiFirewallPolicySchema(CartographyNodeSchema):
         [
             UnifiFirewallPolicyToSourceZoneRel(),
             UnifiFirewallPolicyToDestZoneRel(),
+            UnifiFirewallPolicyToClientRel(),
         ],
     )

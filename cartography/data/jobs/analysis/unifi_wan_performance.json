@@ -22,7 +22,7 @@
       "iterative": false
     },
     {
-      "query": "MATCH (s:UnifiSpeedtest) WHERE s.performance_score < 70 WITH s MATCH (d:UnifiDevice)-[:MEASURED_BY]->(s) RETURN d.name as gateway, s.interface_name as interface, s.download, s.upload, s.ping, s.performance_score, s.performance_tier ORDER BY s.performance_score ASC",
+      "query": "MATCH (s:UnifiSpeedtest) WHERE s.performance_score < 70 WITH s MATCH (d:UnifiDevice)-[:MEASURED_BY]->(s) RETURN d.name as gateway, s.download, s.upload, s.ping, s.performance_score, s.performance_tier ORDER BY s.performance_score ASC",
       "iterative": false
     }
   ],

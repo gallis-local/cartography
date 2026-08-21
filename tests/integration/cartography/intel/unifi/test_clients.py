@@ -502,6 +502,76 @@ async def test_unifi_client_to_wlan_relationships(mock_get, neo4j_session):
     new_callable=AsyncMock,
     return_value=tests.data.unifi.UNIFI_CLIENTS,
 )
+async def test_unifi_client_network_and_auth_properties(mock_get, neo4j_session):
+    """
+    Ensure that network_id and authorized (aiounifi TypedClient fields) are stored.
+    """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
+    _ensure_local_neo4j_has_test_devices(neo4j_session)
+    mock_controller = MagicMock()
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
+
+    await cartography.intel.unifi.clients.sync(
+        neo4j_session, mock_controller, common_job_parameters
+    )
+
+    result = neo4j_session.run(
+        """
+        MATCH (c:UnifiClient {id: '11:22:33:44:55:66'})
+        RETURN c.network_id as network_id, c.authorized as authorized
+        """
+    ).data()
+    assert len(result) == 1
+    assert result[0]["network_id"] == "network_001"
+    assert result[0]["authorized"] is True
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.clients,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_CLIENTS,
+)
+async def test_unifi_client_to_gateway_relationships(mock_get, neo4j_session):
+    """
+    Ensure that clients are linked to their gateway device via CONNECTED_TO_GATEWAY
+    (aiounifi TypedClient.gw_mac).
+    """
+    _ensure_local_neo4j_has_test_sites(neo4j_session)
+    _ensure_local_neo4j_has_test_devices(neo4j_session)
+    mock_controller = MagicMock()
+    common_job_parameters = {"UPDATE_TAG": TEST_UPDATE_TAG, "site_id": "default"}
+
+    await cartography.intel.unifi.clients.sync(
+        neo4j_session, mock_controller, common_job_parameters
+    )
+
+    expected_rels = {
+        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),
+        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),
+    }
+    assert (
+        check_rels(
+            neo4j_session,
+            "UnifiClient",
+            "id",
+            "UnifiDevice",
+            "id",
+            "CONNECTED_TO_GATEWAY",
+            rel_direction_right=True,
+        )
+        == expected_rels
+    )
+
+
+@pytest.mark.asyncio
+@patch.object(
+    cartography.intel.unifi.clients,
+    "get",
+    new_callable=AsyncMock,
+    return_value=tests.data.unifi.UNIFI_CLIENTS,
+)
 async def test_unifi_wired_client_to_port_relationships(mock_get, neo4j_session):
     """
     Ensure that wired clients are linked to their switch ports via CONNECTED_VIA.

@@ -10,7 +10,6 @@ import tests.data.unifi
 UNIFI_SPEEDTESTS = [
     {
         "id": "wan1",
-        "interface_name": "wan1",
         "download": 100.5,
         "upload": 20.2,
         "ping": 15,
@@ -20,7 +19,6 @@ UNIFI_SPEEDTESTS = [
     },
     {
         "id": "wan2",
-        "interface_name": "wan2",
         "download": 10.0,
         "upload": 2.0,
         "ping": 150,

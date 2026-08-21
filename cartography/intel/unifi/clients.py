@@ -99,6 +99,10 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "last_seen_by_access_point": client.raw.get("_last_seen_by_uap"),
                 "last_seen_by_gateway": client.raw.get("_last_seen_by_ugw"),
                 "last_seen_by_switch": client.raw.get("_last_seen_by_usw"),
+                # Network/authentication properties
+                "network_id": client.raw.get("network_id"),
+                "authorized": client.raw.get("authorized"),
+                "gw_mac": client.raw.get("gw_mac") or None,
             }
         )
     logger.debug("Fetched %d UniFi clients", len(clients))

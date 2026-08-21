@@ -28,6 +28,16 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
     for policy in controller.firewall_policies.values():
         source = policy.source if isinstance(policy.source, dict) else {}
         destination = policy.destination if isinstance(policy.destination, dict) else {}
+
+        # Client-specific policies can target individual clients by MAC via
+        # source/destination client_macs (aiounifi FirewallPolicyEndpoint.client_macs).
+        client_macs = sorted(
+            {
+                *(source.get("client_macs") or []),
+                *(destination.get("client_macs") or []),
+            }
+        )
+
         firewall_policies.append(
             {
                 "id": policy.id,
@@ -43,6 +53,9 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "logging": policy.raw.get("logging", False),
                 "source_zone_id": source.get("zone_id"),
                 "destination_zone_id": destination.get("zone_id"),
+                "source_matching_target": source.get("matching_target"),
+                "destination_matching_target": destination.get("matching_target"),
+                "client_macs": client_macs or None,
             }
         )
     logger.debug("Fetched %d UniFi firewall policies", len(firewall_policies))

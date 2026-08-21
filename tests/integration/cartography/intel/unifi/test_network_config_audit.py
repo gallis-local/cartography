@@ -2,44 +2,51 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import cartography.intel.unifi.network_configs
-import cartography.intel.unifi.firewall_zones
 import cartography.intel.unifi.sites
 import tests.data.unifi
 
-# Add network config test data
+# Add network config test data, shaped like the real /rest/networkconf response.
 UNIFI_NETWORK_CONFIGS = [
     {
         "id": "config_001",
-        "name": "Guest Network Config",
+        "name": "Corporate LAN",
         "enabled": True,
-        "target_type": "network",
-        "targets": ["network_guest"],
-        "secure_enabled": True,
-        "secure_firewall_rules": ["rule_001"],
-        "secure_group_ids": ["fw_zone_002"],
-        "qos_enabled": True,
-        "qos_bandwidth_limit": 10000,
-        "qos_dscp": 46,
-        "route_enabled": False,
-        "route_nexthop": None,
-        "route_network": None,
+        "purpose": "corporate",
+        "networkgroup": "LAN",
+        "domain_name": "lan",
+        "vlan_enabled": True,
+        "vlan": 10,
+        "ip_subnet": "10.0.10.1/24",
+        "is_guest": False,
+        "is_nat": True,
+        "attr_no_delete": True,
+        "dhcpd_enabled": True,
+        "dhcpd_start": "10.0.10.100",
+        "dhcpd_stop": "10.0.10.200",
+        "dhcpd_leasetime": 86400,
+        "dhcpd_dns_enabled": True,
+        "dhcpd_dns_1": "10.0.10.1",
         "site_id": "default",
     },
     {
         "id": "config_002",
-        "name": "Disabled Config",
+        "name": "Guest Network",
         "enabled": False,
-        "target_type": "network",
-        "targets": [],
-        "secure_enabled": True,
-        "secure_firewall_rules": None,
-        "secure_group_ids": [],
-        "qos_enabled": True,
-        "qos_bandwidth_limit": None,
-        "qos_dscp": None,
-        "route_enabled": True,
-        "route_nexthop": None,
-        "route_network": None,
+        "purpose": "guest",
+        "networkgroup": "WAN",
+        "domain_name": None,
+        "vlan_enabled": True,
+        "vlan": None,
+        "ip_subnet": None,
+        "is_guest": True,
+        "is_nat": False,
+        "attr_no_delete": False,
+        "dhcpd_enabled": False,
+        "dhcpd_start": None,
+        "dhcpd_stop": None,
+        "dhcpd_leasetime": None,
+        "dhcpd_dns_enabled": True,
+        "dhcpd_dns_1": None,
         "site_id": "default",
     },
 ]
@@ -54,13 +61,7 @@ TEST_UPDATE_TAG = 123456789
     new_callable=AsyncMock,
     return_value=UNIFI_NETWORK_CONFIGS,
 )
-@patch.object(
-    cartography.intel.unifi.firewall_zones,
-    "get",
-    new_callable=AsyncMock,
-    return_value=tests.data.unifi.UNIFI_FIREWALL_ZONES,
-)
-async def test_network_config_audit(mock_fw_zones, mock_configs, neo4j_session):
+async def test_network_config_audit(mock_configs, neo4j_session):
     """
     Test that network configuration audit correctly scores configs.
     """
@@ -74,9 +75,6 @@ async def test_network_config_audit(mock_fw_zones, mock_configs, neo4j_session):
     # Load prerequisite data
     cartography.intel.unifi.sites.load_sites(
         neo4j_session, tests.data.unifi.UNIFI_SITES, TEST_UPDATE_TAG
-    )
-    cartography.intel.unifi.firewall_zones.load_firewall_zones(
-        neo4j_session, tests.data.unifi.UNIFI_FIREWALL_ZONES, "default", TEST_UPDATE_TAG
     )
 
     # Act - sync network configs
@@ -93,7 +91,7 @@ async def test_network_config_audit(mock_fw_zones, mock_configs, neo4j_session):
         common_job_parameters,
     )
 
-    # Assert - Config 001 should be compliant (score 100)
+    # Assert - Config 001 (fully configured corporate VLAN) should be compliant
     result = neo4j_session.run(
         """
         MATCH (c:UnifiNetworkConfig {id: 'config_001'})
@@ -105,7 +103,8 @@ async def test_network_config_audit(mock_fw_zones, mock_configs, neo4j_session):
     assert result[0]["score"] == 100
     assert result[0]["tier"] == "compliant"
 
-    # Assert - Config 002 should have multiple issues (disabled, no targets, secure no firewall, qos no limit, route incomplete)
+    # Assert - Config 002 (disabled guest network, VLAN enabled but no VLAN id,
+    # no DHCP, and not NAT'd) should have multiple issues
     result = neo4j_session.run(
         """
         MATCH (c:UnifiNetworkConfig {id: 'config_002'})
@@ -114,11 +113,10 @@ async def test_network_config_audit(mock_fw_zones, mock_configs, neo4j_session):
     ).data()
 
     assert len(result) == 1
-    assert result[0]["score"] == 20  # 5 issues -> score 20
+    assert result[0]["score"] == 20  # 4 issues -> score 20
     assert result[0]["tier"] == "non_compliant"
     issues = result[0]["issues"]
     assert "disabled_config" in issues
-    assert "no_targets" in issues
-    assert "secure_no_firewall_rules" in issues
-    assert "qos_no_bandwidth_limit" in issues
-    assert "route_incomplete" in issues
+    assert "vlan_enabled_without_vlan_id" in issues
+    assert "guest_network_without_dhcp" in issues
+    assert "guest_network_not_natted" in issues
