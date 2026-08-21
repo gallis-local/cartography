@@ -26,7 +26,12 @@ MOCK_NODES = [
 
 MOCK_VM_DATA_MULTI = {
     "pve1": [
-        {"vmid": 100, "name": "vm-100", "type": "qemu", "node": "pve1"},  # Same VMID in both clusters
+        {
+            "vmid": 100,
+            "name": "vm-100",
+            "type": "qemu",
+            "node": "pve1",
+        },  # Same VMID in both clusters
     ]
 }
 
@@ -36,8 +41,11 @@ MOCK_VM_DATA_MULTI = {
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_node_status", return_value={})
 @patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
-@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[])
+@patch.object(
+    cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[]
+)
 @patch.object(cartography.intel.proxmox.compute, "get_vm_config", return_value={})
 @patch.object(cartography.intel.proxmox.access, "get_users")
 def test_multi_cluster_node_isolation(
@@ -45,6 +53,7 @@ def test_multi_cluster_node_isolation(
     mock_get_vm_config,
     mock_get_containers,
     mock_get_vms,
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,
@@ -111,7 +120,9 @@ def test_multi_cluster_node_isolation(
     assert len(node_ids) == 2, f"Node IDs should be unique: {node_ids}"
     assert len(node_names) == 1, f"Node names should be the same: {node_names}"
     assert "pve1" in node_names, f"Expected node name 'pve1', got {node_names}"
-    assert len(cluster_ids) == 2, f"Nodes should belong to different clusters: {cluster_ids}"
+    assert len(cluster_ids) == 2, (
+        f"Nodes should belong to different clusters: {cluster_ids}"
+    )
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
@@ -125,13 +136,17 @@ def test_multi_cluster_node_isolation(
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_node_status", return_value={})
 @patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
-@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[])
+@patch.object(
+    cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[]
+)
 @patch.object(cartography.intel.proxmox.compute, "get_vm_config", return_value={})
 def test_multi_cluster_vm_isolation(
     mock_get_vm_config,
     mock_get_containers,
     mock_get_vms,
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,
@@ -150,7 +165,11 @@ def test_multi_cluster_vm_isolation(
     proxmox_b.nodes.get.return_value = MOCK_NODES
 
     def get_vms_side_effect(proxmox_client, node_name):
-        return [vm for vm in MOCK_VM_DATA_MULTI.get(node_name, []) if vm.get("type") == "qemu"]
+        return [
+            vm
+            for vm in MOCK_VM_DATA_MULTI.get(node_name, [])
+            if vm.get("type") == "qemu"
+        ]
 
     mock_get_vms.side_effect = get_vms_side_effect
 
@@ -200,7 +219,9 @@ def test_multi_cluster_vm_isolation(
     assert 100 in vm_vmids, f"Expected VMID 100, got {vm_vmids}"
     assert len(vm_names) == 1, f"VM names should be the same: {vm_names}"
     assert "vm-100" in vm_names, f"Expected VM name 'vm-100', got {vm_names}"
-    assert len(cluster_ids) == 2, f"VMs should belong to different clusters: {cluster_ids}"
+    assert len(cluster_ids) == 2, (
+        f"VMs should belong to different clusters: {cluster_ids}"
+    )
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
@@ -276,13 +297,18 @@ def test_multi_cluster_user_isolation(
 
     assert len(user_ids) == 2, f"User IDs should be unique: {user_ids}"
     assert len(userids) == 1, f"User userids should be the same: {userids}"
-    assert len(cluster_ids) == 2, f"Users should belong to different clusters: {cluster_ids}"
+    assert len(cluster_ids) == 2, (
+        f"Users should belong to different clusters: {cluster_ids}"
+    )
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
     # Verify cluster-scoped IDs
     userid = MOCK_USER_DATA[0]["userid"]
-    expected_ids = {f"{TEST_CLUSTER_A}/user/{userid}", f"{TEST_CLUSTER_B}/user/{userid}"}
+    expected_ids = {
+        f"{TEST_CLUSTER_A}/user/{userid}",
+        f"{TEST_CLUSTER_B}/user/{userid}",
+    }
     assert user_ids == expected_ids, f"Expected {expected_ids}, got {user_ids}"
 
 
@@ -291,13 +317,17 @@ def test_multi_cluster_user_isolation(
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_options", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_cluster_config", return_value={})
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network", return_value=[])
+@patch.object(cartography.intel.proxmox.cluster, "get_node_status", return_value={})
 @patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
-@patch.object(cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[])
+@patch.object(
+    cartography.intel.proxmox.compute, "get_containers_for_node", return_value=[]
+)
 @patch.object(cartography.intel.proxmox.compute, "get_vm_config", return_value={})
 def test_import_cleanup_is_cluster_scoped(
     mock_get_vm_config,
     mock_get_containers,
     mock_get_vms,
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,

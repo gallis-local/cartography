@@ -26,6 +26,9 @@ MOCK_CLUSTER_DATA = [
 ]
 
 MOCK_NODE_DATA = [
+    # NOTE: this mirrors the real GET /nodes list response shape. Fields like
+    # kversion/loadavg/wait/idle/pveversion/cpuinfo/swap are NOT present here -
+    # they only exist on GET /nodes/{node}/status (see MOCK_NODE_STATUS_DATA).
     {
         "node": "node1",
         "status": "online",
@@ -40,14 +43,6 @@ MOCK_NODE_DATA = [
         "id": "node/node1",
         "type": "node",
         "ip": "192.168.1.10",
-        "kversion": "Linux 6.2.16-3-pve",
-        "loadavg": [0.15, 0.25, 0.30],
-        "wait": 0.02,
-        "maxswap": 8589934592,
-        "swap": 1073741824,
-        "pveversion": "pve-manager/8.1.3/b46aac3b42da5d15",
-        "cpuinfo": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
-        "idle": 0.73,
     },
     {
         "node": "node2",
@@ -63,16 +58,49 @@ MOCK_NODE_DATA = [
         "id": "node/node2",
         "type": "node",
         "ip": "192.168.1.11",
+    },
+]
+
+# Mirrors the real GET /nodes/{node}/status response shape: cpuinfo and swap
+# are nested objects, not flat scalars.
+MOCK_NODE_STATUS_DATA = {
+    "node1": {
+        "kversion": "Linux 6.2.16-3-pve",
+        "loadavg": [0.15, 0.25, 0.30],
+        "wait": 0.02,
+        "idle": 0.73,
+        "pveversion": "pve-manager/8.1.3/b46aac3b42da5d15",
+        "cpuinfo": {
+            "model": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+            "cores": 8,
+            "cpus": 8,
+            "sockets": 1,
+        },
+        "swap": {
+            "total": 8589934592,
+            "used": 1073741824,
+            "free": 7516192768,
+        },
+    },
+    "node2": {
         "kversion": "Linux 6.2.16-3-pve",
         "loadavg": [0.55, 0.60, 0.65],
         "wait": 0.05,
-        "maxswap": 17179869184,
-        "swap": 2147483648,
-        "pveversion": "pve-manager/8.1.3/b46aac3b42da5d15",
-        "cpuinfo": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
         "idle": 0.50,
+        "pveversion": "pve-manager/8.1.3/b46aac3b42da5d15",
+        "cpuinfo": {
+            "model": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+            "cores": 16,
+            "cpus": 16,
+            "sockets": 1,
+        },
+        "swap": {
+            "total": 17179869184,
+            "used": 2147483648,
+            "free": 15032385536,
+        },
     },
-]
+}
 
 MOCK_CLUSTER_OPTIONS = {
     "migration": "secure",

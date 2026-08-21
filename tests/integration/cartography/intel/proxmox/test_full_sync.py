@@ -29,6 +29,10 @@ MOCK_NODES = [
 ]
 
 
+def _get_node_status_side_effect(proxmox_client, node_name):
+    return {}
+
+
 @patch.object(
     cartography.intel.proxmox.cluster,
     "get_cluster_status",
@@ -47,6 +51,11 @@ MOCK_NODES = [
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_get_node_status_side_effect,
+)
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
 @patch.object(cartography.intel.proxmox.compute, "get_vms_for_node")
 @patch.object(cartography.intel.proxmox.compute, "get_containers_for_node")
@@ -60,6 +69,7 @@ def test_full_proxmox_sync(
     mock_get_containers,
     mock_get_vms,
     mock_get_node_network,
+    mock_get_node_status,
     mock_get_config,
     mock_get_options,
     mock_get_nodes,
@@ -221,9 +231,15 @@ def test_full_proxmox_sync(
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_get_node_status_side_effect,
+)
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
 def test_cleanup_removes_stale_data(
     mock_get_node_network,
+    mock_get_node_status,
     mock_get_config,
     mock_get_options,
     mock_get_nodes,

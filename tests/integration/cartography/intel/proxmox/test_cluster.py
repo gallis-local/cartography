@@ -12,11 +12,16 @@ from tests.data.proxmox.cluster import MOCK_CLUSTER_DATA
 from tests.data.proxmox.cluster import MOCK_CLUSTER_OPTIONS
 from tests.data.proxmox.cluster import MOCK_NODE_DATA
 from tests.data.proxmox.cluster import MOCK_NODE_NETWORK_DATA
+from tests.data.proxmox.cluster import MOCK_NODE_STATUS_DATA
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
+
+
+def _node_status_side_effect(proxmox_client, node_name):
+    return MOCK_NODE_STATUS_DATA.get(node_name, {})
 
 
 @patch.object(
@@ -37,8 +42,18 @@ TEST_CLUSTER_ID = "test-cluster"
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_sync_cluster_and_nodes(
-    mock_get_config, mock_get_options, mock_get_nodes, mock_get_cluster, neo4j_session
+    mock_get_node_status,
+    mock_get_config,
+    mock_get_options,
+    mock_get_nodes,
+    mock_get_cluster,
+    neo4j_session,
 ):
     """
     Test that cluster and node sync correctly creates proper nodes and relationships.
@@ -115,7 +130,13 @@ def test_sync_cluster_and_nodes(
     return_value=MOCK_CLUSTER_CONFIG,
 )
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_sync_node_network_interfaces(
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,
@@ -219,7 +240,13 @@ def test_sync_node_network_interfaces(
     return_value=MOCK_CLUSTER_CONFIG,
 )
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_network_interface_properties(
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,
@@ -291,8 +318,18 @@ def test_network_interface_properties(
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_cluster_enhanced_metadata(
-    mock_get_config, mock_get_options, mock_get_nodes, mock_get_cluster, neo4j_session
+    mock_get_node_status,
+    mock_get_config,
+    mock_get_options,
+    mock_get_nodes,
+    mock_get_cluster,
+    neo4j_session,
 ):
     """
     Test that enhanced cluster metadata fields are correctly captured.
@@ -348,8 +385,18 @@ def test_cluster_enhanced_metadata(
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_node_enhanced_metadata(
-    mock_get_config, mock_get_options, mock_get_nodes, mock_get_cluster, neo4j_session
+    mock_get_node_status,
+    mock_get_config,
+    mock_get_options,
+    mock_get_nodes,
+    mock_get_cluster,
+    neo4j_session,
 ):
     """
     Test that enhanced node metadata fields are correctly captured.
@@ -410,7 +457,13 @@ def test_node_enhanced_metadata(
     return_value=MOCK_CLUSTER_CONFIG,
 )
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_network_interface_enhanced_metadata(
+    mock_get_node_status,
     mock_get_node_network,
     mock_get_config,
     mock_get_options,
@@ -476,8 +529,18 @@ def test_network_interface_enhanced_metadata(
     "get_cluster_config",
     return_value=MOCK_CLUSTER_CONFIG,
 )
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_cluster_configuration_metadata(
-    mock_get_config, mock_get_options, mock_get_nodes, mock_get_cluster, neo4j_session
+    mock_get_node_status,
+    mock_get_config,
+    mock_get_options,
+    mock_get_nodes,
+    mock_get_cluster,
+    neo4j_session,
 ):
     """
     Test that cluster configuration metadata from options and config endpoints is captured correctly.
@@ -565,27 +628,41 @@ def test_cluster_configuration_metadata(
     assert data["totem_version"] == 2
 
 
-
-
 # ============================================================================
 # Relationship Tests
 # ============================================================================
 
 
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_config", return_value=MOCK_CLUSTER_CONFIG
+    cartography.intel.proxmox.cluster,
+    "get_cluster_config",
+    return_value=MOCK_CLUSTER_CONFIG,
 )
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_options", return_value=MOCK_CLUSTER_OPTIONS
+    cartography.intel.proxmox.cluster,
+    "get_cluster_options",
+    return_value=MOCK_CLUSTER_OPTIONS,
 )
 @patch.object(
     cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA
 )
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA
+    cartography.intel.proxmox.cluster,
+    "get_cluster_status",
+    return_value=MOCK_CLUSTER_DATA,
+)
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
 )
 def test_node_cluster_relationship(
-    mock_get_cluster_status, mock_get_nodes, mock_get_options, mock_get_config, neo4j_session
+    mock_get_node_status,
+    mock_get_cluster_status,
+    mock_get_nodes,
+    mock_get_options,
+    mock_get_config,
+    neo4j_session,
 ):
     """
     Test that nodes create RESOURCE relationships to the cluster.
@@ -613,8 +690,7 @@ def test_node_cluster_relationship(
         WHERE cluster.id = $cluster_id
         RETURN node.name as node_name, cluster.id as cluster_id
         ORDER BY node_name
-        """
-,
+        """,
         cluster_id=TEST_CLUSTER_ID,
     )
     records = list(result)
@@ -624,20 +700,37 @@ def test_node_cluster_relationship(
 
 
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_config", return_value=MOCK_CLUSTER_CONFIG
+    cartography.intel.proxmox.cluster,
+    "get_cluster_config",
+    return_value=MOCK_CLUSTER_CONFIG,
 )
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_options", return_value=MOCK_CLUSTER_OPTIONS
+    cartography.intel.proxmox.cluster,
+    "get_cluster_options",
+    return_value=MOCK_CLUSTER_OPTIONS,
 )
 @patch.object(
     cartography.intel.proxmox.cluster, "get_nodes", return_value=MOCK_NODE_DATA
 )
 @patch.object(
-    cartography.intel.proxmox.cluster, "get_cluster_status", return_value=MOCK_CLUSTER_DATA
+    cartography.intel.proxmox.cluster,
+    "get_cluster_status",
+    return_value=MOCK_CLUSTER_DATA,
 )
 @patch.object(cartography.intel.proxmox.cluster, "get_node_network")
+@patch.object(
+    cartography.intel.proxmox.cluster,
+    "get_node_status",
+    side_effect=_node_status_side_effect,
+)
 def test_node_interface_node_relationship(
-    mock_get_node_network, mock_get_cluster_status, mock_get_nodes, mock_get_options, mock_get_config, neo4j_session
+    mock_get_node_status,
+    mock_get_node_network,
+    mock_get_cluster_status,
+    mock_get_nodes,
+    mock_get_options,
+    mock_get_config,
+    neo4j_session,
 ):
     """
     Test that node interfaces create HAS_NETWORK_INTERFACE relationships to nodes.

@@ -28,6 +28,7 @@ def get_cluster_status(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.cluster.status.get()
 
+
 @timeit
 def get_nodes(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -38,6 +39,7 @@ def get_nodes(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.nodes.get()
+
 
 @timeit
 def get_node_status(proxmox_client: Any, node_name: str) -> dict[str, Any]:
@@ -51,6 +53,7 @@ def get_node_status(proxmox_client: Any, node_name: str) -> dict[str, Any]:
     """
     return proxmox_client.nodes(node_name).status.get()
 
+
 @timeit
 def get_node_network(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
@@ -63,6 +66,7 @@ def get_node_network(proxmox_client: Any, node_name: str) -> list[dict[str, Any]
     """
     return proxmox_client.nodes(node_name).network.get()
 
+
 @timeit
 def get_cluster_options(proxmox_client: Any) -> dict[str, Any]:
     """
@@ -74,6 +78,7 @@ def get_cluster_options(proxmox_client: Any) -> dict[str, Any]:
     """
     return proxmox_client.cluster.options.get()
 
+
 @timeit
 def get_cluster_resources(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -84,6 +89,7 @@ def get_cluster_resources(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.resources.get()
+
 
 @timeit
 def get_cluster_config(proxmox_client: Any) -> Any:
@@ -150,6 +156,7 @@ def transform_cluster_data(
         "cluster_id": cluster_info.get("id"),  # Internal cluster ID from API
     }
 
+
 def transform_cluster_options(cluster_options: dict[str, Any]) -> dict[str, Any]:
     """
     Transform cluster options into additional metadata fields.
@@ -191,6 +198,7 @@ def transform_cluster_options(cluster_options: dict[str, Any]) -> dict[str, Any]
         ),
     }
 
+
 def transform_cluster_config(cluster_config: Any) -> dict[str, Any]:
     """
     Transform cluster configuration (corosync) into metadata fields.
@@ -225,6 +233,7 @@ def transform_cluster_config(cluster_config: Any) -> dict[str, Any]:
         "totem_version": totem.get("version"),
     }
 
+
 def transform_node_data(
     nodes: list[dict[str, Any]], cluster_id: str
 ) -> list[dict[str, Any]]:
@@ -254,7 +263,11 @@ def transform_node_data(
                 "disk_total": node.get("maxdisk", 0),
                 "disk_used": node.get("disk", 0),
                 "level": node.get("level"),
-                # Additional system info
+                # Additional system info. NOTE: these fields are not present on the
+                # GET /nodes list response - they only exist on GET /nodes/{node}/status
+                # (see https://pve.proxmox.com/pve-docs/api-viewer/ -> /nodes/{node}/status).
+                # The caller is expected to have merged the per-node status payload
+                # (via get_node_status) into `node` before calling this function.
                 "kversion": node.get("kversion"),  # Kernel version
                 # Convert loadavg array to comma-separated string
                 "loadavg": (
@@ -263,22 +276,22 @@ def transform_node_data(
                     else None
                 ),
                 "wait": node.get("wait"),  # I/O wait time
-                # Swap information
-                "swap_total": node.get("maxswap"),  # Total swap
-                "swap_used": node.get("swap"),  # Used swap
-                "swap_free": (
-                    node.get("maxswap", 0) - node.get("swap", 0)
-                    if node.get("maxswap") and node.get("swap")
-                    else None
-                ),
+                # Swap information - /nodes/{node}/status returns swap as an object
+                # {total, used, free}, already flattened onto `node` by the caller.
+                "swap_total": node.get("swap_total"),
+                "swap_used": node.get("swap_used"),
+                "swap_free": node.get("swap_free"),
                 # Additional system info
                 "pveversion": node.get("pveversion"),  # PVE version string
-                "cpuinfo": node.get("cpuinfo"),  # CPU model
+                "cpuinfo": node.get(
+                    "cpuinfo"
+                ),  # CPU model (flattened from cpuinfo.model)
                 "idle": node.get("idle"),  # Idle percentage
             }
         )
 
     return transformed_nodes
+
 
 def transform_node_network_data(
     network_interfaces: list[dict[str, Any]],
@@ -363,6 +376,7 @@ def load_cluster(
         lastupdated=update_tag,
     )
 
+
 def load_nodes(
     neo4j_session: neo4j.Session,
     nodes: list[dict[str, Any]],
@@ -384,6 +398,7 @@ def load_nodes(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_node_networks(
     neo4j_session: neo4j.Session,
@@ -443,6 +458,34 @@ def sync(
     cluster_data.update(transform_cluster_options(cluster_options))
     cluster_data.update(transform_cluster_config(cluster_config))
 
+    # Fetch per-node status for detail fields that GET /nodes does not expose
+    # (kversion, loadavg, wait, idle, pveversion, cpuinfo, swap). See
+    # https://pve.proxmox.com/pve-docs/api-viewer/ -> /nodes/{node}/status
+    for node in nodes:
+        node_name = node["node"]
+        try:
+            status = get_node_status(proxmox_client, node_name)
+        except Exception as e:
+            logger.warning(f"Could not fetch node status for {node_name}: {e}")
+            status = {}
+
+        cpuinfo = status.get("cpuinfo") or {}
+        swap = status.get("swap") or {}
+
+        node.update(
+            {
+                "kversion": status.get("kversion"),
+                "loadavg": status.get("loadavg"),
+                "wait": status.get("wait"),
+                "idle": status.get("idle"),
+                "pveversion": status.get("pveversion"),
+                "cpuinfo": cpuinfo.get("model"),
+                "swap_total": swap.get("total"),
+                "swap_used": swap.get("used"),
+                "swap_free": swap.get("free"),
+            }
+        )
+
     transformed_nodes = transform_node_data(nodes, cluster_data["id"])
 
     load_cluster(neo4j_session, cluster_data, update_tag)
@@ -480,6 +523,7 @@ def sync(
     )
 
     return {"cluster_id": cluster_data["id"]}
+
 
 def cleanup(
     neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]

@@ -51,6 +51,7 @@ def get_snapshots_for_vm(
         )
         return []
 
+
 def get_all_snapshots(
     proxmox_client: Any,
     vms: list[dict[str, Any]],
@@ -107,6 +108,7 @@ def transform_snapshot_data(
         vm_type = snapshot["vm_type"]
         snapshot_id = f"{cluster_id}/vm/{vmid}/snapshot/{name}"
 
+        parent = snapshot.get("parent")
         transformed_snapshots.append(
             {
                 "id": snapshot_id,
@@ -118,7 +120,13 @@ def transform_snapshot_data(
                 "description": snapshot.get("description"),
                 "snaptime": snapshot.get("snaptime"),
                 "vmstate": snapshot.get("vmstate", 0) == 1,  # Convert to boolean
-                "parent": snapshot.get("parent"),
+                "parent": parent,
+                # Full ID of the parent snapshot node, used to build the
+                # CHILD_OF snapshot-chain relationship. Proxmox uses "" (not
+                # null/absent) to signal "no parent" on the root snapshot.
+                "parent_snapshot_id": (
+                    f"{cluster_id}/vm/{vmid}/snapshot/{parent}" if parent else None
+                ),
             }
         )
 
@@ -179,7 +187,10 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]) -> None:
+
+def cleanup(
+    neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any]
+) -> None:
     """
     Remove stale snapshot data.
 
