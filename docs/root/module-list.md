@@ -28,6 +28,7 @@ modules/github/index
 modules/gitlab/index
 modules/googleworkspace/index
 modules/gsuite/index
+modules/huntress/index
 modules/jamf/index
 modules/jumpcloud/index
 modules/kandji/index
@@ -43,6 +44,7 @@ modules/okta/index
 modules/ontology/index
 modules/openai/index
 modules/openvas/index
+modules/orca/index
 modules/pagerduty/index
 modules/proxmox/index
 modules/railway/index
