@@ -131,4 +131,6 @@ def test_sync_pools(mock_get_pool_details, mock_get_pools, neo4j_session):
         """
     )
     pool_storage_rels = [(r["pool_id"], r["storage_id"]) for r in result]
-    assert pool_storage_rels == [("test-cluster/pool/backup-storage", "test-cluster/storage/nfs-backup")]
+    assert pool_storage_rels == [
+        ("test-cluster/pool/backup-storage", "test-cluster/storage/nfs-backup")
+    ]

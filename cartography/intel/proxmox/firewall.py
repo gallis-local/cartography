@@ -31,6 +31,7 @@ def get_cluster_firewall_rules(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.cluster.firewall.rules.get()
 
+
 @timeit
 def get_node_firewall_rules(
     proxmox_client: Any, node_name: str
@@ -45,6 +46,7 @@ def get_node_firewall_rules(
     """
     return proxmox_client.nodes(node_name).firewall.rules.get()
 
+
 @timeit
 def get_cluster_ipsets(proxmox_client: Any) -> list[dict[str, Any]]:
     """
@@ -55,6 +57,7 @@ def get_cluster_ipsets(proxmox_client: Any) -> list[dict[str, Any]]:
     :raises: Exception if API call fails
     """
     return proxmox_client.cluster.firewall.ipset.get()
+
 
 @timeit
 def get_ipset_cidrs(proxmox_client: Any, ipset_name: str) -> list[dict[str, Any]]:
@@ -89,6 +92,7 @@ def _extract_ipset_references(value: str | None) -> list[str]:
             ipsets.append(part[1:])  # Remove + prefix
     return ipsets
 
+
 def transform_firewall_rule_data(
     rules: list[dict[str, Any]],
     cluster_id: str,
@@ -116,7 +120,11 @@ def transform_firewall_rule_data(
             rule_id = f"{cluster_id}/vm/{scope_id}/firewall/rule/{pos}"
         else:
             # Fallback for unknown scopes
-            rule_id = f"{cluster_id}/firewall/{scope}/{scope_id}/rule/{pos}" if scope_id else f"{cluster_id}/firewall/{scope}/rule/{pos}"
+            rule_id = (
+                f"{cluster_id}/firewall/{scope}/{scope_id}/rule/{pos}"
+                if scope_id
+                else f"{cluster_id}/firewall/{scope}/rule/{pos}"
+            )
 
         # Build full scope ID for relationship matching
         # For node-scoped rules, need full node ID for matching
@@ -159,6 +167,7 @@ def transform_firewall_rule_data(
 
     return transformed_rules
 
+
 def transform_ipset_data(
     ipsets: list[dict[str, Any]],
     ipset_cidrs: dict[str, list[dict[str, Any]]],
@@ -188,7 +197,11 @@ def transform_ipset_data(
             ipset_id = f"{cluster_id}/vm/{scope_id}/firewall/ipset/{name}"
         else:
             # Fallback for unknown scopes
-            ipset_id = f"{cluster_id}/firewall/{scope}/{scope_id}/ipset/{name}" if scope_id else f"{cluster_id}/firewall/{scope}/ipset/{name}"
+            ipset_id = (
+                f"{cluster_id}/firewall/{scope}/{scope_id}/ipset/{name}"
+                if scope_id
+                else f"{cluster_id}/firewall/{scope}/ipset/{name}"
+            )
 
         # Get CIDR entries for this IP set
         cidrs = []
@@ -236,6 +249,7 @@ def load_firewall_rules(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_ipsets(
     neo4j_session: neo4j.Session,
     ipsets: list[dict[str, Any]],
@@ -260,6 +274,7 @@ def load_ipsets(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_firewall_scope_relationships(
     neo4j_session: neo4j.Session,
@@ -311,6 +326,7 @@ def load_firewall_scope_relationships(
             _sub_resource_label="ProxmoxCluster",
             _sub_resource_id=cluster_id,
         )
+
 
 def load_firewall_ipset_relationships(
     neo4j_session: neo4j.Session,
@@ -431,6 +447,7 @@ def sync(
     logger.info(f"Synced {len(all_rules)} firewall rules and {len(all_ipsets)} IP sets")
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
+
 
 def cleanup(
     neo4j_session: neo4j.Session,

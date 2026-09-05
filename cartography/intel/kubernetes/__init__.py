@@ -9,7 +9,6 @@ from cartography.config import Config
 from cartography.intel.kubernetes.clusters import sync_kubernetes_cluster
 from cartography.intel.kubernetes.eks import sync as sync_eks
 from cartography.intel.kubernetes.gateway_api import sync_gateway_api
-from cartography.intel.kubernetes.traefik_crds import sync_traefik_crds
 from cartography.intel.kubernetes.ingress import sync_ingress
 from cartography.intel.kubernetes.namespaces import sync_namespaces
 from cartography.intel.kubernetes.networkpolicies import sync_network_policies
@@ -18,6 +17,7 @@ from cartography.intel.kubernetes.pods import sync_pods
 from cartography.intel.kubernetes.rbac import sync_kubernetes_rbac
 from cartography.intel.kubernetes.secrets import sync_secrets
 from cartography.intel.kubernetes.services import sync_services
+from cartography.intel.kubernetes.traefik_crds import sync_traefik_crds
 from cartography.intel.kubernetes.util import get_k8s_clients
 from cartography.intel.kubernetes.workloads import sync_workloads
 from cartography.util import run_typed_analysis_job

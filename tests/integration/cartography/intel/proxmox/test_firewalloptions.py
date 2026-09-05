@@ -11,14 +11,15 @@ from tests.data.proxmox.firewalloptions import MOCK_CLUSTER_FIREWALL_OPTIONS
 from tests.data.proxmox.firewalloptions import MOCK_NODE_FIREWALL_OPTIONS
 from tests.integration.cartography.intel.proxmox import create_test_cluster
 
-
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
 
 
 @patch.object(cartography.intel.proxmox.firewalloptions, "get_cluster_firewall_options")
 @patch.object(cartography.intel.proxmox.firewalloptions, "get_node_firewall_options")
-def test_firewalloptions_sync(mock_get_node_options, mock_get_cluster_options, neo4j_session):
+def test_firewalloptions_sync(
+    mock_get_node_options, mock_get_cluster_options, neo4j_session
+):
     """Test firewall options sync creates ProxmoxFirewallOptions nodes."""
     # Setup
     cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG)
@@ -81,7 +82,9 @@ def test_firewalloptions_to_cluster_relationship(
 ):
     """Test ProxmoxFirewallOptions RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1
+    )
     proxmox_client = MagicMock()
 
     # Mock firewall options data

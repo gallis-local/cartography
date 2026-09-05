@@ -10,7 +10,6 @@ from cartography.intel.proxmox.authrealm import sync
 from tests.data.proxmox.authrealm import MOCK_AUTH_REALM_DATA
 from tests.integration.cartography.intel.proxmox import create_test_cluster
 
-
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
 
@@ -69,7 +68,9 @@ def test_authrealm_sync(mock_get_realms, neo4j_session):
 def test_authrealm_to_cluster_relationship(mock_get_realms, neo4j_session):
     """Test ProxmoxAuthRealm RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1
+    )
     proxmox_client = MagicMock()
 
     # Mock auth realm data

@@ -35,10 +35,16 @@ def get_ha_groups(proxmox_client: Any) -> list[dict[str, Any]]:
         return proxmox_client.cluster.ha.groups.get()
     except ResourceException as e:
         # HA groups deprecated/migrated to rules in newer Proxmox versions
-        if "migrated to rules" in str(e).lower() or "cannot index groups" in str(e).lower():
-            logger.info("HA groups API unavailable (deprecated/migrated to rules) - skipping HA group sync")
+        if (
+            "migrated to rules" in str(e).lower()
+            or "cannot index groups" in str(e).lower()
+        ):
+            logger.info(
+                "HA groups API unavailable (deprecated/migrated to rules) - skipping HA group sync"
+            )
             return []
         raise
+
 
 @timeit
 def get_ha_resources(proxmox_client: Any) -> list[dict[str, Any]]:
@@ -80,6 +86,7 @@ def transform_ha_group_data(
         )
 
     return transformed_groups
+
 
 def transform_ha_resource_data(
     resources: list[dict[str, Any]],
@@ -135,6 +142,7 @@ def load_ha_groups(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_ha_resources(
     neo4j_session: neo4j.Session,
     resources: list[dict[str, Any]],
@@ -156,6 +164,7 @@ def load_ha_resources(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_ha_resource_vm_relationships(
     neo4j_session: neo4j.Session,
@@ -242,6 +251,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -256,8 +266,12 @@ def cleanup(
     :param cluster_id: Cluster ID for MatchLink cleanup scoping
     :param update_tag: Sync timestamp for MatchLink cleanup
     """
-    GraphJob.from_node_schema(ProxmoxHAGroupSchema(), common_job_parameters).run(neo4j_session)
-    GraphJob.from_node_schema(ProxmoxHAResourceSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxHAGroupSchema(), common_job_parameters).run(
+        neo4j_session
+    )
+    GraphJob.from_node_schema(ProxmoxHAResourceSchema(), common_job_parameters).run(
+        neo4j_session
+    )
     GraphJob.from_matchlink(
         ProxmoxHAResourceToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
     ).run(neo4j_session)

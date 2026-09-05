@@ -164,6 +164,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters)
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],

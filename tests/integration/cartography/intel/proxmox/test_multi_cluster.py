@@ -120,9 +120,9 @@ def test_multi_cluster_node_isolation(
     assert len(node_ids) == 2, f"Node IDs should be unique: {node_ids}"
     assert len(node_names) == 1, f"Node names should be the same: {node_names}"
     assert "pve1" in node_names, f"Expected node name 'pve1', got {node_names}"
-    assert len(cluster_ids) == 2, (
-        f"Nodes should belong to different clusters: {cluster_ids}"
-    )
+    assert (
+        len(cluster_ids) == 2
+    ), f"Nodes should belong to different clusters: {cluster_ids}"
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
@@ -219,9 +219,9 @@ def test_multi_cluster_vm_isolation(
     assert 100 in vm_vmids, f"Expected VMID 100, got {vm_vmids}"
     assert len(vm_names) == 1, f"VM names should be the same: {vm_names}"
     assert "vm-100" in vm_names, f"Expected VM name 'vm-100', got {vm_names}"
-    assert len(cluster_ids) == 2, (
-        f"VMs should belong to different clusters: {cluster_ids}"
-    )
+    assert (
+        len(cluster_ids) == 2
+    ), f"VMs should belong to different clusters: {cluster_ids}"
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
@@ -297,9 +297,9 @@ def test_multi_cluster_user_isolation(
 
     assert len(user_ids) == 2, f"User IDs should be unique: {user_ids}"
     assert len(userids) == 1, f"User userids should be the same: {userids}"
-    assert len(cluster_ids) == 2, (
-        f"Users should belong to different clusters: {cluster_ids}"
-    )
+    assert (
+        len(cluster_ids) == 2
+    ), f"Users should belong to different clusters: {cluster_ids}"
     assert TEST_CLUSTER_A in cluster_ids
     assert TEST_CLUSTER_B in cluster_ids
 
@@ -401,9 +401,10 @@ def test_import_cleanup_is_cluster_scoped(
     clusters = {
         node[0] for node in check_nodes(neo4j_session, "ProxmoxCluster", ["id"])
     }
-    assert clusters == {f"{TEST_CLUSTER_A}", f"{TEST_CLUSTER_B}"}, (
-        f"Expected both clusters to survive cleanup, got {clusters}"
-    )
+    assert clusters == {
+        f"{TEST_CLUSTER_A}",
+        f"{TEST_CLUSTER_B}",
+    }, f"Expected both clusters to survive cleanup, got {clusters}"
 
     nodes = {node[0] for node in check_nodes(neo4j_session, "ProxmoxNode", ["id"])}
     assert nodes == {
@@ -412,6 +413,7 @@ def test_import_cleanup_is_cluster_scoped(
     }, f"Expected both clusters' nodes to survive cleanup, got {nodes}"
 
     vms = {node[0] for node in check_nodes(neo4j_session, "ProxmoxVM", ["id"])}
-    assert vms == {f"{TEST_CLUSTER_A}/vm/100", f"{TEST_CLUSTER_B}/vm/100"}, (
-        f"Expected both clusters' VMs to survive cleanup, got {vms}"
-    )
+    assert vms == {
+        f"{TEST_CLUSTER_A}/vm/100",
+        f"{TEST_CLUSTER_B}/vm/100",
+    }, f"Expected both clusters' VMs to survive cleanup, got {vms}"

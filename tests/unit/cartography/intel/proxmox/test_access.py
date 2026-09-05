@@ -79,7 +79,9 @@ def test_transform_user_data():
     assert sso_user["email"] == "sso@example.com"
 
     # Test AD-federated user: realm must be the last @-delimited segment
-    ad_user = next(u for u in result if u["userid"] == "aduser@corp.example.com@entraid")
+    ad_user = next(
+        u for u in result if u["userid"] == "aduser@corp.example.com@entraid"
+    )
     assert ad_user["realm"] == "entraid"
     assert ad_user["id"] == "test-cluster/user/aduser@corp.example.com@entraid"
 

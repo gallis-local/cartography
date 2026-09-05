@@ -56,9 +56,7 @@ def test_start_openvas_ingestion(neo4j_session, mocker):
     )
     assert (INSTANCE_ID, "gvm.example.com", "9390", "admin") in instance_nodes
 
-    assert ("10.0.0.5",) in (
-        check_nodes(neo4j_session, "OpenVASHost", ["id"]) or set()
-    )
+    assert ("10.0.0.5",) in (check_nodes(neo4j_session, "OpenVASHost", ["id"]) or set())
     assert (TASK_ID_1,) in (check_nodes(neo4j_session, "OpenVASTask", ["id"]) or set())
     assert (RESULT_ID_1,) in (
         check_nodes(neo4j_session, "OpenVASResult", ["id"]) or set()

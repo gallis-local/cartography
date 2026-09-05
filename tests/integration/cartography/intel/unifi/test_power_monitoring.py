@@ -1,8 +1,11 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-import cartography.intel.unifi.outlets
+import pytest
+
 import cartography.intel.unifi.devices
+import cartography.intel.unifi.outlets
 import cartography.intel.unifi.sites
 import tests.data.unifi
 

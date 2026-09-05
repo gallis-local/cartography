@@ -11,7 +11,6 @@ from tests.data.proxmox.apitoken import MOCK_API_TOKEN_DATA
 from tests.data.proxmox.apitoken import MOCK_USERS_FOR_TOKENS
 from tests.integration.cartography.intel.proxmox import create_test_cluster
 
-
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
 
@@ -84,7 +83,9 @@ def test_apitoken_sync(mock_get_tokens, neo4j_session):
 def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken RESOURCE relationship to ProxmoxCluster."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 1
+    )
     proxmox_client = MagicMock()
 
     # Create a test user
@@ -138,7 +139,9 @@ def test_apitoken_to_cluster_relationship(mock_get_tokens, neo4j_session):
 def test_apitoken_to_user_relationship(mock_get_tokens, neo4j_session):
     """Test ProxmoxAPIToken OWNED_BY relationship to ProxmoxUser."""
     # Setup
-    cluster_id = create_test_cluster(neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2)
+    cluster_id = create_test_cluster(
+        neo4j_session, TEST_CLUSTER_ID, TEST_UPDATE_TAG + 2
+    )
     proxmox_client = MagicMock()
 
     # Create a test user
