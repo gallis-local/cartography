@@ -160,11 +160,36 @@ def test_sync_vm_disks(
 
     # Assert - Check disk nodes
     expected_disk_nodes = {
-        ("test-cluster/vm/100/disk/scsi0", "scsi0", "test-cluster/storage/local-lvm", 107374182400),  # 100G in bytes
-        ("test-cluster/vm/101/disk/scsi0", "scsi0", "test-cluster/storage/local-lvm", 53687091200),  # 50G in bytes
-        ("test-cluster/vm/101/disk/efidisk0", "efidisk0", "test-cluster/storage/local-lvm", 4194304),  # 4M in bytes
-        ("test-cluster/vm/101/disk/tpmstate0", "tpmstate0", "test-cluster/storage/local-lvm", 4194304),  # 4M in bytes
-        ("test-cluster/vm/200/disk/rootfs", "rootfs", "test-cluster/storage/local-lvm", 10737418240),  # 10G in bytes
+        (
+            "test-cluster/vm/100/disk/scsi0",
+            "scsi0",
+            "test-cluster/storage/local-lvm",
+            107374182400,
+        ),  # 100G in bytes
+        (
+            "test-cluster/vm/101/disk/scsi0",
+            "scsi0",
+            "test-cluster/storage/local-lvm",
+            53687091200,
+        ),  # 50G in bytes
+        (
+            "test-cluster/vm/101/disk/efidisk0",
+            "efidisk0",
+            "test-cluster/storage/local-lvm",
+            4194304,
+        ),  # 4M in bytes
+        (
+            "test-cluster/vm/101/disk/tpmstate0",
+            "tpmstate0",
+            "test-cluster/storage/local-lvm",
+            4194304,
+        ),  # 4M in bytes
+        (
+            "test-cluster/vm/200/disk/rootfs",
+            "rootfs",
+            "test-cluster/storage/local-lvm",
+            10737418240,
+        ),  # 10G in bytes
     }
     assert (
         check_nodes(neo4j_session, "ProxmoxDisk", ["id", "disk_id", "storage", "size"])

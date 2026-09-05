@@ -29,6 +29,7 @@ def get_pools(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.pools.get()
 
+
 @timeit
 def get_pool_details(proxmox_client: Any, poolid: str) -> dict[str, Any]:
     """
@@ -90,6 +91,7 @@ def load_pools(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_pool_member_relationships(
     neo4j_session: neo4j.Session,
@@ -197,7 +199,13 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 
-def cleanup(neo4j_session: neo4j.Session, common_job_parameters: dict[str, Any], cluster_id: str, update_tag: int) -> None:
+
+def cleanup(
+    neo4j_session: neo4j.Session,
+    common_job_parameters: dict[str, Any],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
     """
     Remove stale pool data.
 

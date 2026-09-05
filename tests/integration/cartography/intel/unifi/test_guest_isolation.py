@@ -1,12 +1,15 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-import cartography.intel.unifi.wlans
-import cartography.intel.unifi.firewall_zones
-import cartography.intel.unifi.firewall_policies
-import cartography.intel.unifi.vouchers
+import pytest
+
 import cartography.intel.unifi.clients
+import cartography.intel.unifi.firewall_policies
+import cartography.intel.unifi.firewall_zones
 import cartography.intel.unifi.sites
+import cartography.intel.unifi.vouchers
+import cartography.intel.unifi.wlans
 import tests.data.unifi
 
 TEST_UPDATE_TAG = 123456789

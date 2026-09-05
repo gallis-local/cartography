@@ -28,6 +28,7 @@ def get_storage(proxmox_client: Any) -> list[dict[str, Any]]:
     """
     return proxmox_client.storage.get()
 
+
 @timeit
 def get_storage_status(proxmox_client: Any, node_name: str) -> list[dict[str, Any]]:
     """
@@ -127,6 +128,7 @@ def load_storage(
         CLUSTER_ID=cluster_id,
     )
 
+
 def load_storage_node_relationships(
     neo4j_session: neo4j.Session,
     storage_list: list[dict[str, Any]],
@@ -214,6 +216,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -228,7 +231,9 @@ def cleanup(
     :param cluster_id: Cluster ID for MatchLink cleanup scoping
     :param update_tag: Sync timestamp for MatchLink cleanup
     """
-    GraphJob.from_node_schema(ProxmoxStorageSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxStorageSchema(), common_job_parameters).run(
+        neo4j_session
+    )
     GraphJob.from_matchlink(
         ProxmoxStorageToNodeMatchLink(), "ProxmoxCluster", cluster_id, update_tag
     ).run(neo4j_session)

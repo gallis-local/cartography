@@ -12,7 +12,6 @@ from tests.data.proxmox.snapshot import MOCK_QEMU_SNAPSHOTS
 from tests.data.proxmox.snapshot import MOCK_VMS_FOR_SNAPSHOT
 from tests.integration.cartography.intel.proxmox import create_test_cluster
 
-
 TEST_UPDATE_TAG = 123456789
 TEST_CLUSTER_ID = "test-cluster"
 

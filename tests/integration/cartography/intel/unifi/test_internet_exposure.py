@@ -1,12 +1,15 @@
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import cartography.intel.unifi.devices
-import cartography.intel.unifi.wlans
-import cartography.intel.unifi.port_forwards
-import cartography.intel.unifi.firewall_zones
 import cartography.intel.unifi.firewall_policies
+import cartography.intel.unifi.firewall_zones
+import cartography.intel.unifi.port_forwards
 import cartography.intel.unifi.sites
+import cartography.intel.unifi.wlans
 import tests.data.unifi
 from tests.integration.util import check_nodes
 

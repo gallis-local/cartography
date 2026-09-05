@@ -165,7 +165,10 @@ def test_sync_firewall(
         """
     )
     node_rules = [(r["node_id"], r["rule_count"]) for r in result]
-    assert node_rules == [("test-cluster/node/node1", 1), ("test-cluster/node/node2", 1)]
+    assert node_rules == [
+        ("test-cluster/node/node1", 1),
+        ("test-cluster/node/node2", 1),
+    ]
 
     # Assert - Rule properties
     result = neo4j_session.run(

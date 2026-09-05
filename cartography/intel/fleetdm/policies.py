@@ -53,9 +53,9 @@ def transform(api_result: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "resolution": policy.get("resolution"),
                 "platform": policy.get("platform"),
                 "critical": policy.get("critical"),
-                "author_id": str(policy["author_id"])
-                if policy.get("author_id")
-                else None,
+                "author_id": (
+                    str(policy["author_id"]) if policy.get("author_id") else None
+                ),
                 "author_name": policy.get("author_name"),
                 "author_email": policy.get("author_email"),
                 "team_id": str(policy["team_id"]) if policy.get("team_id") else None,

@@ -72,7 +72,11 @@ def transform_backup_job_data(
                 "cluster_id": cluster_id,
                 "schedule": job.get("schedule"),
                 "storage": job.get("storage"),
-                "storage_id": f"{cluster_id}/storage/{job['storage']}" if job.get("storage") else None,
+                "storage_id": (
+                    f"{cluster_id}/storage/{job['storage']}"
+                    if job.get("storage")
+                    else None
+                ),
                 "enabled": job.get("enabled", True),
                 "mode": job.get("mode", "snapshot"),
                 "compression": job.get("compress"),
@@ -113,6 +117,7 @@ def load_backup_jobs(
         lastupdated=update_tag,
         CLUSTER_ID=cluster_id,
     )
+
 
 def load_backup_job_vm_relationships(
     neo4j_session: neo4j.Session,
@@ -208,6 +213,7 @@ def sync(
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 
+
 def cleanup(
     neo4j_session: neo4j.Session,
     common_job_parameters: dict[str, Any],
@@ -222,7 +228,9 @@ def cleanup(
     :param cluster_id: Cluster ID for MatchLink cleanup scoping
     :param update_tag: Sync timestamp for MatchLink cleanup
     """
-    GraphJob.from_node_schema(ProxmoxBackupJobSchema(), common_job_parameters).run(neo4j_session)
+    GraphJob.from_node_schema(ProxmoxBackupJobSchema(), common_job_parameters).run(
+        neo4j_session
+    )
     GraphJob.from_matchlink(
         ProxmoxBackupJobToVMMatchLink(), "ProxmoxCluster", cluster_id, update_tag
     ).run(neo4j_session)
