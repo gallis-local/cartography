@@ -91,6 +91,7 @@ PANEL_TENABLE = "Tenable Options"
 PANEL_OPENVAS = "OpenVAS Options"
 PANEL_WIZ = "Wiz Options"
 PANEL_ORCA = "Orca Security Options"
+PANEL_PROWLER = "Prowler Options"
 PANEL_KEYCLOAK = "Keycloak Options"
 PANEL_SALESFORCE = "Salesforce Options"
 PANEL_SLACK = "Slack Options"
@@ -165,6 +166,7 @@ MODULE_PANELS = {
     "openvas": PANEL_OPENVAS,
     "wiz": PANEL_WIZ,
     "orca": PANEL_ORCA,
+    "prowler": PANEL_PROWLER,
     "keycloak": PANEL_KEYCLOAK,
     "salesforce": PANEL_SALESFORCE,
     "slack": PANEL_SLACK,
@@ -2531,6 +2533,67 @@ class CLI:
                 ),
             ] = "ORCASECURITY_API_TOKEN",
             # =================================================================
+            # Prowler Options
+            # =================================================================
+            prowler_api_url: Annotated[
+                str | None,
+                typer.Option(
+                    "--prowler-api-url",
+                    help=(
+                        "Base URL of the Prowler API, e.g. https://api.prowler.com "
+                        "for Prowler Cloud or the origin of a self-hosted Prowler "
+                        "App API."
+                    ),
+                    rich_help_panel=PANEL_PROWLER,
+                    hidden=PANEL_PROWLER not in visible_panels,
+                ),
+            ] = None,
+            prowler_api_key_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--prowler-api-key-env-var",
+                    help=("Environment variable name containing the Prowler API key."),
+                    rich_help_panel=PANEL_PROWLER,
+                    hidden=PANEL_PROWLER not in visible_panels,
+                ),
+            ] = "PROWLER_API_KEY",
+            prowler_email: Annotated[
+                str | None,
+                typer.Option(
+                    "--prowler-email",
+                    help=(
+                        "Prowler user email. Only used for JWT authentication when "
+                        "no API key is configured."
+                    ),
+                    rich_help_panel=PANEL_PROWLER,
+                    hidden=PANEL_PROWLER not in visible_panels,
+                ),
+            ] = None,
+            prowler_password_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--prowler-password-env-var",
+                    help=(
+                        "Environment variable name containing the Prowler user "
+                        "password."
+                    ),
+                    rich_help_panel=PANEL_PROWLER,
+                    hidden=PANEL_PROWLER not in visible_panels,
+                ),
+            ] = "PROWLER_PASSWORD",
+            prowler_tenant_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--prowler-tenant-id",
+                    help=(
+                        "Prowler tenant UUID to sync. Defaults to the tenant of the "
+                        "credential's first membership."
+                    ),
+                    rich_help_panel=PANEL_PROWLER,
+                    hidden=PANEL_PROWLER not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # Keycloak Options
             # =================================================================
             keycloak_client_id: Annotated[
@@ -3910,6 +3973,24 @@ class CLI:
                 )
                 orca_api_token = os.environ.get(orca_api_token_env_var)
 
+            # Read Prowler API key
+            prowler_api_key = None
+            if prowler_api_key_env_var:
+                logger.debug(
+                    "Reading Prowler API key from environment variable %s",
+                    prowler_api_key_env_var,
+                )
+                prowler_api_key = os.environ.get(prowler_api_key_env_var)
+
+            # Read Prowler user password
+            prowler_password = None
+            if prowler_password_env_var:
+                logger.debug(
+                    "Reading Prowler user password from environment variable %s",
+                    prowler_password_env_var,
+                )
+                prowler_password = os.environ.get(prowler_password_env_var)
+
             # Read Keycloak client secret
             keycloak_client_secret = None
             if keycloak_client_secret_env_var:
@@ -4216,6 +4297,11 @@ class CLI:
                 wiz_lookback_days=wiz_lookback_days,
                 orca_api_endpoint=orca_api_endpoint,
                 orca_api_token=orca_api_token,
+                prowler_api_url=prowler_api_url,
+                prowler_api_key=prowler_api_key,
+                prowler_email=prowler_email,
+                prowler_password=prowler_password,
+                prowler_tenant_id=prowler_tenant_id,
                 spacelift_api_endpoint=spacelift_api_endpoint_resolved,
                 spacelift_api_token=spacelift_api_token,
                 spacelift_api_key_id=spacelift_api_key_id,

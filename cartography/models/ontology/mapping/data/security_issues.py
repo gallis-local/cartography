@@ -532,6 +532,62 @@ huntress_mapping = OntologyMapping(
     ],
 )
 
+# Prowler finding severity. Prowler emits lowercase values.
+_PROWLER_SEVERITY = {
+    "informational": "info",
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "critical": "critical",
+}
+
+# Prowler triage status. A finding Prowler has not triaged stays `open`.
+_PROWLER_STATUS = {
+    "open": "open",
+    "under_review": "open",
+    "remediating": "open",
+    "reopened": "open",
+    "resolved": "fixed",
+    "risk_accepted": "ignored",
+    "false_positive": "ignored",
+}
+
+prowler_mapping = OntologyMapping(
+    module_name="prowler",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProwlerFinding",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="title",
+                    node_field="check_title",
+                    required=True,
+                ),
+                OntologyFieldMapping(
+                    ontology_field="severity",
+                    node_field="severity",
+                    special_handling="mapping",
+                    extra={"map": _PROWLER_SEVERITY},
+                ),
+                OntologyFieldMapping(
+                    ontology_field="type",
+                    node_field="service_name",
+                ),
+                OntologyFieldMapping(
+                    ontology_field="status",
+                    node_field="triage_status",
+                    special_handling="mapping",
+                    extra={"map": _PROWLER_STATUS},
+                ),
+                OntologyFieldMapping(
+                    ontology_field="first_seen",
+                    node_field="first_seen_at",
+                ),
+            ],
+        ),
+    ],
+)
+
 SECURITY_ISSUES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "bbot": bbot_mapping,
     "huntress": huntress_mapping,
@@ -540,6 +596,7 @@ SECURITY_ISSUES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "socketdev": socketdev_mapping,
     "wiz": wiz_mapping,
     "orca": orca_mapping,
+    "prowler": prowler_mapping,
     "azure": azure_mapping,
     "supabase": supabase_mapping,
 }

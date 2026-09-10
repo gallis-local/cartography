@@ -563,6 +563,19 @@ class Config:
     :param orca_api_endpoint: Region-specific Orca Security API origin. Optional.
     :type orca_api_token: str
     :param orca_api_token: Orca Security API token. Optional.
+    :type prowler_api_url: str
+    :param prowler_api_url: Base URL of the Prowler API, e.g. https://api.prowler.com for
+        Prowler Cloud, or the origin of a self-hosted Prowler App API. Optional.
+    :type prowler_api_key: str
+    :param prowler_api_key: Prowler API key. Optional.
+    :type prowler_email: str
+    :param prowler_email: Prowler user email, used for JWT authentication when no API key
+        is supplied. Optional.
+    :type prowler_password: str
+    :param prowler_password: Prowler user password, used for JWT authentication. Optional.
+    :type prowler_tenant_id: str
+    :param prowler_tenant_id: Prowler tenant UUID to sync. Optional; defaults to the tenant
+        of the credential's first membership.
     """
 
     def __init__(
@@ -823,6 +836,11 @@ class Config:
         gcp_exclude_org_root_projects=False,
         orca_api_endpoint=None,
         orca_api_token=None,
+        prowler_api_url=None,
+        prowler_api_key=None,
+        prowler_email=None,
+        prowler_password=None,
+        prowler_tenant_id=None,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
@@ -1138,3 +1156,8 @@ class Config:
         self.snowflake_databases = snowflake_databases
         self.orca_api_endpoint = orca_api_endpoint
         self.orca_api_token = orca_api_token
+        self.prowler_api_url = prowler_api_url
+        self.prowler_api_key = prowler_api_key
+        self.prowler_email = prowler_email
+        self.prowler_password = prowler_password
+        self.prowler_tenant_id = prowler_tenant_id
