@@ -22,8 +22,8 @@ Email and password authentication is used only when no API key is configured.
 Cartography exchanges the credentials at `POST /api/v1/tokens` for a short-lived
 access token (30 minutes) and refreshes it automatically during the sync.
 
-Supply the credentials in the `PROWLER_EMAIL` and `PROWLER_PASSWORD`
-environment variables.
+Pass the email with `--prowler-email`, and supply the password in the
+`PROWLER_PASSWORD` environment variable.
 
 API key authentication is preferred for unattended runs.
 
@@ -65,6 +65,12 @@ export PROWLER_API_KEY="..."
 cartography \
   --selected-modules prowler \
   --prowler-api-url http://localhost:8080
+```
+
+```{note}
+Cartography only accepts a plaintext `http://` API URL when it points at
+`localhost` or `127.0.0.1`. A remote self-hosted Prowler App must be reached
+over `https` so the credential is not sent in the clear.
 ```
 
 ## Advanced Configuration
