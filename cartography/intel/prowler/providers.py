@@ -146,12 +146,10 @@ def sync(
     credential: api.ProwlerCredential,
     tenant_id: str,
     update_tag: int,
-) -> list[dict[str, Any]]:
-    """Sync Prowler providers and return them for downstream syncs."""
+) -> None:
     providers = transform(get(session, api_url, credential))
     load_providers(neo4j_session, providers, tenant_id, update_tag)
     logger.info("Loaded %d Prowler providers.", len(providers))
-    return providers
 
 
 def cleanup(
