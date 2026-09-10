@@ -34,6 +34,11 @@ RESOURCE_INSTANCE_UID = (
 )
 RESOURCE_IAM_USER_UID = "arn:aws:iam::111122223333:user/synthetic-user"
 
+RESOURCE_K8S_POD_ID = "12121212-1212-4121-8121-121212121212"
+# A Kubernetes resource uid is a cluster-scoped path, never an ARN, so no AWS
+# correlation edge can be built from it.
+RESOURCE_K8S_POD_UID = "synthetic-cluster/default/pod/synthetic-api-7f9c"
+
 FINDING_BUCKET_PUBLIC_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 FINDING_BUCKET_ENCRYPTED_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 FINDING_IAM_USER_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
@@ -51,6 +56,20 @@ FINDING_IAM_USER_UID = (
 )
 
 CVE_ID = "CVE-2026-12345"
+
+COMPLIANCE_AWS_CIS_OBJECT_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+COMPLIANCE_AWS_SOC2_OBJECT_ID = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+COMPLIANCE_K8S_CIS_OBJECT_ID = "ffffffff-ffff-4fff-8fff-ffffffffffff"
+
+COMPLIANCE_AWS_CIS_ID = "cis_2.0_aws"
+COMPLIANCE_AWS_SOC2_ID = "soc2_aws"
+COMPLIANCE_K8S_CIS_ID = "cis_1.10_kubernetes"
+
+# The same framework is assessed once per provider, so the graph node id carries
+# the provider id as well as the framework id.
+COMPLIANCE_AWS_CIS_NODE_ID = f"{PROVIDER_AWS_ID}:{COMPLIANCE_AWS_CIS_ID}"
+COMPLIANCE_AWS_SOC2_NODE_ID = f"{PROVIDER_AWS_ID}:{COMPLIANCE_AWS_SOC2_ID}"
+COMPLIANCE_K8S_CIS_NODE_ID = f"{PROVIDER_KUBERNETES_ID}:{COMPLIANCE_K8S_CIS_ID}"
 
 
 TENANTS: list[dict[str, Any]] = [
@@ -208,6 +227,31 @@ RESOURCES: list[dict[str, Any]] = [
         },
         "relationships": {
             "provider": {"data": {"type": "providers", "id": PROVIDER_AWS_ID}},
+        },
+    },
+    {
+        # A Kubernetes resource. Its provider type is not `aws`, so the AWS
+        # correlation matcher must stay null and no REPRESENTS edge may be built.
+        "type": "resources",
+        "id": RESOURCE_K8S_POD_ID,
+        "attributes": {
+            "uid": RESOURCE_K8S_POD_UID,
+            "name": "synthetic-api-7f9c",
+            # Prowler reports the Kubernetes namespace in the region field.
+            "region": "default",
+            "service": "core",
+            "type": "Pod",
+            "tags": {},
+            "partition": None,
+            "groups": ["cluster"],
+            "failed_findings_count": 0,
+            "inserted_at": "2026-06-02T00:00:00.000000Z",
+            "updated_at": "2026-08-12T06:06:00.000000Z",
+        },
+        "relationships": {
+            "provider": {
+                "data": {"type": "providers", "id": PROVIDER_KUBERNETES_ID},
+            },
         },
     },
     {
@@ -404,3 +448,56 @@ FINDINGS: list[dict[str, Any]] = [
         },
     },
 ]
+
+
+# Compliance overviews are fetched one provider at a time, because the objects
+# carry no relationship back to the provider they describe. The GitHub provider
+# reports none, which exercises a provider with an empty compliance collection.
+COMPLIANCE_OVERVIEWS_BY_PROVIDER: dict[str, list[dict[str, Any]]] = {
+    PROVIDER_AWS_ID: [
+        {
+            "type": "compliance-overviews",
+            "id": COMPLIANCE_AWS_CIS_OBJECT_ID,
+            "attributes": {
+                "id": COMPLIANCE_AWS_CIS_ID,
+                "framework": "CIS",
+                "version": "2.0",
+                "requirements_passed": 42,
+                "requirements_failed": 7,
+                "requirements_manual": 3,
+                "total_requirements": 52,
+            },
+        },
+        {
+            # Prowler ships the SOC 2 framework without a version, so the
+            # attribute is present but empty. It must normalize to null.
+            "type": "compliance-overviews",
+            "id": COMPLIANCE_AWS_SOC2_OBJECT_ID,
+            "attributes": {
+                "id": COMPLIANCE_AWS_SOC2_ID,
+                "framework": "SOC2",
+                "version": "",
+                "requirements_passed": 25,
+                "requirements_failed": 12,
+                "requirements_manual": 5,
+                "total_requirements": 42,
+            },
+        },
+    ],
+    PROVIDER_KUBERNETES_ID: [
+        {
+            "type": "compliance-overviews",
+            "id": COMPLIANCE_K8S_CIS_OBJECT_ID,
+            "attributes": {
+                "id": COMPLIANCE_K8S_CIS_ID,
+                "framework": "CIS",
+                "version": "1.10",
+                "requirements_passed": 18,
+                "requirements_failed": 4,
+                "requirements_manual": 6,
+                "total_requirements": 28,
+            },
+        },
+    ],
+    PROVIDER_GITHUB_ID: [],
+}

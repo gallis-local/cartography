@@ -12,6 +12,14 @@ from cartography.config import Config
 from tests.data.prowler import API_KEY
 from tests.data.prowler import API_URL
 from tests.data.prowler import AWS_ACCOUNT_ID
+from tests.data.prowler import COMPLIANCE_AWS_CIS_ID
+from tests.data.prowler import COMPLIANCE_AWS_CIS_NODE_ID
+from tests.data.prowler import COMPLIANCE_AWS_SOC2_ID
+from tests.data.prowler import COMPLIANCE_AWS_SOC2_NODE_ID
+from tests.data.prowler import COMPLIANCE_AWS_SOC2_OBJECT_ID
+from tests.data.prowler import COMPLIANCE_K8S_CIS_ID
+from tests.data.prowler import COMPLIANCE_K8S_CIS_NODE_ID
+from tests.data.prowler import COMPLIANCE_OVERVIEWS_BY_PROVIDER
 from tests.data.prowler import CVE_ID
 from tests.data.prowler import FINDING_BUCKET_ENCRYPTED_ID
 from tests.data.prowler import FINDING_BUCKET_ENCRYPTED_UID
@@ -32,6 +40,8 @@ from tests.data.prowler import RESOURCE_IAM_USER_ID
 from tests.data.prowler import RESOURCE_IAM_USER_UID
 from tests.data.prowler import RESOURCE_INSTANCE_ID
 from tests.data.prowler import RESOURCE_INSTANCE_UID
+from tests.data.prowler import RESOURCE_K8S_POD_ID
+from tests.data.prowler import RESOURCE_K8S_POD_UID
 from tests.data.prowler import RESOURCES
 from tests.data.prowler import SCAN_AWS_ID
 from tests.data.prowler import SCAN_GITHUB_ID
@@ -53,8 +63,21 @@ COLLECTION_BY_PATH = {
     "/api/v1/scans": "scans",
     "/api/v1/resources/latest": "resources",
     "/api/v1/findings/latest": "findings",
+    "/api/v1/compliance-overviews": "compliance-overviews",
 }
 DEFAULT_PAGE_SIZE = 100
+
+# Every relationship label the module writes from a Prowler node.
+_COUNTED_RELS = (
+    "RESOURCE",
+    "CONTAINS",
+    "SCANNED",
+    "IDENTIFIED",
+    "AFFECTS",
+    "SCANS",
+    "ASSESSES",
+    "REPRESENTS",
+)
 
 PROWLER_LABELS = (
     "ProwlerTenant",
@@ -62,6 +85,7 @@ PROWLER_LABELS = (
     "ProwlerScan",
     "ProwlerResource",
     "ProwlerFinding",
+    "ProwlerComplianceAssessment",
 )
 
 
@@ -81,9 +105,16 @@ class FakeProwlerApi:
             "resources": deepcopy(RESOURCES),
             "findings": deepcopy(FINDINGS),
         }
+        # Compliance overviews are not one flat collection: the API serves them
+        # per provider, selected by a `filter[provider_id]` query parameter.
+        self.compliance_by_provider: dict[str, list[dict[str, Any]]] = {
+            provider_id: deepcopy(overviews)
+            for provider_id, overviews in COMPLIANCE_OVERVIEWS_BY_PROVIDER.items()
+        }
         self.page_sizes: dict[str, int] = {}
         self.fail_on: tuple[str, int] | None = None
         self.requested_pages: list[tuple[str, int]] = []
+        self.compliance_provider_requests: list[str] = []
 
     def remove(self, collection: str, object_id: str) -> None:
         """Drop one object from the fake's state, as Prowler would on deletion."""
@@ -91,6 +122,35 @@ class FakeProwlerApi:
         remaining = [row for row in rows if row["id"] != object_id]
         assert len(remaining) == len(rows) - 1, f"{object_id} not in {collection}"
         self.state[collection] = remaining
+
+    def remove_compliance(self, provider_id: str, object_id: str) -> None:
+        """Drop one compliance overview from one provider's collection."""
+        rows = self.compliance_by_provider[provider_id]
+        remaining = [row for row in rows if row["id"] != object_id]
+        assert (
+            len(remaining) == len(rows) - 1
+        ), f"{object_id} not in {provider_id} compliance overviews"
+        self.compliance_by_provider[provider_id] = remaining
+
+    def set_finding_status(self, finding_id: str, status: str) -> None:
+        """Change one finding's status, as a later scan would."""
+        for finding in self.state["findings"]:
+            if finding["id"] == finding_id:
+                finding["attributes"]["status"] = status
+                return
+        raise AssertionError(f"{finding_id} not in findings")
+
+    def _sideloaded_providers(
+        self,
+        resources: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        wanted: list[str] = []
+        for resource in resources:
+            provider_id = resource["relationships"]["provider"]["data"]["id"]
+            if provider_id not in wanted:
+                wanted.append(provider_id)
+        by_id = {provider["id"]: provider for provider in self.state["providers"]}
+        return [deepcopy(by_id[uuid]) for uuid in wanted if uuid in by_id]
 
     def _sideloaded_resources(
         self,
@@ -133,6 +193,8 @@ class FakeProwlerApi:
             assert parsed.query, "a followed next link must carry its query string"
         if collection == "findings":
             assert query.get("include") == "resources"
+        if collection == "resources":
+            assert query.get("include") == "provider"
 
         page_number = int(query.get("page[number]", 1))
         self.requested_pages.append((collection, page_number))
@@ -141,7 +203,19 @@ class FakeProwlerApi:
                 f"synthetic Prowler {collection} page {page_number} failure",
             )
 
-        rows = self.state[collection]
+        if collection == "compliance-overviews":
+            # The module must scope every compliance request to one provider;
+            # an unfiltered request would report against an arbitrary scan.
+            provider_id = query.get("filter[provider_id]")
+            assert provider_id, "compliance overviews must be filtered by provider"
+            if page_number == 1:
+                self.compliance_provider_requests.append(provider_id)
+            assert (
+                provider_id in self.compliance_by_provider
+            ), f"Unexpected Prowler provider filter {provider_id}"
+            rows = self.compliance_by_provider[provider_id]
+        else:
+            rows = self.state[collection]
         page_size = self.page_sizes.get(collection, DEFAULT_PAGE_SIZE)
         page_count = max(1, ceil(len(rows) / page_size))
         start = (page_number - 1) * page_size
@@ -171,6 +245,8 @@ class FakeProwlerApi:
         }
         if collection == "findings":
             document["included"] = self._sideloaded_resources(page_rows)
+        if collection == "resources":
+            document["included"] = self._sideloaded_providers(page_rows)
         return document
 
 
@@ -188,6 +264,14 @@ def cleanup_prowler_test_data(neo4j_session):
         neo4j_session.run(
             "MATCH (n:KubernetesCluster {name: $name}) DETACH DELETE n",
             name=KUBERNETES_CLUSTER_NAME,
+        )
+        neo4j_session.run(
+            """
+            MATCH (n)
+            WHERE (n:AWSS3Bucket OR n:AWSEC2Instance) AND n.arn IN $arns
+            DETACH DELETE n
+            """,
+            arns=[RESOURCE_BUCKET_UID, RESOURCE_INSTANCE_UID],
         )
         neo4j_session.run(
             "MATCH (n:ModuleSyncMetadata {id: $metadata_id}) DETACH DELETE n",
@@ -240,6 +324,31 @@ def _seed_kubernetes_cluster(neo4j_session) -> None:
     )
 
 
+def _seed_aws_resources(neo4j_session) -> None:
+    """Seed the AWS nodes whose ARNs match the Prowler resource uids.
+
+    Only the indexed `arn` matters to the REPRESENTS matchers, but these are
+    written the way the AWS modules write them, with `id` set too.
+    """
+    neo4j_session.run(
+        """
+        MERGE (b:AWSS3Bucket {id: $bucket_name})
+        SET b.arn = $bucket_arn,
+            b.name = $bucket_name,
+            b.lastupdated = $update_tag
+        MERGE (i:AWSEC2Instance {id: $instance_id})
+        SET i.arn = $instance_arn,
+            i.instanceid = $instance_id,
+            i.lastupdated = $update_tag
+        """,
+        bucket_arn=RESOURCE_BUCKET_UID,
+        bucket_name="synthetic-prowler-bucket",
+        instance_arn=RESOURCE_INSTANCE_UID,
+        instance_id="i-00000000000000001",
+        update_tag=TEST_UPDATE_TAG,
+    )
+
+
 def _list_property(neo4j_session, label: str, node_id: str, prop: str) -> Any:
     """Read one list-valued property, which check_nodes() cannot put in a set."""
     record = neo4j_session.run(
@@ -248,6 +357,16 @@ def _list_property(neo4j_session, label: str, node_id: str, prop: str) -> Any:
     ).single()
     assert record is not None, f"{label} {node_id} not found"
     return record["value"]
+
+
+def _labels(neo4j_session, label: str, node_id: str) -> list[str]:
+    """Return every label on one node, to check conditional extra labels."""
+    record = neo4j_session.run(
+        f"MATCH (n:{label} {{id: $node_id}}) RETURN labels(n) AS labels",
+        node_id=node_id,
+    ).single()
+    assert record is not None, f"{label} {node_id} not found"
+    return record["labels"]
 
 
 def _node_count(neo4j_session, label: str) -> int:
@@ -261,7 +380,8 @@ def _rel_count(neo4j_session, rel_label: str) -> int:
         f"""
         MATCH (n1)-[r:{rel_label}]->(n2)
         WHERE (n1:ProwlerTenant OR n1:ProwlerProvider OR n1:ProwlerScan
-               OR n1:ProwlerFinding)
+               OR n1:ProwlerResource OR n1:ProwlerFinding
+               OR n1:ProwlerComplianceAssessment)
         RETURN count(r) AS count
         """,
     ).single()["count"]
@@ -393,13 +513,15 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         ),
     }
 
-    # Assert: resources.
+    # Assert: resources. `aws_uid` is only populated for an AWS ARN, because it
+    # is the matcher the REPRESENTS correlation edges join on.
     assert check_nodes(
         neo4j_session,
         "ProwlerResource",
         [
             "id",
             "uid",
+            "aws_uid",
             "name",
             "region",
             "service",
@@ -412,6 +534,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         (
             RESOURCE_BUCKET_ID,
             RESOURCE_BUCKET_UID,
+            RESOURCE_BUCKET_UID,
             "synthetic-prowler-bucket",
             "us-west-2",
             "s3",
@@ -422,6 +545,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         ),
         (
             RESOURCE_INSTANCE_ID,
+            RESOURCE_INSTANCE_UID,
             RESOURCE_INSTANCE_UID,
             "synthetic-app-server",
             "us-west-2",
@@ -434,6 +558,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         (
             RESOURCE_IAM_USER_ID,
             RESOURCE_IAM_USER_UID,
+            RESOURCE_IAM_USER_UID,
             "synthetic-user",
             "us-east-1",
             "iam",
@@ -441,6 +566,19 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
             "aws",
             1,
             PROVIDER_AWS_ID,
+        ),
+        (
+            RESOURCE_K8S_POD_ID,
+            RESOURCE_K8S_POD_UID,
+            # Not an AWS provider, so there is nothing to correlate on.
+            None,
+            "synthetic-api-7f9c",
+            "default",
+            "core",
+            "Pod",
+            None,
+            0,
+            PROVIDER_KUBERNETES_ID,
         ),
     }
     # The tag map is flattened into two sorted string lists.
@@ -588,7 +726,60 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         is None
     )
 
-    # Assert: the SecurityIssue ontology label and its normalized fields.
+    # Assert: compliance assessments, one per (provider, framework) pair.
+    assert check_nodes(
+        neo4j_session,
+        "ProwlerComplianceAssessment",
+        [
+            "id",
+            "compliance_id",
+            "framework",
+            "version",
+            "requirements_passed",
+            "requirements_failed",
+            "requirements_manual",
+            "total_requirements",
+            "provider_id",
+        ],
+    ) == {
+        (
+            COMPLIANCE_AWS_CIS_NODE_ID,
+            COMPLIANCE_AWS_CIS_ID,
+            "CIS",
+            "2.0",
+            42,
+            7,
+            3,
+            52,
+            PROVIDER_AWS_ID,
+        ),
+        (
+            COMPLIANCE_AWS_SOC2_NODE_ID,
+            COMPLIANCE_AWS_SOC2_ID,
+            "SOC2",
+            # The API reports SOC 2 with an empty version, which normalizes away.
+            None,
+            25,
+            12,
+            5,
+            42,
+            PROVIDER_AWS_ID,
+        ),
+        (
+            COMPLIANCE_K8S_CIS_NODE_ID,
+            COMPLIANCE_K8S_CIS_ID,
+            "CIS",
+            "1.10",
+            18,
+            4,
+            6,
+            28,
+            PROVIDER_KUBERNETES_ID,
+        ),
+    }
+
+    # Assert: the SecurityIssue ontology label and its normalized fields. Only
+    # the failing checks carry the label; see the dedicated test below.
     assert check_nodes(
         neo4j_session,
         "SecurityIssue",
@@ -607,14 +798,6 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
             "critical",
             "s3",
             "open",
-            "prowler",
-        ),
-        (
-            FINDING_BUCKET_ENCRYPTED_ID,
-            "Ensure S3 buckets have default encryption enabled",
-            "info",
-            "s3",
-            "ignored",
             "prowler",
         ),
         (
@@ -659,6 +842,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         (TENANT_ID, RESOURCE_BUCKET_ID),
         (TENANT_ID, RESOURCE_INSTANCE_ID),
         (TENANT_ID, RESOURCE_IAM_USER_ID),
+        (TENANT_ID, RESOURCE_K8S_POD_ID),
     }
     assert check_rels(
         neo4j_session,
@@ -683,6 +867,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         (PROVIDER_AWS_ID, RESOURCE_BUCKET_ID),
         (PROVIDER_AWS_ID, RESOURCE_INSTANCE_ID),
         (PROVIDER_AWS_ID, RESOURCE_IAM_USER_ID),
+        (PROVIDER_KUBERNETES_ID, RESOURCE_K8S_POD_ID),
     }
     assert check_rels(
         neo4j_session,
@@ -720,6 +905,30 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         (FINDING_BUCKET_PUBLIC_ID, RESOURCE_INSTANCE_ID),
         (FINDING_BUCKET_ENCRYPTED_ID, RESOURCE_BUCKET_ID),
         (FINDING_IAM_USER_ID, RESOURCE_IAM_USER_ID),
+    }
+    assert check_rels(
+        neo4j_session,
+        "ProwlerTenant",
+        "id",
+        "ProwlerComplianceAssessment",
+        "id",
+        "RESOURCE",
+    ) == {
+        (TENANT_ID, COMPLIANCE_AWS_CIS_NODE_ID),
+        (TENANT_ID, COMPLIANCE_AWS_SOC2_NODE_ID),
+        (TENANT_ID, COMPLIANCE_K8S_CIS_NODE_ID),
+    }
+    assert check_rels(
+        neo4j_session,
+        "ProwlerComplianceAssessment",
+        "id",
+        "ProwlerProvider",
+        "id",
+        "ASSESSES",
+    ) == {
+        (COMPLIANCE_AWS_CIS_NODE_ID, PROVIDER_AWS_ID),
+        (COMPLIANCE_AWS_SOC2_NODE_ID, PROVIDER_AWS_ID),
+        (COMPLIANCE_K8S_CIS_NODE_ID, PROVIDER_KUBERNETES_ID),
     }
     assert _sync_metadata_lastupdated(neo4j_session) == TEST_UPDATE_TAG
 
@@ -762,6 +971,184 @@ def test_providers_link_to_existing_cloud_accounts(neo4j_session, mocker):
     )
 
 
+def test_resources_represent_correlated_aws_nodes(neo4j_session, mocker):
+    # Arrange
+    _patch_prowler_api(mocker)
+    _seed_aws_resources(neo4j_session)
+
+    # Act
+    cartography.intel.prowler.start_prowler_ingestion(neo4j_session, _config())
+
+    # Assert: each AWS resource whose uid is an ARN is joined to the cloud node
+    # carrying that ARN.
+    assert check_rels(
+        neo4j_session,
+        "ProwlerResource",
+        "id",
+        "AWSS3Bucket",
+        "arn",
+        "REPRESENTS",
+    ) == {(RESOURCE_BUCKET_ID, RESOURCE_BUCKET_UID)}
+    assert check_rels(
+        neo4j_session,
+        "ProwlerResource",
+        "id",
+        "AWSEC2Instance",
+        "arn",
+        "REPRESENTS",
+    ) == {(RESOURCE_INSTANCE_ID, RESOURCE_INSTANCE_UID)}
+
+    # Assert: the whole point of the correlation is that a finding on an AWS
+    # resource is now reachable from the AWS node itself.
+    findings_on_bucket = neo4j_session.run(
+        """
+        MATCH (b:AWSS3Bucket {arn: $bucket_arn})
+              <-[:REPRESENTS]-(:ProwlerResource)
+              <-[:AFFECTS]-(f:ProwlerFinding)
+        RETURN collect(DISTINCT f.id) AS finding_ids
+        """,
+        bucket_arn=RESOURCE_BUCKET_UID,
+    ).single()["finding_ids"]
+    assert sorted(findings_on_bucket) == sorted(
+        [FINDING_BUCKET_PUBLIC_ID, FINDING_BUCKET_ENCRYPTED_ID],
+    )
+
+    # Assert: only the two seeded ARNs correlate. The IAM user's ARN has no node
+    # in the graph, and the Kubernetes resource belongs to a provider whose uids
+    # are not ARNs at all, so its matcher value is null and never matches.
+    represented = neo4j_session.run(
+        """
+        MATCH (r:ProwlerResource)-[:REPRESENTS]->()
+        RETURN collect(DISTINCT r.id) AS resource_ids
+        """,
+    ).single()["resource_ids"]
+    assert sorted(represented) == sorted([RESOURCE_BUCKET_ID, RESOURCE_INSTANCE_ID])
+    assert RESOURCE_K8S_POD_ID not in represented
+
+
+def test_only_failing_findings_are_security_issues(neo4j_session, mocker):
+    # Arrange
+    fake = _patch_prowler_api(mocker)
+
+    # Act
+    cartography.intel.prowler.start_prowler_ingestion(
+        neo4j_session,
+        _config(TEST_UPDATE_TAG),
+    )
+
+    # Assert: the two FAIL findings carry the label, the PASS one does not.
+    assert check_nodes(neo4j_session, "SecurityIssue", ["id", "status"]) == {
+        (FINDING_BUCKET_PUBLIC_ID, "FAIL"),
+        (FINDING_IAM_USER_ID, "FAIL"),
+    }
+    assert "SecurityIssue" not in _labels(
+        neo4j_session,
+        "ProwlerFinding",
+        FINDING_BUCKET_ENCRYPTED_ID,
+    )
+    # Every finding, passing ones included, still gets its normalized ontology
+    # fields. The label is what marks a finding as an open security issue.
+    assert check_nodes(
+        neo4j_session,
+        "ProwlerFinding",
+        ["id", "_ont_title", "_ont_severity", "_ont_status"],
+    ) == {
+        (
+            FINDING_BUCKET_PUBLIC_ID,
+            "Ensure S3 buckets are not publicly accessible",
+            "critical",
+            "open",
+        ),
+        (
+            FINDING_BUCKET_ENCRYPTED_ID,
+            "Ensure S3 buckets have default encryption enabled",
+            "info",
+            "ignored",
+        ),
+        (
+            FINDING_IAM_USER_ID,
+            "Ensure IAM users have MFA enabled",
+            "medium",
+            "fixed",
+        ),
+    }
+
+    # Act: the next scan finds the bucket remediated.
+    fake.set_finding_status(FINDING_BUCKET_PUBLIC_ID, "PASS")
+    cartography.intel.prowler.start_prowler_ingestion(
+        neo4j_session,
+        _config(TEST_UPDATE_TAG + 1),
+    )
+
+    # Assert: the label is removed again, not left behind by the earlier sync.
+    assert check_nodes(neo4j_session, "SecurityIssue", ["id"]) == {
+        (FINDING_IAM_USER_ID,),
+    }
+    assert "SecurityIssue" not in _labels(
+        neo4j_session,
+        "ProwlerFinding",
+        FINDING_BUCKET_PUBLIC_ID,
+    )
+
+
+def test_compliance_assessments_are_fetched_per_provider_and_cleaned_up(
+    neo4j_session,
+    mocker,
+):
+    # Arrange
+    fake = _patch_prowler_api(mocker)
+    cartography.intel.prowler.start_prowler_ingestion(
+        neo4j_session,
+        _config(TEST_UPDATE_TAG),
+    )
+    # One request per provider, each scoped to that provider's latest scan.
+    assert fake.compliance_provider_requests == [
+        PROVIDER_AWS_ID,
+        PROVIDER_KUBERNETES_ID,
+        PROVIDER_GITHUB_ID,
+    ]
+    assert check_nodes(neo4j_session, "ProwlerComplianceAssessment", ["id"]) == {
+        (COMPLIANCE_AWS_CIS_NODE_ID,),
+        (COMPLIANCE_AWS_SOC2_NODE_ID,),
+        (COMPLIANCE_K8S_CIS_NODE_ID,),
+    }
+
+    # Act: the provider stops being assessed against SOC 2.
+    fake.remove_compliance(PROVIDER_AWS_ID, COMPLIANCE_AWS_SOC2_OBJECT_ID)
+    cartography.intel.prowler.start_prowler_ingestion(
+        neo4j_session,
+        _config(TEST_UPDATE_TAG + 1),
+    )
+
+    # Assert
+    assert check_nodes(neo4j_session, "ProwlerComplianceAssessment", ["id"]) == {
+        (COMPLIANCE_AWS_CIS_NODE_ID,),
+        (COMPLIANCE_K8S_CIS_NODE_ID,),
+    }
+    assert check_rels(
+        neo4j_session,
+        "ProwlerTenant",
+        "id",
+        "ProwlerComplianceAssessment",
+        "id",
+        "RESOURCE",
+    ) == {
+        (TENANT_ID, COMPLIANCE_AWS_CIS_NODE_ID),
+        (TENANT_ID, COMPLIANCE_K8S_CIS_NODE_ID),
+    }
+    assert check_rels(
+        neo4j_session,
+        "ProwlerComplianceAssessment",
+        "id",
+        "ProwlerProvider",
+        "id",
+        "ASSESSES",
+    ) == {
+        (COMPLIANCE_AWS_CIS_NODE_ID, PROVIDER_AWS_ID),
+        (COMPLIANCE_K8S_CIS_NODE_ID, PROVIDER_KUBERNETES_ID),
+    }
+
+
 def test_findings_are_paginated_across_multiple_pages(neo4j_session, mocker):
     # Arrange
     fake = _patch_prowler_api(mocker)
@@ -789,6 +1176,7 @@ def test_findings_are_paginated_across_multiple_pages(neo4j_session, mocker):
         (RESOURCE_BUCKET_ID,),
         (RESOURCE_INSTANCE_ID,),
         (RESOURCE_IAM_USER_ID,),
+        (RESOURCE_K8S_POD_ID,),
     }
     # `included` is per-document, so the two-resource finding still resolves both
     # ARNs even though its resources arrived on their own findings page.
@@ -839,6 +1227,7 @@ def test_second_sync_cleans_up_stale_findings_and_resources(neo4j_session, mocke
     assert check_nodes(neo4j_session, "ProwlerResource", ["id"]) == {
         (RESOURCE_BUCKET_ID,),
         (RESOURCE_INSTANCE_ID,),
+        (RESOURCE_K8S_POD_ID,),
     }
     assert check_nodes(neo4j_session, "ProwlerScan", ["id"]) == {
         (SCAN_AWS_ID,),
@@ -886,6 +1275,11 @@ def test_failed_second_sync_preserves_last_known_good_graph(neo4j_session, mocke
     original_resources = check_nodes(neo4j_session, "ProwlerResource", ["id", "uid"])
     original_providers = check_nodes(neo4j_session, "ProwlerProvider", ["id", "uid"])
     original_scans = check_nodes(neo4j_session, "ProwlerScan", ["id", "state"])
+    original_assessments = check_nodes(
+        neo4j_session,
+        "ProwlerComplianceAssessment",
+        ["id", "requirements_failed"],
+    )
     original_affects = check_rels(
         neo4j_session,
         "ProwlerFinding",
@@ -931,6 +1325,14 @@ def test_failed_second_sync_preserves_last_known_good_graph(neo4j_session, mocke
     )
     assert check_nodes(neo4j_session, "ProwlerScan", ["id", "state"]) == original_scans
     assert (
+        check_nodes(
+            neo4j_session,
+            "ProwlerComplianceAssessment",
+            ["id", "requirements_failed"],
+        )
+        == original_assessments
+    )
+    assert (
         check_rels(
             neo4j_session,
             "ProwlerFinding",
@@ -959,6 +1361,7 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
     # Arrange
     _patch_prowler_api(mocker)
     _seed_aws_account(neo4j_session)
+    _seed_aws_resources(neo4j_session)
 
     # Act
     cartography.intel.prowler.start_prowler_ingestion(
@@ -968,10 +1371,7 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
     first_counts = {
         label: _node_count(neo4j_session, label) for label in PROWLER_LABELS
     }
-    first_rel_counts = {
-        rel: _rel_count(neo4j_session, rel)
-        for rel in ("RESOURCE", "CONTAINS", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
-    }
+    first_rel_counts = {rel: _rel_count(neo4j_session, rel) for rel in _COUNTED_RELS}
     cartography.intel.prowler.start_prowler_ingestion(
         neo4j_session,
         _config(TEST_UPDATE_TAG + 1),
@@ -982,25 +1382,32 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
         "ProwlerTenant": 1,
         "ProwlerProvider": 3,
         "ProwlerScan": 2,
-        "ProwlerResource": 3,
+        "ProwlerResource": 4,
         "ProwlerFinding": 3,
+        # CIS 2.0 and SOC 2 for the AWS provider, CIS 1.10 for the Kubernetes
+        # one. The GitHub provider reports no compliance overviews.
+        "ProwlerComplianceAssessment": 3,
     }
     assert first_rel_counts == {
-        # 3 providers + 2 scans + 3 resources + 3 findings, all owned by the tenant.
-        "RESOURCE": 11,
-        # The AWS provider contains all 3 resources.
-        "CONTAINS": 3,
+        # 3 providers + 2 scans + 4 resources + 3 findings + 3 compliance
+        # assessments, all owned by the tenant.
+        "RESOURCE": 15,
+        # The AWS provider contains 3 resources, the Kubernetes one contains 1.
+        "CONTAINS": 4,
         "SCANNED": 2,
         "IDENTIFIED": 3,
         "AFFECTS": 4,
         "SCANS": 1,
+        "ASSESSES": 3,
+        # The seeded bucket and instance; the IAM user and the Kubernetes pod
+        # have no AWS node to correlate with.
+        "REPRESENTS": 2,
     }
     assert {
         label: _node_count(neo4j_session, label) for label in PROWLER_LABELS
     } == first_counts
     assert {
-        rel: _rel_count(neo4j_session, rel)
-        for rel in ("RESOURCE", "CONTAINS", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
+        rel: _rel_count(neo4j_session, rel) for rel in _COUNTED_RELS
     } == first_rel_counts
     metadata_count = neo4j_session.run(
         "MATCH (n:ModuleSyncMetadata {id: $id}) RETURN count(n) AS count",
