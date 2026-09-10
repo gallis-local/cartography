@@ -29,14 +29,7 @@ class ProwlerTenantNodeProperties(CartographyNodeProperties):
             "served this tenant."
         ),
     )
-    inserted_at: PropertyRef = PropertyRef(
-        "inserted_at",
-        description="Timestamp when the tenant was created in Prowler.",
-    )
-    updated_at: PropertyRef = PropertyRef(
-        "updated_at",
-        description="Timestamp when the tenant was last modified in Prowler.",
-    )
+    # The API's tenant resource exposes only `name`; it carries no timestamps.
 
 
 @dataclass(frozen=True)

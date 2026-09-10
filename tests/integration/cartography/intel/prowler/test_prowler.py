@@ -678,7 +678,7 @@ def test_start_prowler_ingestion_loads_the_full_graph(neo4j_session, mocker):
         "id",
         "ProwlerResource",
         "id",
-        "RESOURCE",
+        "CONTAINS",
     ) == {
         (PROVIDER_AWS_ID, RESOURCE_BUCKET_ID),
         (PROVIDER_AWS_ID, RESOURCE_INSTANCE_ID),
@@ -970,7 +970,7 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
     }
     first_rel_counts = {
         rel: _rel_count(neo4j_session, rel)
-        for rel in ("RESOURCE", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
+        for rel in ("RESOURCE", "CONTAINS", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
     }
     cartography.intel.prowler.start_prowler_ingestion(
         neo4j_session,
@@ -986,7 +986,10 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
         "ProwlerFinding": 3,
     }
     assert first_rel_counts == {
-        "RESOURCE": 14,
+        # 3 providers + 2 scans + 3 resources + 3 findings, all owned by the tenant.
+        "RESOURCE": 11,
+        # The AWS provider contains all 3 resources.
+        "CONTAINS": 3,
         "SCANNED": 2,
         "IDENTIFIED": 3,
         "AFFECTS": 4,
@@ -997,7 +1000,7 @@ def test_identical_sync_is_idempotent_with_exact_counts(neo4j_session, mocker):
     } == first_counts
     assert {
         rel: _rel_count(neo4j_session, rel)
-        for rel in ("RESOURCE", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
+        for rel in ("RESOURCE", "CONTAINS", "SCANNED", "IDENTIFIED", "AFFECTS", "SCANS")
     } == first_rel_counts
     metadata_count = neo4j_session.run(
         "MATCH (n:ModuleSyncMetadata {id: $id}) RETURN count(n) AS count",
