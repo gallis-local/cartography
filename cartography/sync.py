@@ -148,6 +148,7 @@ TOP_LEVEL_MODULES: OrderedDict[str, Callable[..., None]] = OrderedDict(
         "openvas": _LazyStage("cartography.intel.openvas", "start_openvas_ingestion"),
         "wiz": _LazyStage("cartography.intel.wiz", "start_wiz_ingestion"),
         "orca": _LazyStage("cartography.intel.orca", "start_orca_ingestion"),
+        "prowler": _LazyStage("cartography.intel.prowler", "start_prowler_ingestion"),
         "cve_metadata": _LazyStage(
             "cartography.intel.cve_metadata", "start_cve_metadata_ingestion"
         ),

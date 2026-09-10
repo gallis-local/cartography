@@ -42,6 +42,18 @@ def test_orca_config_is_appended_for_positional_compatibility() -> None:
     assert parameters.index("orca_api_token") > parameters.index("orca_api_endpoint")
 
 
+def test_prowler_config_is_appended_for_positional_compatibility() -> None:
+    # Act
+    parameters = list(inspect.signature(Config.__init__).parameters)
+
+    # Assert
+    assert parameters.index("prowler_api_url") > parameters.index("orca_api_token")
+    assert parameters.index("prowler_api_key") > parameters.index("prowler_api_url")
+    assert parameters.index("prowler_email") > parameters.index("prowler_api_key")
+    assert parameters.index("prowler_password") > parameters.index("prowler_email")
+    assert parameters.index("prowler_tenant_id") > parameters.index("prowler_password")
+
+
 def test_config_stores_orca_credentials() -> None:
     # Act
     config = Config(
