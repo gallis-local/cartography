@@ -125,7 +125,6 @@ def sync(
 ) -> None:
     scans = transform(get(session, api_url, credential))
     load_scans(neo4j_session, scans, tenant_id, update_tag)
-    logger.info("Loaded %d Prowler scans.", len(scans))
 
 
 def cleanup(

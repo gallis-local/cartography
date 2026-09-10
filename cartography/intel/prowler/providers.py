@@ -26,6 +26,7 @@ _CLOUD_ACCOUNT_FIELDS = {
     "azure": "azure_subscription_id",
     "gcp": "gcp_project_id",
     "kubernetes": "kubernetes_cluster_name",
+    "github": "github_organization_login",
 }
 _ALL_CLOUD_ACCOUNT_FIELDS = tuple(_CLOUD_ACCOUNT_FIELDS.values())
 
@@ -146,10 +147,11 @@ def sync(
     credential: api.ProwlerCredential,
     tenant_id: str,
     update_tag: int,
-) -> None:
+) -> list[str]:
+    """Sync Prowler providers, returning their ids for the compliance sync."""
     providers = transform(get(session, api_url, credential))
     load_providers(neo4j_session, providers, tenant_id, update_tag)
-    logger.info("Loaded %d Prowler providers.", len(providers))
+    return [provider["id"] for provider in providers]
 
 
 def cleanup(

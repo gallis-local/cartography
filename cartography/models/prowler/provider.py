@@ -237,12 +237,37 @@ class ProwlerProviderToKubernetesClusterRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProwlerProviderToGitHubOrganizationRel(CartographyRelSchema):
+    """Links a Prowler provider to the GitHub organization it scans."""
+
+    target_node_label: str = "GitHubOrganization"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {
+            "username": PropertyRef(
+                "github_organization_login",
+                description=(
+                    "Login of the GitHub organization scanned by this Prowler "
+                    "provider. GitHubOrganization.id is the org URL, so this "
+                    "matches on the indexed login instead."
+                ),
+            ),
+        },
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "SCANS"
+    properties: ProwlerProviderToCloudAccountRelProperties = (
+        ProwlerProviderToCloudAccountRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class ProwlerProviderSchema(CartographyNodeSchema):
     """A cloud account, subscription, project, or cluster configured for scanning in Prowler.
 
     When the matching cloud module has also been synced, the provider is attached
-    to the existing `AWSAccount`, `AzureSubscription`, `GCPProject`, or
-    `KubernetesCluster` node with a `SCANS` relationship. Those edges are
+    to the existing `AWSAccount`, `AzureSubscription`, `GCPProject`,
+    `KubernetesCluster`, or `GitHubOrganization` node with a `SCANS`
+    relationship. Those edges are
     best-effort: they are created only when the corresponding cloud node is
     already in the graph, so Prowler can be synced on its own.
     """
@@ -253,6 +278,7 @@ class ProwlerProviderSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProwlerProviderToAWSAccountRel(),
+            ProwlerProviderToGitHubOrganizationRel(),
             ProwlerProviderToAzureSubscriptionRel(),
             ProwlerProviderToGCPProjectRel(),
             ProwlerProviderToKubernetesClusterRel(),

@@ -558,10 +558,15 @@ prowler_mapping = OntologyMapping(
         OntologyNodeMapping(
             node_label="ProwlerFinding",
             fields=[
+                # check_title comes from check_metadata, which the API marks
+                # optional; fall back to the always-present check_id so
+                # _ont_title is never null.
                 OntologyFieldMapping(
                     ontology_field="title",
                     node_field="check_title",
                     required=True,
+                    special_handling="coalesce",
+                    extra={"fields": ["check_id"]},
                 ),
                 OntologyFieldMapping(
                     ontology_field="severity",

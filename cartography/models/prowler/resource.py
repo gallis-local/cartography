@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from dataclasses import field
+from dataclasses import make_dataclass
 
 from cartography.models.core.common import PropertyRef
 from cartography.models.core.nodes import CartographyNodeProperties
@@ -154,6 +156,111 @@ class ProwlerResourceToProviderRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class ProwlerResourceToCloudResourceRelProperties(CartographyRelProperties):
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated",
+        set_in_kwargs=True,
+        description="Timestamp when Prowler last reported this resource correlation.",
+    )
+
+
+# Cartography node labels whose `arn` property can be joined against a Prowler
+# AWS resource `uid`. Every entry is a label whose `arn` is declared with
+# `extra_index=True`, so each correlation is an index seek rather than a scan.
+#
+# Deliberately excluded:
+#   - Labels with no `arn` property at all, which therefore cannot be joined:
+#     AWSVpc, AWSEC2Subnet, AWSEC2SecurityGroup, AWSLoadBalancer (classic),
+#     AWSAPIGatewayRestAPI, AWSEBSSnapshot. These are common Prowler check
+#     targets, so their findings stay reachable only through the provider's
+#     account-level SCANS edge until those models carry an ARN (see #1024).
+#   - AWSInstanceProfile, whose `arn` is not indexed.
+#   - AWSPrincipal, a shared extra label that AWSUser and AWSRole also carry,
+#     which would double-link every IAM finding.
+_AWS_ARN_TARGET_LABELS: tuple[str, ...] = (
+    "AWSACMCertificate",
+    "AWSCloudFrontDistribution",
+    "AWSDynamoDBTable",
+    "AWSEBSVolume",
+    "AWSEC2Instance",
+    "AWSECRRepository",
+    "AWSECSCluster",
+    "AWSECSService",
+    "AWSEKSCluster",
+    "AWSESDomain",
+    "AWSEfsFileSystem",
+    "AWSElasticacheCluster",
+    "AWSGroup",
+    "AWSKMSKey",
+    "AWSLambda",
+    "AWSLoadBalancerV2",
+    "AWSRDSCluster",
+    "AWSRDSInstance",
+    "AWSRDSSnapshot",
+    "AWSRole",
+    "AWSS3Bucket",
+    "AWSSNSTopic",
+    "AWSSQSQueue",
+    "AWSSSMParameter",
+    "AWSSecretsManagerSecret",
+    "AWSUser",
+)
+
+
+def _make_cloud_resource_rel(target_node_label: str) -> type[CartographyRelSchema]:
+    """Build the REPRESENTS edge from a Prowler resource to one cloud node label.
+
+    These are written as one schema per label rather than a single label-agnostic
+    edge because a `CartographyRelSchema` needs a static `target_node_label`, and
+    because a label-scoped match on an indexed `arn` is an index seek. Matching
+    `arn` without a label would be a scan of every node in the graph.
+    """
+    return make_dataclass(
+        f"ProwlerResourceTo{target_node_label}Rel",
+        [
+            ("target_node_label", str, field(default=target_node_label)),
+            (
+                "target_node_matcher",
+                TargetNodeMatcher,
+                field(
+                    default=make_target_node_matcher(
+                        {
+                            "arn": PropertyRef(
+                                "aws_uid",
+                                description=(
+                                    "ARN of the AWS resource this Prowler "
+                                    "resource was scanned from."
+                                ),
+                            ),
+                        },
+                    ),
+                ),
+            ),
+            ("direction", LinkDirection, field(default=LinkDirection.OUTWARD)),
+            ("rel_label", str, field(default="REPRESENTS")),
+            (
+                "properties",
+                ProwlerResourceToCloudResourceRelProperties,
+                field(default=ProwlerResourceToCloudResourceRelProperties()),
+            ),
+        ],
+        bases=(CartographyRelSchema,),
+        frozen=True,
+        namespace={
+            "__doc__": (
+                f"Links a Prowler resource to the `{target_node_label}` it was "
+                "scanned from, matched on ARN."
+            ),
+        },
+    )
+
+
+PROWLER_RESOURCE_TO_CLOUD_RESOURCE_RELS: tuple[CartographyRelSchema, ...] = tuple(
+    _make_cloud_resource_rel(label)() for label in _AWS_ARN_TARGET_LABELS
+)
+
+
+@dataclass(frozen=True)
 class ProwlerResourceSchema(CartographyNodeSchema):
     """A cloud resource that Prowler evaluated during a scan.
 
@@ -168,5 +275,6 @@ class ProwlerResourceSchema(CartographyNodeSchema):
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProwlerResourceToProviderRel(),
+            *PROWLER_RESOURCE_TO_CLOUD_RESOURCE_RELS,
         ],
     )

@@ -7,6 +7,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from cartography.intel.prowler.response import optional_object
 from cartography.intel.prowler.response import require_list
 from cartography.intel.prowler.response import require_nonempty_string
 from cartography.intel.prowler.response import require_object
@@ -29,6 +30,10 @@ SCANS_PATH = f"{API_ROOT}/scans"
 # filter and are not subject to the API's maximum date-range window.
 FINDINGS_PATH = f"{API_ROOT}/findings/latest"
 RESOURCES_PATH = f"{API_ROOT}/resources/latest"
+# Compliance overviews are reported per scan. Filtering by provider makes the
+# API use that provider's latest completed scan, which matches the /latest
+# semantics the rest of the module uses.
+COMPLIANCE_PATH = f"{API_ROOT}/compliance-overviews"
 
 # The API silently clamps page[size] to 100.
 PAGE_SIZE = 100
@@ -384,8 +389,13 @@ def iter_pages(
                 result_name,
             )
 
-        links = document.get("links")
-        next_url = links.get("next") if isinstance(links, dict) else None
+        # An absent `links` means end-of-collection: the /latest endpoints may
+        # not paginate at all. A present but malformed `links` must raise rather
+        # than be read as the last page, because the caller would otherwise
+        # complete with partial data and the deferred cleanup would then delete
+        # every record the truncated sync never saw.
+        links = optional_object(document.get("links"), f"Prowler {result_name} links")
+        next_url = links.get("next")
         if next_url is None:
             return
         if not isinstance(next_url, str) or not next_url.strip():

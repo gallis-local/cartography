@@ -30,8 +30,9 @@ API key authentication is preferred for unattended runs.
 ## Required Permissions
 
 The credential needs read access to the tenant's providers, scans, resources,
-and findings. In Prowler's RBAC, that is any role with `unlimited_visibility`,
-or a role whose provider groups cover the accounts you want in the graph.
+findings, and compliance overviews. In Prowler's RBAC, that is any role with
+`unlimited_visibility`, or a role whose provider groups cover the accounts you
+want in the graph.
 
 A viewer-level role is sufficient: Cartography only issues `GET` requests.
 

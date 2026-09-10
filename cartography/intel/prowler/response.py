@@ -49,15 +49,6 @@ def optional_nonempty_string(value: Any, field: str) -> str | None:
     return normalized or None
 
 
-def optional_string(value: Any, field: str) -> str | None:
-    """Return an optional string or reject a malformed present value."""
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise ValueError(f"{field} must be a string")
-    return value
-
-
 def optional_bool(value: Any, field: str) -> bool | None:
     """Return an optional boolean or reject a malformed present value."""
     if value is None:
