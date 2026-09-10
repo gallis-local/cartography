@@ -1,11 +1,13 @@
 import pytest
 
+from cartography.graph.querybuilder import build_ingestion_query
 from cartography.intel.prowler import findings
 from cartography.intel.prowler import providers
 from cartography.intel.prowler import resources
 from cartography.intel.prowler import scans
 from cartography.models.ontology.mapping.data.security_issues import _PROWLER_SEVERITY
 from cartography.models.ontology.mapping.data.security_issues import _PROWLER_STATUS
+from cartography.models.prowler.finding import ProwlerFindingSchema
 
 # Enum values published by the Prowler API v1 OpenAPI schema. The ontology maps
 # must stay exhaustive against these, or a finding silently loses its normalized
@@ -275,6 +277,43 @@ def test_finding_transform_reads_lowercase_check_metadata() -> None:
     assert row["remediation_cli"] == "aws s3api put-public-access-block"
     assert row["remediation_terraform"] == "tf"
     assert row["compliance_frameworks"] == ["CIS-2.0", "SOC2"]
+
+
+def test_finding_without_a_check_title_falls_back_to_its_check_id() -> None:
+    """The ontology maps _ont_title as coalesce(check_title, check_id).
+
+    check_title comes from check_metadata, which the API marks optional, so the
+    always-present check_id has to back it up or _ont_title would be null.
+    """
+    # Arrange: metadata present but with no checktitle.
+    page = _finding_page({"check_metadata": {"servicename": "s3"}})
+
+    # Act
+    row = findings.transform(page)[0]
+
+    # Assert
+    assert row["check_title"] is None
+    assert row["check_id"] == "check_1"
+    ingestion_query = build_ingestion_query(ProwlerFindingSchema())
+    assert "i._ont_title = coalesce(item.check_title, item.check_id)" in ingestion_query
+
+
+def test_only_failing_findings_are_labelled_security_issues() -> None:
+    """A passing check must not present as an open cross-provider SecurityIssue.
+
+    _ont_status is derived from triage_status, which defaults to `open`, so an
+    unconditional label would render every passing check as an open issue.
+    """
+    ingestion_query = build_ingestion_query(ProwlerFindingSchema())
+    assert (
+        'FOREACH (_ IN CASE WHEN i.status = "FAIL" THEN [1] ELSE [] END '
+        "| SET i:SecurityIssue)" in ingestion_query
+    )
+    # And the label is withdrawn again if a finding later passes.
+    assert (
+        'FOREACH (_ IN CASE WHEN i.status = "FAIL" THEN [] ELSE [1] END '
+        "| REMOVE i:SecurityIssue)" in ingestion_query
+    )
 
 
 def test_finding_transform_tolerates_missing_check_metadata() -> None:
