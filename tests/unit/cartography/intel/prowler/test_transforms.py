@@ -73,9 +73,10 @@ def test_every_provider_type_transforms(provider_type: str) -> None:
         row["azure_subscription_id"],
         row["gcp_project_id"],
         row["kubernetes_cluster_name"],
+        row["github_organization_login"],
     ]
     populated = [value for value in cloud_fields if value is not None]
-    if provider_type in ("aws", "azure", "gcp", "kubernetes"):
+    if provider_type in ("aws", "azure", "gcp", "kubernetes", "github"):
         assert populated == ["some-uid"]
     else:
         assert populated == []
@@ -143,24 +144,40 @@ def test_scan_transform_tolerates_a_null_relationship() -> None:
     assert scans.transform(raw)[0]["provider_id"] is None
 
 
+def _resource_page(
+    attributes: dict,
+    *,
+    provider_type: str | None = "aws",
+) -> list[dict]:
+    """One resources page with its provider sideloaded, as `include=provider` returns."""
+    resource = {
+        "id": "r1",
+        "attributes": {
+            "uid": "arn:aws:s3:::bucket",
+            "name": "bucket",
+            "region": "us-east-1",
+            "service": "s3",
+            **attributes,
+        },
+        "relationships": {"provider": {"data": {"type": "providers", "id": "p1"}}},
+    }
+    providers = {}
+    if provider_type is not None:
+        providers["p1"] = {
+            "id": "p1",
+            "attributes": {"provider": provider_type, "uid": "111122223333"},
+        }
+    return [{"resources": [resource], "providers": providers}]
+
+
 def test_resource_transform_flattens_tags() -> None:
     # Arrange: Neo4j cannot store a nested map, so tags become two sorted lists.
-    raw = [
-        {
-            "id": "r1",
-            "attributes": {
-                "uid": "arn:aws:s3:::bucket",
-                "name": "bucket",
-                "region": "us-east-1",
-                "service": "s3",
-                "type": "AwsS3Bucket",
-                "tags": {"owner": "platform", "env": "prod"},
-            },
-        },
-    ]
+    page = _resource_page(
+        {"type": "AwsS3Bucket", "tags": {"owner": "platform", "env": "prod"}},
+    )
 
     # Act
-    row = resources.transform(raw)[0]
+    row = resources.transform(page)[0]
 
     # Assert
     assert row["tag_keys"] == ["env", "owner"]
@@ -169,21 +186,38 @@ def test_resource_transform_flattens_tags() -> None:
 
 
 def test_resource_transform_treats_empty_tags_as_absent() -> None:
-    raw = [
-        {
-            "id": "r1",
-            "attributes": {
-                "uid": "arn:aws:s3:::bucket",
-                "name": "b",
-                "region": "us-east-1",
-                "service": "s3",
-                "tags": {},
-            },
-        },
-    ]
-    row = resources.transform(raw)[0]
+    row = resources.transform(_resource_page({"tags": {}}))[0]
     assert row["tag_keys"] is None
     assert row["tags"] is None
+
+
+def test_aws_resource_exposes_its_arn_for_correlation() -> None:
+    """`aws_uid` drives the REPRESENTS edges to real cloud nodes."""
+    row = resources.transform(_resource_page({}))[0]
+    assert row["uid"] == "arn:aws:s3:::bucket"
+    assert row["aws_uid"] == "arn:aws:s3:::bucket"
+
+
+@pytest.mark.parametrize("provider_type", ["azure", "gcp", "kubernetes", "github"])  # type: ignore[misc]
+def test_non_aws_resource_has_no_arn_to_correlate(provider_type: str) -> None:
+    """A null matcher value resolves to no target, so the AWS edges must not fire."""
+    row = resources.transform(_resource_page({}, provider_type=provider_type))[0]
+    assert row["uid"] == "arn:aws:s3:::bucket"
+    assert row["aws_uid"] is None
+
+
+def test_resource_without_a_sideloaded_provider_has_no_arn_to_correlate() -> None:
+    # The provider type is unknown, so we cannot claim the uid is an AWS ARN.
+    row = resources.transform(_resource_page({}, provider_type=None))[0]
+    assert row["aws_uid"] is None
+
+
+def test_aws_resource_with_a_non_arn_uid_is_not_correlated() -> None:
+    # Prowler emits a non-ARN uid for some AWS account-level check targets.
+    page = _resource_page({})
+    page[0]["resources"][0]["attributes"]["uid"] = "111122223333"
+    row = resources.transform(page)[0]
+    assert row["aws_uid"] is None
 
 
 def _finding_page(attributes: dict, relationships: dict | None = None) -> list[dict]:

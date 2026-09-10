@@ -275,7 +275,12 @@ class ProwlerFindingSchema(CartographyNodeSchema):
 
     label: str = "ProwlerFinding"
     properties: ProwlerFindingNodeProperties = ProwlerFindingNodeProperties()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([SECURITY_ISSUE])
+    # Only failing checks are security issues. Prowler reports passing and
+    # manual checks through the same API, and labelling those :SecurityIssue
+    # would present them as open issues in cross-provider queries.
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [SECURITY_ISSUE.when(status="FAIL")],
+    )
     sub_resource_relationship: ProwlerFindingToTenantRel = ProwlerFindingToTenantRel()
     other_relationships: OtherRelationships = OtherRelationships(
         [

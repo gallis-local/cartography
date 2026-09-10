@@ -2,7 +2,9 @@ import logging
 from typing import Any
 
 import neo4j
+import requests
 
+import cartography.intel.prowler.compliance
 import cartography.intel.prowler.findings
 import cartography.intel.prowler.providers
 import cartography.intel.prowler.resources
@@ -23,7 +25,7 @@ stat_handler = get_stats_client(__name__)
 
 
 def _build_credential(
-    session: Any,
+    session: requests.Session,
     config: Config,
     api_url: str,
 ) -> api.ProwlerCredential:
@@ -44,7 +46,7 @@ def _build_credential(
 
 
 def _resolve_tenant(
-    session: Any,
+    session: requests.Session,
     api_url: str,
     credential: api.ProwlerCredential,
     configured_tenant_id: str | None,
@@ -128,8 +130,9 @@ def start_prowler_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
             lastupdated=config.update_tag,
         )
 
-        # Providers load first so scans and resources have something to attach to.
-        cartography.intel.prowler.providers.sync(
+        # Providers load first so scans, resources, and compliance assessments
+        # have something to attach to.
+        provider_ids = cartography.intel.prowler.providers.sync(
             neo4j_session,
             session,
             api_url,
@@ -161,9 +164,22 @@ def start_prowler_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
             tenant_id,
             config.update_tag,
         )
+        cartography.intel.prowler.compliance.sync(
+            neo4j_session,
+            session,
+            api_url,
+            credential,
+            tenant_id,
+            provider_ids,
+            config.update_tag,
+        )
 
         # Cleanup is deliberately deferred until every feed has completed, so a
         # mid-sync failure leaves the last known good graph in place.
+        cartography.intel.prowler.compliance.cleanup(
+            neo4j_session,
+            common_job_parameters,
+        )
         cartography.intel.prowler.findings.cleanup(
             neo4j_session,
             common_job_parameters,

@@ -46,17 +46,21 @@ def _check_metadata_cve_ids(metadata: dict[str, Any]) -> list[str]:
     """
     candidates: list[str] = []
     for key in ("relatedto", "checkaliases"):
-        value = metadata.get(key)
-        if isinstance(value, list):
-            candidates.extend(item for item in value if isinstance(item, str))
+        value = optional_string_list(
+            metadata.get(key),
+            f"Prowler finding.check_metadata.{key}",
+        )
+        if value is not None:
+            candidates.extend(value)
     return canonical_cve_ids(candidates)
 
 
 def _compliance_frameworks(metadata: dict[str, Any]) -> list[str] | None:
     """Return the sorted names of the compliance frameworks a check maps to."""
-    compliance = metadata.get("compliance")
-    if not isinstance(compliance, dict):
-        return None
+    compliance = optional_object(
+        metadata.get("compliance"),
+        "Prowler finding.check_metadata.compliance",
+    )
     frameworks = sorted(key for key in compliance if isinstance(key, str))
     return frameworks or None
 
@@ -258,7 +262,6 @@ def sync(
 ) -> None:
     findings = transform(get(session, api_url, credential))
     load_findings(neo4j_session, findings, tenant_id, update_tag)
-    logger.info("Loaded %d Prowler findings.", len(findings))
 
 
 def cleanup(
