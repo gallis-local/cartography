@@ -824,6 +824,22 @@ orca_mapping = OntologyMapping(
     ],
 )
 
+prowler_mapping = OntologyMapping(
+    module_name="prowler",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProwlerTenant",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # status: Not available
+                # domain: The API base URL is not the tenant's domain.
+            ],
+        ),
+    ],
+)
+
 TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "airbyte": airbyte_mapping,
     "aws": aws_mapping,
@@ -849,6 +865,7 @@ TENANTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "jumpcloud": jumpcloud_mapping,
     "miradore": miradore_mapping,
     "orca": orca_mapping,
+    "prowler": prowler_mapping,
     "slack": slack_mapping,
     "spacelift": spacelift_mapping,
     "subimage": subimage_mapping,

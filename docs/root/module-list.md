@@ -46,6 +46,7 @@ modules/openai/index
 modules/openvas/index
 modules/orca/index
 modules/pagerduty/index
+modules/prowler/index
 modules/proxmox/index
 modules/railway/index
 modules/salesforce/index
