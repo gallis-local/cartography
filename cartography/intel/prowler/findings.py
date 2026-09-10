@@ -13,9 +13,9 @@ from cartography.intel.prowler.relationships import related_ids
 from cartography.intel.prowler.response import canonical_cve_ids
 from cartography.intel.prowler.response import optional_bool
 from cartography.intel.prowler.response import optional_nonempty_string
+from cartography.intel.prowler.response import optional_object
 from cartography.intel.prowler.response import optional_string_list
 from cartography.intel.prowler.response import parse_datetime
-from cartography.intel.prowler.response import require_list
 from cartography.intel.prowler.response import require_nonempty_string
 from cartography.intel.prowler.response import require_object
 from cartography.models.prowler import ProwlerFindingSchema
@@ -83,7 +83,7 @@ def get(
     ):
         pages.append(
             {
-                "findings": require_list(document["data"], "Prowler findings data"),
+                "findings": api.page_rows(document, "findings"),
                 "resources": index_included(document, "resources"),
             },
         )
@@ -105,7 +105,9 @@ def transform(pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 raw_finding.get("attributes"),
                 "Prowler finding attributes",
             )
-            metadata = require_object(
+            # check_metadata is not a required attribute, so treat its absence
+            # as "no metadata" rather than failing the whole page.
+            metadata = optional_object(
                 attributes.get("check_metadata"),
                 "Prowler finding.check_metadata",
             )
@@ -132,7 +134,7 @@ def transform(pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         attributes.get("uid"),
                         "Prowler finding.uid",
                     ),
-                    "check_id": optional_nonempty_string(
+                    "check_id": require_nonempty_string(
                         attributes.get("check_id"),
                         "Prowler finding.check_id",
                     ),
@@ -152,7 +154,7 @@ def transform(pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         attributes.get("status_extended"),
                         "Prowler finding.status_extended",
                     ),
-                    "severity": optional_nonempty_string(
+                    "severity": require_nonempty_string(
                         attributes.get("severity"),
                         "Prowler finding.severity",
                     ),

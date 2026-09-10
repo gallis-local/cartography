@@ -144,8 +144,10 @@ class ProwlerResourceToProviderRel(CartographyRelSchema):
             ),
         },
     )
+    # Not RESOURCE: that label is the tenant-ownership edge, and a second one
+    # into this node would make (:ProwlerTenant)-[:RESOURCE]->() ambiguous.
     direction: LinkDirection = LinkDirection.INWARD
-    rel_label: str = "RESOURCE"
+    rel_label: str = "CONTAINS"
     properties: ProwlerResourceToProviderRelProperties = (
         ProwlerResourceToProviderRelProperties()
     )

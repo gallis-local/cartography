@@ -57,10 +57,9 @@ TENANTS: list[dict[str, Any]] = [
     {
         "type": "tenants",
         "id": TENANT_ID,
+        # The API's tenant resource exposes only `name`.
         "attributes": {
             "name": TENANT_NAME,
-            "inserted_at": "2026-01-05T09:00:00.000000Z",
-            "updated_at": "2026-08-13T09:00:00.000000Z",
         },
     },
 ]

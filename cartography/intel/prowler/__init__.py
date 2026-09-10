@@ -11,7 +11,6 @@ from cartography.client.core.tx import load
 from cartography.config import Config
 from cartography.intel.prowler import api
 from cartography.intel.prowler.response import optional_nonempty_string
-from cartography.intel.prowler.response import parse_datetime
 from cartography.intel.prowler.response import require_nonempty_string
 from cartography.intel.prowler.response import require_object
 from cartography.models.prowler import ProwlerTenantSchema
@@ -84,14 +83,6 @@ def _resolve_tenant(
             "Prowler tenant.name",
         ),
         "api_url": api_url,
-        "inserted_at": parse_datetime(
-            attributes.get("inserted_at"),
-            "Prowler tenant.inserted_at",
-        ),
-        "updated_at": parse_datetime(
-            attributes.get("updated_at"),
-            "Prowler tenant.updated_at",
-        ),
     }
 
 

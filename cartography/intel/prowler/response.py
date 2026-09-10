@@ -14,6 +14,17 @@ def require_object(value: Any, field: str) -> dict[str, Any]:
     return value
 
 
+def optional_object(value: Any, field: str) -> dict[str, Any]:
+    """Return an optional JSON object, or an empty one when it is absent.
+
+    Used for nested objects the API marks optional, where "not supplied" and
+    "supplied but empty" mean the same thing to us.
+    """
+    if value is None:
+        return {}
+    return require_object(value, field)
+
+
 def require_list(value: Any, field: str) -> list[Any]:
     """Return a required JSON array or reject the malformed field."""
     if not isinstance(value, list):

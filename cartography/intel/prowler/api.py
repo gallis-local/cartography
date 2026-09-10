@@ -288,6 +288,27 @@ def _request_document(
         return _request_json(session, "GET", url, params=params)
 
 
+def _is_page_param_error(exc: Exception) -> bool:
+    """Whether a 400 looks like the API rejecting our page[size] parameter."""
+    message = str(exc)
+    return "HTTP 400" in message and "page" in message.lower()
+
+
+def page_rows(document: dict[str, Any], result_name: str) -> list[dict[str, Any]]:
+    """Return a document's primary resource objects as a list.
+
+    The published OpenAPI schema types the `/latest` collections as returning a
+    single object rather than an array, because drf-spectacular mis-introspects
+    their `detail=False` action. They return an array in practice, so accept
+    either shape rather than betting on which one is right.
+    """
+    data = document.get("data")
+    if isinstance(data, dict):
+        return [data]
+    rows = require_list(data, f"Prowler {result_name} data")
+    return [require_object(row, f"Prowler {result_name} item") for row in rows]
+
+
 def iter_pages(
     session: requests.Session,
     api_url: str,
@@ -303,6 +324,12 @@ def iter_pages(
     Pagination follows `links.next`, which the API returns as an absolute URL and
     sets to null on the final page. Yielding whole documents rather than rows lets
     callers read the sideloaded `included` array alongside `data`.
+
+    `page[size]` is documented on the plain collections but not on the `/latest`
+    ones, so a rejection of it is treated as "this endpoint does not take it":
+    the request is retried without it and the smaller default page size is used
+    from then on. Following `links.next` means paging still works either way, and
+    an endpoint that does not paginate at all simply yields one document.
     """
     if max_pages < 1:
         raise ValueError("Prowler max_pages must be greater than zero")
@@ -321,14 +348,32 @@ def iter_pages(
             raise RuntimeError(f"Prowler {result_name} pagination repeated a page")
         seen_urls.add(url)
 
-        document = _request_document(
-            session,
-            url,
-            credential,
-            params=query,
-            result_name=result_name,
-        )
-        require_list(document.get("data"), f"Prowler {result_name} data")
+        try:
+            document = _request_document(
+                session,
+                url,
+                credential,
+                params=query,
+                result_name=result_name,
+            )
+        except RuntimeError as exc:
+            if query is None or "page[size]" not in query:
+                raise
+            if not _is_page_param_error(exc):
+                raise
+            logger.debug(
+                "Prowler %s rejected page[size], retrying without it.",
+                result_name,
+            )
+            query = {key: value for key, value in query.items() if key != "page[size]"}
+            document = _request_document(
+                session,
+                url,
+                credential,
+                params=query,
+                result_name=result_name,
+            )
+        page_rows(document, result_name)
         page_count += 1
         yield document
 
@@ -368,5 +413,4 @@ def iter_resources(
         params=params,
         result_name=result_name,
     ):
-        for item in require_list(document["data"], f"Prowler {result_name} data"):
-            yield require_object(item, f"Prowler {result_name} item")
+        yield from page_rows(document, result_name)
