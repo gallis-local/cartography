@@ -11,6 +11,7 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.authrealm import ProxmoxAuthRealmSchema
 from cartography.util import timeit
 
@@ -31,7 +32,7 @@ def get_auth_realms(proxmox_client: Any) -> list[dict[str, Any]]:
     try:
         return proxmox_client.access.domains.get()
     except (ResourceException, RequestException) as e:
-        logger.debug(f"Could not fetch authentication realms: {e}")
+        log_optional_fetch_failure(e, "authentication realms")
         return []
 
 

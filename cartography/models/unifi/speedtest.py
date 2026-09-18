@@ -69,7 +69,7 @@ class UnifiSpeedtestToDeviceRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("gateway_mac")},
+        {"id": PropertyRef("gateway_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "MEASURED_BY"

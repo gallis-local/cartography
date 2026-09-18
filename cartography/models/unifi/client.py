@@ -18,7 +18,7 @@ from cartography.models.unifi.extra_labels import NETWORK_ENDPOINT
 class UnifiClientNodeProperties(CartographyNodeProperties):
     """Properties of a UnifiClient."""
 
-    id: PropertyRef = PropertyRef("mac", description="Mac.")
+    id: PropertyRef = PropertyRef("client_id", description="Site-scoped client id.")
     lastupdated: PropertyRef = PropertyRef(
         "lastupdated", set_in_kwargs=True, description="Lastupdated."
     )
@@ -150,7 +150,7 @@ class UnifiClientToAPRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("ap_mac")},
+        {"id": PropertyRef("ap_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "CONNECTED_TO_AP"
@@ -173,7 +173,7 @@ class UnifiClientToSwitchRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("sw_mac")},
+        {"id": PropertyRef("sw_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "CONNECTED_TO_SWITCH"
@@ -196,7 +196,7 @@ class UnifiClientToAPSwitchRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("ap_switch_mac")},
+        {"id": PropertyRef("ap_switch_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "UPLINKED_TO_SWITCH"
@@ -267,7 +267,7 @@ class UnifiClientToGatewayRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("gw_mac")},
+        {"id": PropertyRef("gw_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "CONNECTED_TO_GATEWAY"

@@ -6,6 +6,7 @@ from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
 from cartography.models.unifi.client import UnifiClientSchema
 from cartography.stats import get_stats_client
 from cartography.util import timeit
@@ -125,6 +126,17 @@ def load_clients(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi clients to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        single={
+            "client_id": "mac",
+            "ap_id": "ap_mac",
+            "sw_id": "sw_mac",
+            "ap_switch_id": "ap_switch_mac",
+            "gw_id": "gw_mac",
+        },
+    )
     load(
         neo4j_session,
         UnifiClientSchema(),

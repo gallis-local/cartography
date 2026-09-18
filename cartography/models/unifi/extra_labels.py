@@ -1,5 +1,4 @@
 from cartography.models.core.nodes import ExtraNodeLabel
-from cartography.models.core.nodes import LabelKind
 
 NETWORK_ACCESS_POINT = ExtraNodeLabel(
     label="NetworkAccessPoint",

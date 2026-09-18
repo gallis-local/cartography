@@ -11,6 +11,9 @@ MOCK_SOFTWARE_RESPONSE = {
             "versions_count": 1,
             "bundle_identifier": "com.tinyspeck.slackmacgap",
             "display_name": "Slack",
+            "versions": [
+                {"id": 1001, "version": "4.38.121", "hosts_count": 1},
+            ],
         },
         {
             "id": 101,
@@ -18,9 +21,13 @@ MOCK_SOFTWARE_RESPONSE = {
             "source": "rpm_packages",
             "browser": "",
             "hosts_count": 1,
-            "versions_count": 1,
+            "versions_count": 2,
             "bundle_identifier": "",
             "display_name": "",
+            "versions": [
+                {"id": 1002, "version": "2.34-60.el9", "hosts_count": 1},
+                {"id": 1003, "version": "2.34-100.el9", "hosts_count": 1},
+            ],
         },
     ],
     "meta": {

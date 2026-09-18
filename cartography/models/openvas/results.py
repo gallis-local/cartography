@@ -21,7 +21,11 @@ from cartography.models.ontology.labels import CVE
 class OpenVASResultNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this scan result.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef(
         "name", description="The result's display name (usually the NVT name)."
     )
@@ -49,7 +53,7 @@ class OpenVASResultNodeProperties(CartographyNodeProperties):
         description="Display name of the scan task that produced this finding.",
     )
     severity: PropertyRef = PropertyRef(
-        "severity", description="CVSS severity score of the finding."
+        "severity", description="CVSS severity score of the finding, as a float."
     )
     threat: PropertyRef = PropertyRef(
         "threat",
@@ -61,7 +65,7 @@ class OpenVASResultNodeProperties(CartographyNodeProperties):
     )
     qod: PropertyRef = PropertyRef(
         "qod",
-        description="Quality of Detection percentage GVM assigns to this finding.",
+        description="Quality of Detection percentage GVM assigns to this finding, as a float.",
     )
     qod_type: PropertyRef = PropertyRef(
         "qod_type",
@@ -72,13 +76,6 @@ class OpenVASResultNodeProperties(CartographyNodeProperties):
     )
     summary: PropertyRef = PropertyRef(
         "summary", description="Short summary of the underlying NVT/vulnerability."
-    )
-    detection_result: PropertyRef = PropertyRef(
-        "detection_result",
-        description="Raw detection evidence reported by the NVT (e.g. banner text).",
-    )
-    source_ip: PropertyRef = PropertyRef(
-        "source_ip", description="Source IP GVM scanned from, when reported."
     )
     created: PropertyRef = PropertyRef(
         "created", description="When this result was created."
@@ -203,7 +200,11 @@ class OpenVASNVTNodeProperties(CartographyNodeProperties):
         description="The OID (object identifier) of this Network Vulnerability Test.",
     )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef("name", description="The NVT's display name.")
     oid: PropertyRef = PropertyRef(
         "oid",
@@ -214,10 +215,11 @@ class OpenVASNVTNodeProperties(CartographyNodeProperties):
         "family", description="NVT family/category this test belongs to."
     )
     severity: PropertyRef = PropertyRef(
-        "severity", description="CVSS severity score associated with this NVT."
+        "severity",
+        description="CVSS severity score associated with this NVT, as a float.",
     )
     cvss_base: PropertyRef = PropertyRef(
-        "cvss_base", description="Base CVSS score for this NVT."
+        "cvss_base", description="Base CVSS score for this NVT, as a float."
     )
     cvss_base_vector: PropertyRef = PropertyRef(
         "cvss_base_vector", description="CVSS base vector string for this NVT."
@@ -234,15 +236,9 @@ class OpenVASNVTNodeProperties(CartographyNodeProperties):
         "solution_method",
         description="Delivery method of the solution (e.g. Patch, Update).",
     )
-    qod: PropertyRef = PropertyRef(
-        "qod", description="Default Quality of Detection percentage for this NVT."
-    )
-    qod_type: PropertyRef = PropertyRef(
-        "qod_type", description="Default detection method type for this NVT."
-    )
-    description: PropertyRef = PropertyRef(
-        "description",
-        description="Human-readable description of the vulnerability this NVT checks for.",
+    summary: PropertyRef = PropertyRef(
+        "summary",
+        description="Human-readable summary of the vulnerability this NVT checks for.",
     )
     cve_list: PropertyRef = PropertyRef(
         "cve_list", description="CVE identifiers associated with this NVT."

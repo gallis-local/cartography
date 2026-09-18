@@ -13,7 +13,7 @@ def test_transform_cluster_data_with_cluster_info():
         {
             "type": "cluster",
             "name": "test-cluster",
-            "version": "8.1",
+            "version": 3,
             "quorate": 1,
         },
         {
@@ -32,7 +32,8 @@ def test_transform_cluster_data_with_cluster_info():
 
     assert result["id"] == "test-cluster"
     assert result["name"] == "test-cluster"
-    assert result["corosync_version"] == "8.1"
+    assert result["cluster_id"] == "test-cluster"
+    assert result["corosync_version"] == 3
     assert result["quorate"] is True
     assert result["nodes_online"] == 2
 
@@ -51,7 +52,8 @@ def test_transform_cluster_data_without_cluster_info():
 
     assert result["id"] == "proxmox-example-com"
     assert result["name"] == "proxmox-example-com"
-    assert result["corosync_version"] == "unknown"
+    assert result["cluster_id"] == "proxmox-example-com"
+    assert result["corosync_version"] is None
     assert result["quorate"] is True
     assert result["nodes_online"] == 1
 

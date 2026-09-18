@@ -27,17 +27,49 @@ class ProxmoxSnapshotNodeProperties(CartographyNodeProperties):
     Represents VM/container snapshots in Proxmox VE.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this snapshot, in the form `{cluster_id}/vm/{vmid}/snapshot/{name}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    vmid: PropertyRef = PropertyRef("vmid", extra_index=True)
-    vm_type: PropertyRef = PropertyRef("vm_type")
-    node: PropertyRef = PropertyRef("node")
-    description: PropertyRef = PropertyRef("description")
-    snaptime: PropertyRef = PropertyRef("snaptime")
-    vmstate: PropertyRef = PropertyRef("vmstate")
-    parent: PropertyRef = PropertyRef("parent")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Snapshot name. The `current` pseudo-snapshot that Proxmox returns for the live state is filtered out and never ingested.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    vmid: PropertyRef = PropertyRef(
+        "vmid",
+        extra_index=True,
+        description="Numeric id of the guest this snapshot was taken from.",
+    )
+    vm_type: PropertyRef = PropertyRef(
+        "vm_type",
+        description="Technology of the snapshotted guest: `qemu` for a virtual machine, `lxc` for a container.",
+    )
+    node: PropertyRef = PropertyRef(
+        "node",
+        description="Name of the node the guest was on when the snapshot was collected. Guests move between nodes, so this is not part of the id.",
+    )
+    description: PropertyRef = PropertyRef(
+        "description",
+        description="Free-text description recorded when the snapshot was taken.",
+    )
+    snaptime: PropertyRef = PropertyRef(
+        "snaptime",
+        description="When the snapshot was taken, as a Unix epoch timestamp in seconds.",
+    )
+    vmstate: PropertyRef = PropertyRef(
+        "vmstate",
+        description="True when the snapshot also captured the guest's RAM, so it can be resumed in place rather than only rolled back to its disk state.",
+    )
+    parent: PropertyRef = PropertyRef(
+        "parent",
+        description="Name of the snapshot this one was taken from. Proxmox reports an empty string on the root of the chain.",
+    )
 
 
 @dataclass(frozen=True)

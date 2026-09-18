@@ -6,7 +6,8 @@ MOCK_CLUSTER_DATA = [
     {
         "type": "cluster",
         "name": "test-cluster",
-        "version": "8.1.3",
+        # /cluster/status reports the corosync config version as an int here.
+        "version": 3,
         "quorate": 1,
         "nodes": 3,
         "id": "cluster/test-cluster",

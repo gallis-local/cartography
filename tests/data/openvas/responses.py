@@ -186,48 +186,57 @@ GET_RESULTS_RESPONSE = f"""
   <result_count full="1" truncated="0">2</result_count>
   <result id="{RESULT_ID_1}">
     <name>Apache mod_negotiation</name>
-    <host>10.0.0.5</host>
-    <hostname>web-01.example.com</hostname>
+    <host>10.0.0.5<asset asset_id="asset-1"/><hostname>web-01.example.com</hostname></host>
     <port>80/tcp</port>
-    <nvt id="{NVT_OID_1}" oid="{NVT_OID_1}">
+    <nvt oid="{NVT_OID_1}">
+      <type>nvt</type>
       <name>Apache mod_negotiation</name>
-      <cvss_base>7.5</cvss_base>
-      <cve>CVE-2024-1000</cve>
       <family>Web Servers</family>
-      <severity>High</severity>
-      <solution type="VendorFix">Upgrade Apache.</solution>
-      <qod value="70" type="remote_banner"/>
+      <cvss_base>7.5</cvss_base>
+      <severities score="7.5">
+        <severity type="cvss_base_v2">
+          <origin>CVE-2024-1000</origin>
+          <score>7.5</score>
+          <value>AV:N/AC:L/Au:N/C:P/I:P/A:P</value>
+        </severity>
+      </severities>
+      <solution type="VendorFix" method=""/>
       <refs>
         <ref type="cve" id="CVE-2024-1000"/>
         <ref type="url" id="https://example.com/advisory"/>
       </refs>
-      <tags>cvss_base_vector=AV:N/AC:L/Au:N/C:P/I:P/A:P;summary=summary text;detection_result=detected</tags>
+      <tags>cvss_base_vector=AV:N/AC:L/Au:N/C:P/I:P/A:P|summary=summary text|insight=|affected=|impact=|solution=Upgrade Apache.|vuldetect=|solution_type=VendorFix</tags>
     </nvt>
-    <severity>7.5</severity>
-    <qod value="70" type="remote_banner"/>
     <threat>High</threat>
+    <severity>7.5</severity>
+    <qod>
+      <value>70</value>
+      <type>remote_banner</type>
+    </qod>
     <original_threat>High</original_threat>
     <description>Apache mod_negotiation is enabled.</description>
     <task id="{TASK_ID_1}"><name>Full Scan</name></task>
-    <source_ip>10.0.0.1</source_ip>
-    <asset asset_id="asset-1"/>
     <creation_time>2024-06-01T12:05:00+00:00</creation_time>
   </result>
   <result id="{RESULT_ID_2}">
     <name>TCP timestamps</name>
-    <host>10.0.0.6</host>
+    <host>10.0.0.6<asset asset_id="asset-2"/></host>
     <port>general/tcp</port>
-    <nvt id="{NVT_OID_2}" oid="{NVT_OID_2}">
+    <nvt oid="{NVT_OID_2}">
+      <type>nvt</type>
       <name>TCP timestamps</name>
-      <cvss_base>0.0</cvss_base>
       <family>General</family>
-      <severity>Log</severity>
-      <qod value="80" type="remote_active"/>
-      <tags>summary=info only</tags>
+      <cvss_base>0.0</cvss_base>
+      <severities score="0.0"/>
+      <solution type="" method=""/>
+      <tags>summary=info only|insight=</tags>
     </nvt>
-    <severity>0.0</severity>
-    <qod value="80" type="remote_active"/>
     <threat>Log</threat>
+    <severity>0.0</severity>
+    <qod>
+      <value>80</value>
+      <type>remote_active</type>
+    </qod>
     <original_threat>Log</original_threat>
     <description>TCP timestamps are enabled.</description>
     <task id="{TASK_ID_2}"><name>Quick Scan</name></task>
@@ -240,26 +249,64 @@ GET_TLS_CERTIFICATES_RESPONSE = f"""
 <get_tls_certificates_response status="200" status_text="OK">
   <tls_certificate_count>2</tls_certificate_count>
   <tls_certificate id="{CERT_ID_1}">
-    <name>10.0.0.5</name>
-    <subject>CN=web-01.example.com</subject>
-    <issuer>CN=Example Root CA</issuer>
-    <not_before>2024-01-01T00:00:00+00:00</not_before>
-    <not_after>2025-01-01T00:00:00+00:00</not_after>
-    <serial>0x1234</serial>
-    <fingerprint>aa:bb:cc</fingerprint>
-    <certificate_format>PEM</certificate_format>
-    <key_type>RSA</key_type>
-    <key_bits>2048</key_bits>
+    <name>AABBCC1122334455</name>
+    <comment>web server cert</comment>
+    <creation_time>2024-01-05T00:00:00+00:00</creation_time>
+    <modification_time>2024-06-01T00:00:00+00:00</modification_time>
+    <certificate format="DER">Zm9vYmFy</certificate>
+    <sha256_fingerprint>AABBCC1122334455</sha256_fingerprint>
+    <md5_fingerprint>aa:bb:cc</md5_fingerprint>
+    <trust>1</trust>
+    <valid>1</valid>
+    <time_status>valid</time_status>
     <activation_time>2024-01-01T00:00:00+00:00</activation_time>
-    <expiry_time>2025-01-01T00:00:00+00:00</expiry_time>
-    <source_type>scan</source_type>
-    <status>valid</status>
+    <expiration_time>2025-01-01T00:00:00+00:00</expiration_time>
+    <subject_dn>CN=web-01.example.com</subject_dn>
+    <issuer_dn>CN=Example Root CA</issuer_dn>
+    <serial>0x1234</serial>
+    <last_seen>2024-06-01T12:00:00+00:00</last_seen>
+    <sources>
+      <source id="source-1">
+        <timestamp>2024-06-01T12:00:00+00:00</timestamp>
+        <location>
+          <host>
+            <ip>10.0.0.5</ip>
+            <asset id="asset-1"/>
+          </host>
+          <port>443</port>
+        </location>
+      </source>
+      <source id="source-2">
+        <timestamp>2024-06-01T12:00:00+00:00</timestamp>
+        <location>
+          <host>
+            <ip>10.0.0.5</ip>
+            <asset id="asset-1"/>
+          </host>
+          <port>8443</port>
+        </location>
+      </source>
+      <source id="source-3">
+        <timestamp>2024-06-01T12:00:00+00:00</timestamp>
+        <location>
+          <host>
+            <ip>10.0.0.6</ip>
+            <asset id="asset-2"/>
+          </host>
+          <port>443</port>
+        </location>
+      </source>
+    </sources>
   </tls_certificate>
   <tls_certificate id="{CERT_ID_2}">
-    <name>10.0.0.99</name>
-    <subject>CN=unknown-host</subject>
-    <issuer>CN=Example Root CA</issuer>
-    <not_after>2025-06-01T00:00:00+00:00</not_after>
+    <name>DDEEFF6677889900</name>
+    <sha256_fingerprint>DDEEFF6677889900</sha256_fingerprint>
+    <valid>0</valid>
+    <time_status>expired</time_status>
+    <expiration_time>2025-06-01T00:00:00+00:00</expiration_time>
+    <subject_dn>CN=unknown-host</subject_dn>
+    <issuer_dn>CN=Example Root CA</issuer_dn>
+    <sources/>
   </tls_certificate>
 </get_tls_certificates_response>
 """

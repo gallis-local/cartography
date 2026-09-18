@@ -14,10 +14,24 @@ from cartography.models.unifi.extra_labels import NETWORK_INTERFACE
 
 @dataclass(frozen=True)
 class UnifiNetworkConfigNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    enabled: PropertyRef = PropertyRef("enabled")
+    id: PropertyRef = PropertyRef(
+        "id", description="Internal UniFi network configuration object ID."
+    )
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the network as shown in the UniFi controller.",
+    )
+    enabled: PropertyRef = PropertyRef(
+        "enabled",
+        description=(
+            "True when the network is active on the controller. False when it is still "
+            "defined but switched off, so its subnet and VLAN stay reserved."
+        ),
+    )
     purpose: PropertyRef = PropertyRef(
         "purpose",
         description='Role of the network, e.g. "corporate", "guest", "wan", "vlan-only".',
@@ -64,12 +78,18 @@ class UnifiNetworkConfigNodeProperties(CartographyNodeProperties):
     dhcpd_dns_1: PropertyRef = PropertyRef(
         "dhcpd_dns_1", description="Primary DNS server pushed to DHCP clients."
     )
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef(
+        "site_id",
+        set_in_kwargs=True,
+        description="Id of the UnifiSite this network is configured on.",
+    )
 
 
 @dataclass(frozen=True)
 class UnifiNetworkConfigToSiteRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)

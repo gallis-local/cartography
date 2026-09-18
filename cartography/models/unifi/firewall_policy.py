@@ -44,7 +44,11 @@ class UnifiFirewallPolicyNodeProperties(CartographyNodeProperties):
         "source_matching_target", description="Source matching target."
     )
     destination_matching_target: PropertyRef = PropertyRef(
-        "destination_matching_target"
+        "destination_matching_target",
+        description=(
+            "What the destination side of the policy matches on, as reported by the "
+            "controller: one of IP, NETWORK, CLIENT or similar."
+        ),
     )
     site_id: PropertyRef = PropertyRef(
         "site_id", set_in_kwargs=True, description="Site id."
@@ -143,7 +147,7 @@ class UnifiFirewallPolicyToClientRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiClient"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("client_macs", one_to_many=True)},
+        {"id": PropertyRef("client_ids", one_to_many=True)},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "APPLIES_TO_CLIENT"

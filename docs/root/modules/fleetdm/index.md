@@ -16,7 +16,11 @@ used to check host compliance.
 - `FleetDMSoftware` / `FleetDMSoftwareVersion` - software inventoried across
   hosts, aggregated by title and by specific version.
 - `FleetDMVulnerability` - a CVE affecting a software version, labeled as a
-  `Finding` and `Risk` in the shared graph interfaces.
+  `Finding` and `Risk` in the shared graph interfaces. Fleet only returns
+  `cvss_score`, `epss_probability`, `cisa_known_exploit`, `cve_published` and
+  `resolved_in_version` on Fleet Premium; on Fleet Free these properties are
+  `null` rather than defaulted, so "unknown" stays distinguishable from a
+  confirmed negative.
 - `FleetDMPolicy` - an osquery-based compliance check.
 - `FleetDMLabel` - a static or dynamic host grouping.
 - `FleetDMUser` - a Fleet console user account, labeled as a `UserAccount`
@@ -25,6 +29,7 @@ used to check host compliance.
 ## Key relationships
 
 - `(:FleetDMHost)-[:HAS_SOFTWARE]->(:FleetDMSoftwareVersion)`
+- `(:FleetDMSoftware)-[:HAS_VERSION]->(:FleetDMSoftwareVersion)`
 - `(:FleetDMHost)-[:MEMBER_OF_LABEL]->(:FleetDMLabel)`
 - `(:FleetDMHost)-[:PART_OF_FLEET]->(:FleetDMFleet)`
 - `(:FleetDMHost)-[:CHECKS]->(:FleetDMPolicy)` - records whether the host is

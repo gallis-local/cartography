@@ -80,7 +80,7 @@ class UnifiOutletToDeviceRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("device_mac")},
+        {"id": PropertyRef("device_id")},
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "HAS_OUTLET"

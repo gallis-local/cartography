@@ -223,7 +223,7 @@ async def test_unifi_firewall_policy_to_client_relationship(mock_get, neo4j_sess
     )
 
     expected_rels = {
-        ("fw_policy_002", "77:88:99:AA:BB:CC"),
+        ("fw_policy_002", "default_77:88:99:AA:BB:CC"),
     }
     assert (
         check_rels(

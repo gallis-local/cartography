@@ -29,17 +29,48 @@ class ProxmoxStorageNodeProperties(CartographyNodeProperties):
     Properties for a ProxmoxStorage node.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this storage, in the form `{cluster_id}/storage/{name}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    type: PropertyRef = PropertyRef("type")
-    content_types: PropertyRef = PropertyRef("content_types")
-    shared: PropertyRef = PropertyRef("shared")
-    enabled: PropertyRef = PropertyRef("enabled")
-    total: PropertyRef = PropertyRef("total")
-    used: PropertyRef = PropertyRef("used")
-    available: PropertyRef = PropertyRef("available")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Storage id as configured in the cluster's storage configuration.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type",
+        description="Storage backend type, e.g. `dir`, `lvm`, `lvmthin`, `zfspool`, `nfs`, `cifs`, `rbd`, `cephfs` or `pbs`.",
+    )
+    content_types: PropertyRef = PropertyRef(
+        "content_types",
+        description="Content kinds the storage accepts, split from the API's comma-separated `content` field, e.g. `images`, `rootdir`, `vztmpl`, `backup`, `iso` or `snippets`.",
+    )
+    shared: PropertyRef = PropertyRef(
+        "shared",
+        description="True when every node sees the same data on this storage, so guests can migrate without copying their disks.",
+    )
+    enabled: PropertyRef = PropertyRef(
+        "enabled",
+        description="True when the storage is active, derived from the API's `disable` flag.",
+    )
+    total: PropertyRef = PropertyRef(
+        "total",
+        description="Capacity of the storage in bytes, taken as the largest value any node reported for it. 0 when no node reported status.",
+    )
+    used: PropertyRef = PropertyRef(
+        "used",
+        description="Space used on the storage in bytes, taken as the largest value any node reported for it. 0 when no node reported status.",
+    )
+    available: PropertyRef = PropertyRef(
+        "available",
+        description="Free space on the storage in bytes, taken as the largest value any node reported for it. 0 when no node reported status.",
+    )
 
 
 @dataclass(frozen=True)

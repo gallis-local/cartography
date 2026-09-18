@@ -7,6 +7,7 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
+from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 
 
@@ -69,9 +70,39 @@ class FleetDMSoftwareToTenantRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class FleetDMSoftwareToSoftwareVersionRelProperties(CartographyRelProperties):
+    """Properties of the FleetDMSoftware->FleetDMSoftwareVersion HAS_VERSION relationship."""
+
+    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
+
+@dataclass(frozen=True)
+class FleetDMSoftwareToSoftwareVersionRel(CartographyRelSchema):
+    """
+    Connects a software title to one of its concrete versions, per the `versions`
+    array on `GET /api/v1/fleet/software/titles`.
+    """
+
+    target_node_label: str = "FleetDMSoftwareVersion"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("software_version_ids", one_to_many=True)},
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "HAS_VERSION"
+    properties: FleetDMSoftwareToSoftwareVersionRelProperties = (
+        FleetDMSoftwareToSoftwareVersionRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class FleetDMSoftwareSchema(CartographyNodeSchema):
     """A software title inventoried by Fleet, aggregated across all of its versions."""
 
     label: str = "FleetDMSoftware"
     properties: FleetDMSoftwareNodeProperties = FleetDMSoftwareNodeProperties()
     sub_resource_relationship: FleetDMSoftwareToTenantRel = FleetDMSoftwareToTenantRel()
+    other_relationships: OtherRelationships = OtherRelationships(
+        [
+            FleetDMSoftwareToSoftwareVersionRel(),
+        ]
+    )

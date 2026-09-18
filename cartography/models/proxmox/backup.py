@@ -29,26 +29,80 @@ class ProxmoxBackupJobNodeProperties(CartographyNodeProperties):
     Represents scheduled backup configurations in Proxmox.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this backup job, in the form `{cluster_id}/backup/{job_id}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    job_id: PropertyRef = PropertyRef("job_id", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    schedule: PropertyRef = PropertyRef("schedule")
-    storage: PropertyRef = PropertyRef("storage")
-    enabled: PropertyRef = PropertyRef("enabled")
-    mode: PropertyRef = PropertyRef("mode")
-    compression: PropertyRef = PropertyRef("compression")
-    mailnotification: PropertyRef = PropertyRef("mailnotification")
-    mailto: PropertyRef = PropertyRef("mailto")
-    notes: PropertyRef = PropertyRef("notes")
+    job_id: PropertyRef = PropertyRef(
+        "job_id",
+        extra_index=True,
+        description="Proxmox identifier of the vzdump job under /cluster/backup.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    schedule: PropertyRef = PropertyRef(
+        "schedule",
+        description="systemd calendar event that decides when the job runs, e.g. `sat 02:00`.",
+    )
+    storage: PropertyRef = PropertyRef(
+        "storage", description="Name of the storage the backup archives are written to."
+    )
+    enabled: PropertyRef = PropertyRef(
+        "enabled",
+        description="True when the schedule is active. A disabled job stays configured but never runs.",
+    )
+    mode: PropertyRef = PropertyRef(
+        "mode",
+        description="How guests are quiesced while being dumped: `snapshot` (no downtime), `suspend` or `stop`.",
+    )
+    compression: PropertyRef = PropertyRef(
+        "compression",
+        description="Compression applied to the archive: `zstd`, `lzo`, `gzip`, or `0` when the dump is written uncompressed.",
+    )
+    mailnotification: PropertyRef = PropertyRef(
+        "mailnotification",
+        description="When Proxmox mails the job report: `always` or `failure`.",
+    )
+    mailto: PropertyRef = PropertyRef(
+        "mailto",
+        description="Comma-separated recipients of the backup job report mail.",
+    )
+    notes: PropertyRef = PropertyRef(
+        "notes",
+        description="Note template Proxmox stores alongside each backup this job creates.",
+    )
     # Flattened retention (prune-backups) settings. Each is optional and may be None.
-    prune_keep_last: PropertyRef = PropertyRef("prune_keep_last")
-    prune_keep_hourly: PropertyRef = PropertyRef("prune_keep_hourly")
-    prune_keep_daily: PropertyRef = PropertyRef("prune_keep_daily")
-    prune_keep_weekly: PropertyRef = PropertyRef("prune_keep_weekly")
-    prune_keep_monthly: PropertyRef = PropertyRef("prune_keep_monthly")
-    prune_keep_yearly: PropertyRef = PropertyRef("prune_keep_yearly")
-    repeat_missed: PropertyRef = PropertyRef("repeat_missed")
+    prune_keep_last: PropertyRef = PropertyRef(
+        "prune_keep_last",
+        description="Number of most-recent backups to retain regardless of age. Null when this retention tier is not configured.",
+    )
+    prune_keep_hourly: PropertyRef = PropertyRef(
+        "prune_keep_hourly",
+        description="Number of hourly buckets to keep one backup from. Null when this retention tier is not configured.",
+    )
+    prune_keep_daily: PropertyRef = PropertyRef(
+        "prune_keep_daily",
+        description="Number of daily buckets to keep one backup from. Null when this retention tier is not configured.",
+    )
+    prune_keep_weekly: PropertyRef = PropertyRef(
+        "prune_keep_weekly",
+        description="Number of weekly buckets to keep one backup from. Null when this retention tier is not configured.",
+    )
+    prune_keep_monthly: PropertyRef = PropertyRef(
+        "prune_keep_monthly",
+        description="Number of monthly buckets to keep one backup from. Null when this retention tier is not configured.",
+    )
+    prune_keep_yearly: PropertyRef = PropertyRef(
+        "prune_keep_yearly",
+        description="Number of yearly buckets to keep one backup from. Null when this retention tier is not configured.",
+    )
+    repeat_missed: PropertyRef = PropertyRef(
+        "repeat_missed",
+        description="True when a run missed while the node was down is executed as soon as possible instead of skipped.",
+    )
 
 
 @dataclass(frozen=True)

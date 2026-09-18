@@ -13,6 +13,7 @@ import neo4j
 from cartography.client.core.tx import load
 from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.sdn import ProxmoxSDNControllerSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNIPAMSchema
 from cartography.models.proxmox.sdn import ProxmoxSDNSubnetSchema
@@ -75,7 +76,7 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
     try:
         return proxmox_client.cluster.sdn.vnets(vnet).subnets.get()
     except (ResourceException, RequestException) as e:
-        logger.debug(f"No subnets found for VNet {vnet}: {e}")
+        log_optional_fetch_failure(e, "SDN subnets", vnet=vnet)
         return []
 
 

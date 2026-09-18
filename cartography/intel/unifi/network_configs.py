@@ -4,12 +4,11 @@ from typing import Any
 import neo4j
 from aiounifi.controller import Controller
 from aiounifi.errors import AiounifiException
-from aiounifi.errors import LoginRequired
-from aiounifi.errors import NoPermission
 from aiounifi.models.api import ApiRequest
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import log_optional_fetch_failure
 from cartography.models.unifi.network_config import UnifiNetworkConfigSchema
 from cartography.util import timeit
 
@@ -34,25 +33,10 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
         response = await controller.request(
             ApiRequest(method="get", path="/rest/networkconf")
         )
-    except NoPermission:
-        logger.warning(
-            "UniFi network config listing requires elevated privileges. "
-            "Grant the service account access to network settings to enable this.",
-        )
-        return []
-    except LoginRequired:
-        logger.warning(
-            "UniFi network config listing failed: session expired or credentials "
-            "rejected (LoginRequired). Check that the service account credentials "
-            "are valid.",
-        )
-        return []
     except AiounifiException as exc:
-        logger.warning(
-            "UniFi network config listing failed with unexpected API error "
-            "(%s: %s). Skipping network config sync.",
-            type(exc).__name__,
+        log_optional_fetch_failure(
             exc,
+            "UniFi network configurations (/rest/networkconf)",
         )
         return []
 

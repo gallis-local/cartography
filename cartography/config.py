@@ -559,6 +559,8 @@ class Config:
     :param proxmox_retry_backoff: Base backoff factor in seconds for Proxmox API retries (default: 1.0). Optional.
     :type proxmox_enable_guest_agent: bool
     :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
+    :type proxmox_enable_vm_firewall_rules: bool
+    :param proxmox_enable_vm_firewall_rules: Also sync per-guest Proxmox firewall rules. Costs one extra API call per VM and container (default: False). Optional.
     :type orca_api_endpoint: str
     :param orca_api_endpoint: Region-specific Orca Security API origin. Optional.
     :type orca_api_token: str
@@ -769,6 +771,7 @@ class Config:
         proxmox_max_retries=3,
         proxmox_retry_backoff=1.0,
         proxmox_enable_guest_agent=False,
+        proxmox_enable_vm_firewall_rules=False,
         salesforce_login_url="https://login.salesforce.com",
         salesforce_client_id=None,
         salesforce_client_secret=None,
@@ -1084,6 +1087,7 @@ class Config:
         self.proxmox_max_retries = proxmox_max_retries
         self.proxmox_retry_backoff = proxmox_retry_backoff
         self.proxmox_enable_guest_agent = proxmox_enable_guest_agent
+        self.proxmox_enable_vm_firewall_rules = proxmox_enable_vm_firewall_rules
         self.proxmox_token_name: Optional[str] = None
         self.proxmox_token_value: Optional[str] = None
         self.proxmox_password: Optional[str] = None

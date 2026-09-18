@@ -29,18 +29,49 @@ class ProxmoxReplicationJobNodeProperties(CartographyNodeProperties):
     Represents VM/container replication jobs for disaster recovery.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this replication job, in the form `{cluster_id}/replication/{job_id}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    job_id: PropertyRef = PropertyRef("job_id", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    guest: PropertyRef = PropertyRef("guest")
-    target: PropertyRef = PropertyRef("target")
-    type: PropertyRef = PropertyRef("type")
-    schedule: PropertyRef = PropertyRef("schedule")
-    rate: PropertyRef = PropertyRef("rate")
-    disable: PropertyRef = PropertyRef("disable")
-    comment: PropertyRef = PropertyRef("comment")
-    source: PropertyRef = PropertyRef("source")
+    job_id: PropertyRef = PropertyRef(
+        "job_id",
+        extra_index=True,
+        description="Proxmox replication job id, in the form `{vmid}-{index}`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    guest: PropertyRef = PropertyRef(
+        "guest",
+        description="Numeric id of the guest whose volumes this job replicates.",
+    )
+    target: PropertyRef = PropertyRef(
+        "target", description="Name of the node the guest's volumes are replicated to."
+    )
+    type: PropertyRef = PropertyRef(
+        "type",
+        description="Replication transport reported by Proxmox, e.g. `local` for ZFS replication between nodes of the same cluster.",
+    )
+    schedule: PropertyRef = PropertyRef(
+        "schedule",
+        description="systemd calendar event controlling how often the job runs, e.g. `*/15` for every 15 minutes.",
+    )
+    rate: PropertyRef = PropertyRef(
+        "rate",
+        description="Bandwidth cap for the replication stream in MB/s. Null when the stream is unlimited.",
+    )
+    disable: PropertyRef = PropertyRef(
+        "disable", description="True when the job is switched off and will not run."
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the replication job."
+    )
+    source: PropertyRef = PropertyRef(
+        "source",
+        description="Name of the node the volumes are replicated from. Null when Proxmox reports no explicit source.",
+    )
 
 
 @dataclass(frozen=True)

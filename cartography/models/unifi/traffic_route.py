@@ -79,7 +79,7 @@ class UnifiTrafficRouteToClientRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiClient"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("target_client_macs", one_to_many=True)},
+        {"id": PropertyRef("target_client_ids", one_to_many=True)},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "APPLIES_TO_CLIENT"

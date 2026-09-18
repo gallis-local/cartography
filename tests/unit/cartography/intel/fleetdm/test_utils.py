@@ -1,7 +1,12 @@
+import logging
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import requests
+
 from cartography.intel.fleetdm.utils import _find_resource_key
+from cartography.intel.fleetdm.utils import is_license_error
+from cartography.intel.fleetdm.utils import log_optional_fetch_failure
 from cartography.intel.fleetdm.utils import paginated_get
 
 
@@ -78,3 +83,40 @@ def test_paginated_get_uses_page_and_per_page_params():
     _, kwargs = session.get.call_args
     assert kwargs["params"]["page"] == 0
     assert kwargs["params"]["per_page"] == 50
+
+
+def _http_error(status_code):
+    response = MagicMock()
+    response.status_code = status_code
+    return requests.HTTPError("boom", response=response)
+
+
+def test_is_license_error_classifies_by_status():
+    assert is_license_error(_http_error(402)) is True
+    assert is_license_error(_http_error(403)) is True
+    assert is_license_error(_http_error(404)) is False
+    assert is_license_error(_http_error(500)) is False
+    assert is_license_error(requests.ConnectionError("no response")) is False
+
+
+def test_log_optional_fetch_failure_warns_on_refusal(caplog):
+    with caplog.at_level(logging.DEBUG, logger="cartography.intel.fleetdm.utils"):
+        log_optional_fetch_failure(_http_error(402), "FleetDM fleets")
+
+    assert caplog.records[-1].levelno == logging.WARNING
+    assert "ABSENT" in caplog.records[-1].getMessage()
+
+
+def test_log_optional_fetch_failure_debugs_on_absent_feature(caplog):
+    with caplog.at_level(logging.DEBUG, logger="cartography.intel.fleetdm.utils"):
+        log_optional_fetch_failure(_http_error(404), "FleetDM fleets", fleet_id=1)
+
+    assert caplog.records[-1].levelno == logging.DEBUG
+    assert "fleet_id=1" in caplog.records[-1].getMessage()
+
+
+def test_log_optional_fetch_failure_warns_on_unexpected_error(caplog):
+    with caplog.at_level(logging.DEBUG, logger="cartography.intel.fleetdm.utils"):
+        log_optional_fetch_failure(_http_error(500), "FleetDM fleets")
+
+    assert caplog.records[-1].levelno == logging.WARNING

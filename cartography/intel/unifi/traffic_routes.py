@@ -6,6 +6,7 @@ from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
 from cartography.models.unifi.traffic_route import UnifiTrafficRouteSchema
 from cartography.util import timeit
 
@@ -69,6 +70,11 @@ def load_traffic_routes(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi traffic routes to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        multiple={"target_client_ids": "target_client_macs"},
+    )
     load(
         neo4j_session,
         UnifiTrafficRouteSchema(),

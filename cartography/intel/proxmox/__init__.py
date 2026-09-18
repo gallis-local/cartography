@@ -17,9 +17,9 @@ import neo4j
 if TYPE_CHECKING:
     from proxmoxer import ProxmoxAPI
 
+from cartography.analysis.proxmox.analysis import PROXMOX_ANALYSIS_JOBS
 from cartography.config import Config
 from cartography.intel.proxmox import access
-from cartography.intel.proxmox import analysis
 from cartography.intel.proxmox import apitoken
 from cartography.intel.proxmox import authrealm
 from cartography.intel.proxmox import backup
@@ -36,8 +36,8 @@ from cartography.intel.proxmox import snapshot
 from cartography.intel.proxmox import storage
 from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
-from cartography.util import run_analysis_job
 from cartography.util import run_cleanup_job
+from cartography.util import run_typed_analysis_job
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -379,6 +379,7 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         cluster_id,
         config.update_tag,
         common_job_parameters,
+        getattr(config, "proxmox_enable_vm_firewall_rules", False),
     )
 
     # Sync firewall global options
@@ -403,65 +404,18 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         common_job_parameters,
     )
 
-    # Run post-ingestion analysis: create derived relationships
-    _best_effort_wrapper(
-        config,
-        analysis.run_effective_permissions,
-        neo4j_session,
-        config.update_tag,
-        cluster_id,
-    )
-    _best_effort_wrapper(
-        config,
-        analysis.run_has_role_relationships,
-        neo4j_session,
-        config.update_tag,
-        cluster_id,
-    )
-
-    # Run ontology linking: connect Proxmox nodes to canonical ontology nodes
-    run_analysis_job(
-        "proxmox_ontology_linking.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-
-    # Run Proxmox-specific analysis jobs
-    run_analysis_job(
-        "proxmox_backup_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_replication_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_ha_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_certificate_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_guest_agent_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_storage_analysis.json",
-        neo4j_session,
-        common_job_parameters,
-    )
-    run_analysis_job(
-        "proxmox_security.json",
-        neo4j_session,
-        common_job_parameters,
-    )
+    # Run the typed Proxmox analysis jobs. Their generated cleanup clears each
+    # finding property before re-evaluating it, so a flag stops being reported once
+    # its condition no longer holds. The ontology linking job runs last because it
+    # reads nodes the earlier jobs write.
+    for analysis_job in PROXMOX_ANALYSIS_JOBS:
+        _best_effort_wrapper(
+            config,
+            run_typed_analysis_job,
+            analysis_job,
+            neo4j_session,
+            common_job_parameters,
+        )
 
     # ProxmoxCluster is the module's root node (no sub_resource_relationship),
     # so no per-module GraphJob.from_node_schema() cleanup covers it. This

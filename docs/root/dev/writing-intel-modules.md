@@ -788,22 +788,6 @@ the AWS EC2 instance example [here](https://github.com/cartography-cncf/cartogra
 representations are OK provided they are consistent over time. For example, we don't sync 100% of AWS resources but the
 resources that exist in the graph don't change across syncs.
 
-## Proxmox Intel Module Reference
-
-The Proxmox module (`cartography/intel/proxmox/`) demonstrates best practices
-for a single-tenant virtualization platform: dependency-ordered `sync()`
-calls wrapped in a retrying, best-effort dispatcher; `CLUSTER_ID`-scoped
-cleanup for safe multi-cluster operation; conditional semantic labels (e.g.
-`ProxmoxStorage` as `BlockStorage`/`FileStorage`); and `MatchLinks` for
-cross-module references (ACL→VM/Storage/Node/Pool/Cluster, Pool→VM/Storage,
-HA→VM). For the full architecture, data model layout, ontology integration,
-and analysis job inventory, see
-[the Proxmox module's own docs](../modules/proxmox/index) rather than a
-duplicate summary here — that page is what stays current as the module
-evolves.
-
----
-
 - Each intel module offers its own view of the graph
 
     ```{note}

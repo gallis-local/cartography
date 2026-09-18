@@ -7,6 +7,8 @@ from aiounifi.models.device import DeviceState
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
+from cartography.intel.unifi.util import to_float
 from cartography.models.unifi.device import UnifiDeviceSchema
 from cartography.stats import get_stats_client
 from cartography.util import timeit
@@ -75,9 +77,12 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "user_num_sta": device.raw.get("user-num_sta"),
                 "overheating": device.raw.get("overheating", False),
                 "upgrade_to_firmware": device.raw.get("upgrade_to_firmware"),
-                "outlet_ac_power_budget": device.raw.get("outlet_ac_power_budget"),
-                "outlet_ac_power_consumption": device.raw.get(
-                    "outlet_ac_power_consumption"
+                # Reported as decimal strings by the controller; see outlets.py.
+                "outlet_ac_power_budget": to_float(
+                    device.raw.get("outlet_ac_power_budget")
+                ),
+                "outlet_ac_power_consumption": to_float(
+                    device.raw.get("outlet_ac_power_consumption")
                 ),
             }
         )
@@ -101,6 +106,11 @@ def load_devices(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi devices to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        single={"device_id": "mac", "uplink_id": "uplink_mac"},
+    )
     load(
         neo4j_session,
         UnifiDeviceSchema(),

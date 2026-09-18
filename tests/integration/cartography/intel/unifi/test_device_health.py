@@ -7,6 +7,8 @@ import pytest
 import cartography.intel.unifi.devices
 import cartography.intel.unifi.sites
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_DEVICE_HEALTH
+from cartography.util import run_typed_analysis_job
 
 TEST_UPDATE_TAG = 123456789
 
@@ -40,10 +42,8 @@ async def test_device_health_analysis(mock_devices, neo4j_session):
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_device_health.json",
+    run_typed_analysis_job(
+        UNIFI_DEVICE_HEALTH,
         neo4j_session,
         common_job_parameters,
     )
@@ -51,7 +51,7 @@ async def test_device_health_analysis(mock_devices, neo4j_session):
     # Assert - Office AP should have health_score = 100 (no issues)
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: '00:11:22:33:44:55'})
+        MATCH (d:UnifiDevice {id: 'default_00:11:22:33:44:55'})
         RETURN d.health_score as score, d.health_issues as issues, d.temperature_status as temp, d.power_status as power
         """
     ).data()
@@ -63,7 +63,7 @@ async def test_device_health_analysis(mock_devices, neo4j_session):
     # Assert - Main Switch should have health_score < 100 (upgradable firmware)
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: 'AA:BB:CC:DD:EE:FF'})
+        MATCH (d:UnifiDevice {id: 'default_AA:BB:CC:DD:EE:FF'})
         RETURN d.health_score as score, d.health_issues as issues
         """
     ).data()

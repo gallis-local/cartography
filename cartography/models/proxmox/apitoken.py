@@ -29,14 +29,34 @@ class ProxmoxAPITokenNodeProperties(CartographyNodeProperties):
     Represents API tokens for authentication in Proxmox VE.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this token, in the form `{cluster_id}/user/{userid}/token/{tokenid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    tokenid: PropertyRef = PropertyRef("tokenid", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    userid: PropertyRef = PropertyRef("userid")
-    expire: PropertyRef = PropertyRef("expire")
-    privsep: PropertyRef = PropertyRef("privsep")
-    comment: PropertyRef = PropertyRef("comment")
+    tokenid: PropertyRef = PropertyRef(
+        "tokenid",
+        extra_index=True,
+        description="Name of the token within its owning user. Together with the user it forms the login `user@realm!tokenid`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    userid: PropertyRef = PropertyRef(
+        "userid", description="`user@realm` of the account that owns this token."
+    )
+    expire: PropertyRef = PropertyRef(
+        "expire",
+        description="Token expiration as a Unix epoch timestamp in seconds. 0 means the token never expires.",
+    )
+    privsep: PropertyRef = PropertyRef(
+        "privsep",
+        description="True when privilege separation is enabled, so the token only holds permissions granted to the token itself rather than everything its owner can do.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the token."
+    )
 
 
 @dataclass(frozen=True)

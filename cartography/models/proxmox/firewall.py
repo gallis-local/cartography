@@ -28,27 +28,90 @@ class ProxmoxFirewallRuleNodeProperties(CartographyNodeProperties):
     Represents firewall rules at cluster, node, or VM level.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this rule, combining the scope it is defined at with its position in the chain.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    scope: PropertyRef = PropertyRef("scope", extra_index=True)
-    scope_id: PropertyRef = PropertyRef("scope_id")
-    pos: PropertyRef = PropertyRef("pos", extra_index=True)
-    type: PropertyRef = PropertyRef("type")
-    action: PropertyRef = PropertyRef("action", extra_index=True)
-    enable: PropertyRef = PropertyRef("enable", extra_index=True)
-    iface: PropertyRef = PropertyRef("iface")
-    source: PropertyRef = PropertyRef("source", extra_index=True)
-    dest: PropertyRef = PropertyRef("dest", extra_index=True)
-    proto: PropertyRef = PropertyRef("proto", extra_index=True)
-    sport: PropertyRef = PropertyRef("sport")
-    dport: PropertyRef = PropertyRef("dport", extra_index=True)
-    comment: PropertyRef = PropertyRef("comment")
-    macro: PropertyRef = PropertyRef("macro")
-    log: PropertyRef = PropertyRef("log")
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    scope: PropertyRef = PropertyRef(
+        "scope",
+        extra_index=True,
+        description="Level the rule is defined at: `cluster`, `node` or `vm`.",
+    )
+    scope_id: PropertyRef = PropertyRef(
+        "scope_id",
+        description="Id of the object owning the rule at that scope, i.e. the node id or guest id. Null for cluster-level rules.",
+    )
+    pos: PropertyRef = PropertyRef(
+        "pos",
+        extra_index=True,
+        description="Zero-based position of the rule in its chain. Proxmox evaluates rules in this order.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type", description="Chain the rule belongs to: `in`, `out` or `group`."
+    )
+    action: PropertyRef = PropertyRef(
+        "action",
+        extra_index=True,
+        description="What happens to a matching packet: `ACCEPT`, `DROP`, `REJECT`, or the name of a security group to jump to.",
+    )
+    enable: PropertyRef = PropertyRef(
+        "enable",
+        extra_index=True,
+        description="True when the rule is active. A disabled rule keeps its position but is not evaluated.",
+    )
+    iface: PropertyRef = PropertyRef(
+        "iface",
+        description="Interface the rule is restricted to, e.g. `net0` on a guest or `vmbr0` on a node. Null matches any interface.",
+    )
+    source: PropertyRef = PropertyRef(
+        "source",
+        extra_index=True,
+        description="Source the rule matches: an address, a CIDR, a range, or `+name` to reference an IP set. Null matches any source.",
+    )
+    dest: PropertyRef = PropertyRef(
+        "dest",
+        extra_index=True,
+        description="Destination the rule matches, in the same forms as `source`. Null matches any destination.",
+    )
+    proto: PropertyRef = PropertyRef(
+        "proto",
+        extra_index=True,
+        description="IP protocol matched, e.g. `tcp`, `udp` or `icmp`. Null matches any protocol.",
+    )
+    sport: PropertyRef = PropertyRef(
+        "sport",
+        description="Source port or port range matched, e.g. `1024:65535`. Null matches any source port.",
+    )
+    dport: PropertyRef = PropertyRef(
+        "dport",
+        extra_index=True,
+        description="Destination port matched: a port, a range, a service name, or a comma-separated list. Null matches any destination port.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the rule."
+    )
+    macro: PropertyRef = PropertyRef(
+        "macro",
+        description="Proxmox firewall macro the rule uses, e.g. `SSH` or `HTTP`, which expands to a set of protocol and port matches.",
+    )
+    log: PropertyRef = PropertyRef(
+        "log",
+        description="Log level for packets this rule matches: `nolog`, or a syslog level from `emerg` through `debug`.",
+    )
     # IPSet references extracted from source/dest (prefixed with +)
-    source_ipsets: PropertyRef = PropertyRef("source_ipsets")
-    dest_ipsets: PropertyRef = PropertyRef("dest_ipsets")
+    source_ipsets: PropertyRef = PropertyRef(
+        "source_ipsets",
+        description="Names of the IP sets referenced with `+` in `source`. Null when the rule references none.",
+    )
+    dest_ipsets: PropertyRef = PropertyRef(
+        "dest_ipsets",
+        description="Names of the IP sets referenced with `+` in `dest`. Null when the rule references none.",
+    )
 
 
 @dataclass(frozen=True)
@@ -101,14 +164,34 @@ class ProxmoxFirewallIPSetNodeProperties(CartographyNodeProperties):
     Represents IP sets (address groups) used in firewall rules.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this IP set, combining the scope it is defined at with its name.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    scope: PropertyRef = PropertyRef("scope")
-    scope_id: PropertyRef = PropertyRef("scope_id")
-    comment: PropertyRef = PropertyRef("comment")
-    cidrs: PropertyRef = PropertyRef("cidrs")
+    name: PropertyRef = PropertyRef(
+        "name",
+        extra_index=True,
+        description="Name of the IP set, referenced from firewall rules as `+name`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    scope: PropertyRef = PropertyRef(
+        "scope",
+        description="Level the IP set is defined at: `cluster`, `node` or `vm`.",
+    )
+    scope_id: PropertyRef = PropertyRef(
+        "scope_id",
+        description="Id of the object owning the IP set at that scope. Null for cluster-level IP sets.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the IP set."
+    )
+    cidrs: PropertyRef = PropertyRef(
+        "cidrs", description="Addresses and CIDR ranges that are members of the set."
+    )
 
 
 @dataclass(frozen=True)
@@ -249,8 +332,14 @@ class ProxmoxFirewallRuleToIPSetMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Usage context
-    in_source: PropertyRef = PropertyRef("in_source")
-    in_dest: PropertyRef = PropertyRef("in_dest")
+    in_source: PropertyRef = PropertyRef(
+        "in_source",
+        description="True when the rule references this IP set in its source match.",
+    )
+    in_dest: PropertyRef = PropertyRef(
+        "in_dest",
+        description="True when the rule references this IP set in its destination match.",
+    )
 
 
 @dataclass(frozen=True)

@@ -33,37 +33,91 @@ class ProxmoxSDNZoneNodeProperties(CartographyNodeProperties):
     restricted to specific nodes and assigned permissions.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this zone, in the form `{cluster_id}/sdn/zone/{zone}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    zone: PropertyRef = PropertyRef("zone", extra_index=True)
-    type: PropertyRef = PropertyRef("type")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    zone: PropertyRef = PropertyRef(
+        "zone",
+        extra_index=True,
+        description="SDN zone name, at most 8 characters, used as the zone id under /cluster/sdn/zones.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type",
+        description="Zone type, which decides the underlying transport: `simple`, `vlan`, `qinq`, `vxlan` or `evpn`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
 
     # Zone configuration
-    bridge: PropertyRef = PropertyRef("bridge")
-    nodes: PropertyRef = PropertyRef("nodes")
-    mtu: PropertyRef = PropertyRef("mtu")
+    bridge: PropertyRef = PropertyRef(
+        "bridge",
+        description="Host bridge the zone's VNets are built on. Used by `vlan` and `qinq` zones.",
+    )
+    nodes: PropertyRef = PropertyRef(
+        "nodes",
+        description="Comma-separated node names the zone is deployed to. Null when it applies to every node.",
+    )
+    mtu: PropertyRef = PropertyRef(
+        "mtu",
+        description="MTU in bytes for the zone's interfaces. Encapsulating zone types need it lowered to leave room for their headers.",
+    )
 
     # VLAN/VXLAN specific
-    tag: PropertyRef = PropertyRef("tag")
+    tag: PropertyRef = PropertyRef(
+        "tag", description="Outer VLAN tag a `qinq` zone wraps its VNets in."
+    )
 
     # VXLAN/EVPN specific
-    peers: PropertyRef = PropertyRef("peers")
-    controller: PropertyRef = PropertyRef("controller")
+    peers: PropertyRef = PropertyRef(
+        "peers",
+        description="Comma-separated addresses of the other nodes taking part in a `vxlan` zone's unicast mesh.",
+    )
+    controller: PropertyRef = PropertyRef(
+        "controller",
+        description="Name of the `ProxmoxSDNController` running the zone's routing protocol. Set for `evpn` zones.",
+    )
 
     # Additional configuration
-    ipam: PropertyRef = PropertyRef("ipam")
-    dns: PropertyRef = PropertyRef("dns")
-    reversedns: PropertyRef = PropertyRef("reversedns")
-    dnszone: PropertyRef = PropertyRef("dnszone")
+    ipam: PropertyRef = PropertyRef(
+        "ipam",
+        description="Name of the IPAM backend the zone allocates guest addresses from, e.g. the built-in `pve` backend.",
+    )
+    dns: PropertyRef = PropertyRef(
+        "dns",
+        description="Name of the DNS plugin used to register forward records for guests in this zone.",
+    )
+    reversedns: PropertyRef = PropertyRef(
+        "reversedns",
+        description="Name of the DNS plugin used to register reverse (PTR) records for guests in this zone.",
+    )
+    dnszone: PropertyRef = PropertyRef(
+        "dnszone",
+        description="DNS domain guest records are created under, e.g. `example.com`.",
+    )
 
     # EVPN specific
-    vrf_vxlan: PropertyRef = PropertyRef("vrf_vxlan")
-    vxlan_port: PropertyRef = PropertyRef("vxlan_port")
-    mac: PropertyRef = PropertyRef("mac")
+    vrf_vxlan: PropertyRef = PropertyRef(
+        "vrf_vxlan",
+        description="VNI used for an EVPN zone's layer-3 VRF, from the API's `vrf-vxlan` field.",
+    )
+    vxlan_port: PropertyRef = PropertyRef(
+        "vxlan_port",
+        description="UDP port used for VXLAN encapsulation, from the API's `vxlan-port` field. Proxmox defaults to 4789.",
+    )
+    mac: PropertyRef = PropertyRef(
+        "mac",
+        description="MAC address used for the anycast gateway on the zone's VNets.",
+    )
 
     # QinQ specific
-    service_vlan: PropertyRef = PropertyRef("service_vlan")
+    service_vlan: PropertyRef = PropertyRef(
+        "service_vlan",
+        description="Outer service VLAN of a `qinq` zone, from the API's `service-vlan` field.",
+    )
 
 
 @dataclass(frozen=True)
@@ -161,19 +215,41 @@ class ProxmoxSDNVNetNodeProperties(CartographyNodeProperties):
     Linux bridges on nodes for VM/container connectivity.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this VNet, in the form `{cluster_id}/sdn/vnet/{vnet}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    vnet: PropertyRef = PropertyRef("vnet", extra_index=True)
-    zone: PropertyRef = PropertyRef("zone")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    vnet: PropertyRef = PropertyRef(
+        "vnet",
+        extra_index=True,
+        description="VNet name, at most 8 characters. It becomes the name of the interface guests attach to.",
+    )
+    zone: PropertyRef = PropertyRef(
+        "zone",
+        description="Name of the `ProxmoxSDNZone` that provides this VNet's transport.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
 
     # VNet configuration
-    tag: PropertyRef = PropertyRef("tag")
-    alias: PropertyRef = PropertyRef("alias")
-    vlanaware: PropertyRef = PropertyRef("vlanaware")
+    tag: PropertyRef = PropertyRef(
+        "tag", description="VLAN id or VXLAN VNI identifying this VNet inside its zone."
+    )
+    alias: PropertyRef = PropertyRef(
+        "alias", description="Free-text label shown for the VNet in the Proxmox UI."
+    )
+    vlanaware: PropertyRef = PropertyRef(
+        "vlanaware",
+        description="True when guests may send 802.1Q-tagged frames on this VNet and the VNet passes the tags through.",
+    )
 
     # Additional configuration
-    mac: PropertyRef = PropertyRef("mac")
+    mac: PropertyRef = PropertyRef(
+        "mac", description="MAC address of this VNet's anycast gateway interface."
+    )
 
 
 @dataclass(frozen=True)
@@ -250,22 +326,49 @@ class ProxmoxSDNSubnetNodeProperties(CartographyNodeProperties):
     Subnets define IP ranges within VNets and handle IPAM/DNS integration.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this subnet. The CIDR's `/` is replaced with `_` so the id stays path-safe.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    subnet: PropertyRef = PropertyRef("subnet", extra_index=True)
-    vnet: PropertyRef = PropertyRef("vnet")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    type: PropertyRef = PropertyRef("type")
+    subnet: PropertyRef = PropertyRef(
+        "subnet",
+        extra_index=True,
+        description="The subnet in CIDR notation, e.g. `10.0.0.0/24`.",
+    )
+    vnet: PropertyRef = PropertyRef(
+        "vnet", description="Name of the `ProxmoxSDNVNet` this subnet is configured on."
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type",
+        description="Configuration type discriminator returned by the API, currently always `subnet`.",
+    )
 
     # Subnet configuration
-    gateway: PropertyRef = PropertyRef("gateway")
-    snat: PropertyRef = PropertyRef("snat")
+    gateway: PropertyRef = PropertyRef(
+        "gateway",
+        description="Address inside the subnet that the VNet answers on as the guests' default gateway.",
+    )
+    snat: PropertyRef = PropertyRef(
+        "snat",
+        description="True when traffic leaving this subnet is source-NATed to the node's own address.",
+    )
 
     # DHCP configuration
-    dhcp_range: PropertyRef = PropertyRef("dhcp_range")
+    dhcp_range: PropertyRef = PropertyRef(
+        "dhcp_range",
+        description="Address ranges Proxmox hands out DHCP leases from for this subnet, from the API's `dhcp-range` field.",
+    )
 
     # DNS configuration
-    dnszoneprefix: PropertyRef = PropertyRef("dnszoneprefix")
+    dnszoneprefix: PropertyRef = PropertyRef(
+        "dnszoneprefix",
+        description="Prefix prepended to guest names when DNS records are created for this subnet.",
+    )
 
 
 @dataclass(frozen=True)
@@ -345,22 +448,49 @@ class ProxmoxSDNControllerNodeProperties(CartographyNodeProperties):
     Controllers manage the control plane for zones (e.g., EVPN with BGP).
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this controller, in the form `{cluster_id}/sdn/controller/{controller}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    controller: PropertyRef = PropertyRef("controller", extra_index=True)
-    type: PropertyRef = PropertyRef("type")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    controller: PropertyRef = PropertyRef(
+        "controller",
+        extra_index=True,
+        description="Controller name, used as the controller id under /cluster/sdn/controllers.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type", description="Controller type, e.g. `evpn` or `bgp`."
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
 
     # BGP/EVPN configuration
-    asn: PropertyRef = PropertyRef("asn")
-    peers: PropertyRef = PropertyRef("peers")
-    node: PropertyRef = PropertyRef("node")
+    asn: PropertyRef = PropertyRef(
+        "asn", description="BGP autonomous system number the controller runs in."
+    )
+    peers: PropertyRef = PropertyRef(
+        "peers",
+        description="Comma-separated addresses of the BGP peers the controller establishes sessions with.",
+    )
+    node: PropertyRef = PropertyRef(
+        "node",
+        description="Name of the node a `bgp` controller runs on. Null for `evpn` controllers, which are cluster-wide.",
+    )
 
     # Additional EVPN configuration
-    ebgp: PropertyRef = PropertyRef("ebgp")
-    loopback: PropertyRef = PropertyRef("loopback")
+    ebgp: PropertyRef = PropertyRef(
+        "ebgp",
+        description="True when the peers sit in a different autonomous system, so the sessions are external BGP.",
+    )
+    loopback: PropertyRef = PropertyRef(
+        "loopback",
+        description="Name of the loopback interface used as the source address for BGP sessions.",
+    )
     bgp_multipath_as_path_relax: PropertyRef = PropertyRef(
-        "bgp_multipath_as_path_relax"
+        "bgp_multipath_as_path_relax",
+        description="True when BGP multipath accepts paths that traverse different autonomous systems, from the API's `bgp-multipath-as-path-relax` field.",
     )
 
 
@@ -413,17 +543,38 @@ class ProxmoxSDNIPAMNodeProperties(CartographyNodeProperties):
     IPAM plugins manage IP address allocation for VMs/containers.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this IPAM backend, in the form `{cluster_id}/sdn/ipam/{ipam}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    ipam: PropertyRef = PropertyRef("ipam", extra_index=True)
-    type: PropertyRef = PropertyRef("type")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    ipam: PropertyRef = PropertyRef(
+        "ipam",
+        extra_index=True,
+        description="IPAM backend name, as referenced by `ProxmoxSDNZone.ipam`.",
+    )
+    type: PropertyRef = PropertyRef(
+        "type",
+        description="IPAM plugin type: `pve` for the built-in backend, or `netbox` or `phpipam` for an external service.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
 
     # External IPAM configuration
-    url: PropertyRef = PropertyRef("url")
+    url: PropertyRef = PropertyRef(
+        "url",
+        description="Base URL of the external IPAM service. Null for the built-in `pve` backend.",
+    )
     # Token is masked to "configured" in transform to avoid storing raw credentials
-    token: PropertyRef = PropertyRef("token")
-    section: PropertyRef = PropertyRef("section")
+    token: PropertyRef = PropertyRef(
+        "token",
+        description="The literal string `configured` when an API token is set for this backend, otherwise null. The token value itself is never ingested.",
+    )
+    section: PropertyRef = PropertyRef(
+        "section", description="phpIPAM section id that addresses are allocated from."
+    )
 
 
 @dataclass(frozen=True)

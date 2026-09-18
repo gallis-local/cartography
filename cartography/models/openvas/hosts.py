@@ -12,16 +12,22 @@ from cartography.models.core.relationships import CartographyRelProperties
 from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
-from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
 from cartography.models.ontology.labels import DEVICE_INSTANCE
 
 
 @dataclass(frozen=True)
 class OpenVASHostNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id", description="The GVM asset UUID of this host.")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="The host's IP address, which is its stable identity across syncs.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef(
         "name", description="The host's display name in GVM."
     )
@@ -54,23 +60,24 @@ class OpenVASHostNodeProperties(CartographyNodeProperties):
         description="GVM asset-management UUID for this host.",
     )
     latest_scan_date: PropertyRef = PropertyRef(
-        "latest_scan_date", description="When this host was last scanned."
-    )
+        "latest_scan_date",
+        description="Set by analysis job. Creation time of this host's most recent finding.",
+    )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     latest_scan_task_id: PropertyRef = PropertyRef(
         "latest_scan_task_id",
-        description="GVM UUID of the task that most recently scanned this host.",
-    )
+        description="Set by analysis job. GVM UUID of the task that most recently scanned this host.",
+    )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     latest_scan_task_name: PropertyRef = PropertyRef(
         "latest_scan_task_name",
-        description="Display name of the task that most recently scanned this host.",
-    )
+        description="Set by analysis job. Display name of the task that most recently scanned this host.",
+    )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     source_type: PropertyRef = PropertyRef(
         "source_type",
         description="How GVM identified this host (e.g. by IP, hostname).",
     )
     identifiers: PropertyRef = PropertyRef(
         "identifiers",
-        description="Additional GVM-reported identifiers for this host (e.g. MAC addresses).",
+        description="Comma-separated kinds of identifier GVM holds for this host (e.g. ip,hostname,OS).",
     )
 
 
@@ -96,25 +103,6 @@ class OpenVASHostToInstanceRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
-class OpenVASHostToTaskRelProperties(CartographyRelProperties):
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-
-
-# (:OpenVASHost)-[:LAST_SCANNED_BY]->(:OpenVASTask)
-@dataclass(frozen=True)
-class OpenVASHostToTaskRel(CartographyRelSchema):
-    """The scan task that most recently scanned this host."""
-
-    target_node_label: str = "OpenVASTask"
-    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("latest_scan_task_id")},
-    )
-    direction: LinkDirection = LinkDirection.OUTWARD
-    rel_label: str = "LAST_SCANNED_BY"
-    properties: OpenVASHostToTaskRelProperties = OpenVASHostToTaskRelProperties()
-
-
-@dataclass(frozen=True)
 class OpenVASHostSchema(CartographyNodeSchema):
     """A host asset tracked by GVM's asset management, with its latest scan results."""
 
@@ -122,8 +110,3 @@ class OpenVASHostSchema(CartographyNodeSchema):
     extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([DEVICE_INSTANCE])
     properties: OpenVASHostNodeProperties = OpenVASHostNodeProperties()
     sub_resource_relationship: OpenVASHostToInstanceRel = OpenVASHostToInstanceRel()
-    other_relationships: OtherRelationships = OtherRelationships(
-        [
-            OpenVASHostToTaskRel(),
-        ],
-    )

@@ -51,9 +51,13 @@ full, read-only sync.
 
 Token enumeration (`ProxmoxAPIToken` nodes) requires elevated rights beyond
 `PVEAuditor`. If the configured user or token cannot list other users' API
-tokens, Cartography logs a debug-level "Could not fetch tokens" message per
-user and continues the rest of the sync — this is expected unless you've
-granted broader access.
+tokens, Cartography logs a single warning naming how many users were refused and
+continues the rest of the sync.
+
+The warning is deliberate rather than silent: an empty `ProxmoxAPIToken` set
+looks identical whether it means "this cluster has no API tokens" or "the sync
+was not allowed to look". If you are running read-only on purpose, this warning
+is expected and can be ignored; otherwise grant the extra privilege.
 
 ## Configure Cartography
 
@@ -68,6 +72,7 @@ granted broader access.
 | `--proxmox-verify-ssl` | — | Verify TLS certificates (default `true`) |
 | `--proxmox-timeout` | — | API request timeout in seconds (default `30`) |
 | `--proxmox-enable-guest-agent` | — | Collect QEMU Guest Agent data (requires the agent installed in VMs) |
+| `--proxmox-enable-vm-firewall-rules` | — | Also sync per-guest firewall rules. Off by default because it costs one extra API call per VM and container |
 | `--proxmox-best-effort-mode` | — | Log and continue past a failing submodule sync instead of aborting the whole Proxmox sync |
 | `--proxmox-max-retries` | — | Max retry attempts for transient API failures (connection errors, 5xx, rate limiting) |
 | `--proxmox-retry-backoff` | — | Exponential backoff factor between retries |

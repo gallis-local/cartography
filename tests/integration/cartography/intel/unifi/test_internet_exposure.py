@@ -11,7 +11,8 @@ import cartography.intel.unifi.port_forwards
 import cartography.intel.unifi.sites
 import cartography.intel.unifi.wlans
 import tests.data.unifi
-from tests.integration.util import check_nodes
+from cartography.analysis.unifi.analysis import UNIFI_INTERNET_EXPOSURE
+from cartography.util import run_typed_analysis_job
 
 TEST_UPDATE_TAG = 123456789
 
@@ -83,10 +84,8 @@ async def test_internet_exposure_analysis(
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_internet_exposure.json",
+    run_typed_analysis_job(
+        UNIFI_INTERNET_EXPOSURE,
         neo4j_session,
         common_job_parameters,
     )
@@ -94,7 +93,7 @@ async def test_internet_exposure_analysis(
     # Assert - Check that device with WAN IP is marked as exposed
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: 'AA:BB:CC:DD:EE:FF'})
+        MATCH (d:UnifiDevice {id: 'default_AA:BB:CC:DD:EE:FF'})
         RETURN d.exposed_internet as exposed, d.exposed_internet_type as types
         """
     ).data()

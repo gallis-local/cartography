@@ -30,11 +30,23 @@ class ProxmoxPoolNodeProperties(CartographyNodeProperties):
     Resource pools are used to organize VMs, containers, and storage.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this pool, in the form `{cluster_id}/pool/{poolid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    poolid: PropertyRef = PropertyRef("poolid", extra_index=True)
-    comment: PropertyRef = PropertyRef("comment")
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
+    poolid: PropertyRef = PropertyRef(
+        "poolid",
+        extra_index=True,
+        description="Name of the resource pool, as used in ACL paths of the form `/pool/{poolid}`.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the pool."
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
 
 
 @dataclass(frozen=True)

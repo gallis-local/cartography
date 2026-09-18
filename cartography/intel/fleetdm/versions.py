@@ -27,7 +27,7 @@ def sync(
 ) -> None:
     logger.info("Starting FleetDM software versions sync")
     raw_versions = get(api_session, base_url)
-    versions_data, vulnerability_data = transform(raw_versions, update_tag)
+    versions_data, vulnerability_data = transform(raw_versions)
     load_versions(neo4j_session, versions_data, tenant_id, update_tag)
     if vulnerability_data:
         load_vulnerabilities(
@@ -45,14 +45,16 @@ def get(
     api_session: requests.Session,
     base_url: str,
 ) -> list[dict[str, Any]]:
+    # Deliberately unfiltered: `vulnerable=true` would restrict the FleetDMSoftwareVersion
+    # nodes to versions that carry a CVE, and FleetDMHost's HAS_SOFTWARE relationship
+    # matches those nodes by id. Filtering here therefore silently drops most of every
+    # host's software inventory from the graph instead of only narrowing the CVE list.
     url = f"{base_url}{_VERSIONS_URL}"
-    params = {"vulnerable": "true"}
-    return list(paginated_get(api_session, url, params=params))
+    return list(paginated_get(api_session, url))
 
 
 def transform(
     api_result: list[dict[str, Any]],
-    update_tag: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     versions: list[dict[str, Any]] = []
     vulnerabilities: list[dict[str, Any]] = []
@@ -79,7 +81,11 @@ def transform(
 
         version_id = str(version.get("id"))
         for vuln in vuln_list:
-            cve = vuln.get("cve", "")
+            cve = vuln.get("cve")
+            if not cve:
+                # Without a CVE there is no stable identity for the finding and nothing
+                # to correlate against the CVE ontology, so it would only add noise.
+                continue
             vulnerabilities.append(
                 {
                     "id": f"{version_id}-{cve}",
@@ -87,7 +93,10 @@ def transform(
                     "details_link": vuln.get("details_link"),
                     "cvss_score": vuln.get("cvss_score"),
                     "epss_probability": vuln.get("epss_probability"),
-                    "cisa_known_exploit": vuln.get("cisa_known_exploit", False),
+                    # Fleet only returns this on Premium. Defaulting it to False would
+                    # assert "CISA does not list this as exploited" for every CVE on a
+                    # Free deployment, which is a different claim from "unknown".
+                    "cisa_known_exploit": vuln.get("cisa_known_exploit"),
                     "cve_published": vuln.get("cve_published"),
                     "cve_description": vuln.get("cve_description"),
                     "resolved_in_version": vuln.get("resolved_in_version"),

@@ -8,6 +8,86 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = (60, 60)
 
+# Fleet answers with these when the endpoint exists but the current license tier or
+# the token's role does not allow the call. 402 is Fleet's "requires Fleet Premium".
+_LICENSE_STATUS_CODES = frozenset({402, 403})
+
+# Fleet answers with these when the feature is simply not present on the deployment.
+_NOT_AVAILABLE_STATUS_CODES = frozenset({404, 501})
+
+
+def _status_code(exception: Exception) -> int | None:
+    """
+    Best-effort extraction of an HTTP status code from a Fleet API exception.
+
+    :param exception: Exception raised by a Fleet API call
+    :return: The HTTP status code, or None if it could not be determined
+    """
+    response = getattr(exception, "response", None)
+    status = getattr(response, "status_code", None)
+    return status if isinstance(status, int) else None
+
+
+def is_license_error(exception: Exception) -> bool:
+    """
+    Report whether Fleet refused a call because of license tier or role.
+
+    Callers that fetch the same optional resource once per host or per policy use this
+    to aggregate a single summary warning instead of emitting one line per item.
+
+    :param exception: Exception raised by a Fleet API call
+    :return: True if Fleet refused the call for license or permission reasons
+    """
+    return _status_code(exception) in _LICENSE_STATUS_CODES
+
+
+def log_optional_fetch_failure(
+    exception: Exception,
+    description: str,
+    **context: Any,
+) -> None:
+    """
+    Log a failed best-effort Fleet fetch at a level that reflects its cause.
+
+    These fetches fall back to an empty list so that one license-gated or absent
+    endpoint does not abort the whole sync. The danger is that "Fleet refused us" and
+    "there is genuinely nothing here" then look identical in the graph: both produce
+    zero nodes. Logging a refusal at WARNING keeps that distinction visible, because
+    an operator who sees zero ``FleetDMFleet`` nodes needs to know whether that means
+    "no fleets exist" or "we were not allowed to look".
+
+    :param exception: Exception raised by the Fleet API call
+    :param description: Human-readable description of what was being fetched
+    :param context: Extra key/value pairs to include in the log message
+    """
+    suffix = "".join(f" ({k}={v})" for k, v in context.items())
+    status = _status_code(exception)
+
+    if status in _LICENSE_STATUS_CODES:
+        logger.warning(
+            "Fleet refused the request for %s%s with HTTP %s: %s. This endpoint "
+            "requires Fleet Premium or a more privileged API token, so this data "
+            "will be ABSENT from the graph rather than empty.",
+            description,
+            suffix,
+            status,
+            exception,
+        )
+    elif status in _NOT_AVAILABLE_STATUS_CODES:
+        logger.debug(
+            "%s%s is not available on this Fleet deployment: %s",
+            description,
+            suffix,
+            exception,
+        )
+    else:
+        logger.warning(
+            "Could not fetch %s%s: %s",
+            description,
+            suffix,
+            exception,
+        )
+
 
 def paginated_get(
     api_session: requests.Session,

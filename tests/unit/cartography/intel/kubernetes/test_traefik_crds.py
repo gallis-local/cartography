@@ -8,13 +8,13 @@ import cartography.intel.kubernetes.traefik_crds
 from cartography.intel.kubernetes.traefik_crds import _list_cluster_custom_objects
 from cartography.intel.kubernetes.traefik_crds import sync_traefik_crds
 from cartography.intel.kubernetes.traefik_crds import transform_ingressroutes
+from cartography.intel.kubernetes.traefik_crds import transform_ingressroutetcps
 from cartography.intel.kubernetes.traefik_crds import transform_middlewares
-from tests.data.kubernetes.traefik_crds import TRAEFIK_INGRESSROUTES_DATA
 from tests.data.kubernetes.traefik_crds import TRAEFIK_INGRESSROUTES_RAW
 from tests.data.kubernetes.traefik_crds import TRAEFIK_MIDDLEWARES_RAW
 
 
-def test_list_cluster_custom_objects_returns_empty_on_missing_crd():
+def test_list_cluster_custom_objects_returns_none_on_missing_crd():
     client = MagicMock()
     client.name = "test-cluster"
     client.custom.list_cluster_custom_object.side_effect = ApiException(status=404)
@@ -26,7 +26,8 @@ def test_list_cluster_custom_objects_returns_empty_on_missing_crd():
         plural="ingressroutes",
     )
 
-    assert resources == []
+    # None, not [], so the caller can tell "CRD absent" from "CRD present but empty".
+    assert resources is None
 
 
 @pytest.mark.parametrize("status", [401, 403, 500])
@@ -177,7 +178,7 @@ def test_transform_middlewares_detects_type():
     assert transformed["middleware_type"] == "forwardAuth"
 
 
-def test_transform_middlewares_returns_unknown_for_no_match():
+def test_transform_middlewares_reports_unrecognised_spec_key_as_type():
     raw_unknown = [
         {
             "apiVersion": "traefik.io/v1alpha1",
@@ -194,7 +195,257 @@ def test_transform_middlewares_returns_unknown_for_no_match():
 
     [transformed] = transform_middlewares(raw_unknown)
 
-    assert transformed["middleware_type"] == "unknown"
+    assert transformed["middleware_type"] == "someFutureType"
+
+
+def test_transform_middlewares_detects_plugin_type():
+    raw_plugin = [
+        {
+            "apiVersion": "traefik.io/v1alpha1",
+            "kind": "Middleware",
+            "metadata": {
+                "name": "oidc-auth",
+                "namespace": "traefik",
+                "uid": "mw-uid-plugin",
+                "creationTimestamp": "2021-10-07T06:20:00+00:00",
+            },
+            "spec": {"plugin": {"traefik-oidc-auth": {"Provider": {}}}},
+        },
+    ]
+
+    [transformed] = transform_middlewares(raw_plugin)
+
+    assert transformed["middleware_type"] == "plugin"
+
+
+def test_transform_middlewares_returns_none_when_spec_is_empty():
+    raw_empty = [
+        {
+            "apiVersion": "traefik.io/v1alpha1",
+            "kind": "Middleware",
+            "metadata": {
+                "name": "empty-mw",
+                "namespace": "default",
+                "uid": "mw-uid-empty",
+                "creationTimestamp": "2021-10-07T06:20:00+00:00",
+            },
+            "spec": {},
+        },
+    ]
+
+    [transformed] = transform_middlewares(raw_empty)
+
+    assert transformed["middleware_type"] is None
+
+
+def test_transform_ingressroutes_treats_empty_tls_block_as_tls_terminated():
+    raw = [
+        {
+            "metadata": {
+                "name": "default-cert-route",
+                "namespace": "default",
+                "uid": "ir-uid-empty-tls",
+                "creationTimestamp": "2021-10-07T06:21:06+00:00",
+            },
+            "spec": {
+                "entryPoints": ["websecure"],
+                "routes": [{"match": "Host(`a.example.com`)", "services": []}],
+                "tls": {},
+            },
+        },
+    ]
+
+    [transformed] = transform_ingressroutes(raw)
+
+    assert transformed["has_tls"] is True
+
+
+def test_transform_ingressroutes_ignores_traefikservice_backends():
+    raw = [
+        {
+            "metadata": {
+                "name": "dashboard",
+                "namespace": "traefik",
+                "uid": "ir-uid-dashboard",
+                "creationTimestamp": "2021-10-07T06:21:06+00:00",
+            },
+            "spec": {
+                "entryPoints": ["websecure"],
+                "routes": [
+                    {
+                        "match": "Host(`traefik.example.com`)",
+                        "services": [
+                            {"kind": "TraefikService", "name": "api@internal"}
+                        ],
+                    },
+                ],
+            },
+        },
+    ]
+
+    [transformed] = transform_ingressroutes(raw)
+
+    assert transformed["backend_service_qualified_names"] == []
+    assert transformed["traefik_service_names"] == ["api@internal"]
+
+
+def test_transform_ingressroutes_collects_service_level_middlewares():
+    raw = [
+        {
+            "metadata": {
+                "name": "svc-mw-route",
+                "namespace": "app",
+                "uid": "ir-uid-svc-mw",
+                "creationTimestamp": "2021-10-07T06:21:06+00:00",
+            },
+            "spec": {
+                "routes": [
+                    {
+                        "match": "Host(`a.example.com`)",
+                        "middlewares": [{"name": "router-mw"}],
+                        "services": [
+                            {
+                                "name": "svc",
+                                "middlewares": [
+                                    {"name": "backend-mw", "namespace": "traefik"}
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    ]
+
+    [transformed] = transform_ingressroutes(raw)
+
+    assert transformed["middleware_qualified_names"] == [
+        "app/router-mw",
+        "traefik/backend-mw",
+    ]
+
+
+def test_transform_ingressroutes_extracts_multiple_hosts_from_one_rule():
+    raw = [
+        {
+            "metadata": {
+                "name": "multi-host",
+                "namespace": "default",
+                "uid": "ir-uid-multi-host",
+                "creationTimestamp": "2021-10-07T06:21:06+00:00",
+            },
+            "spec": {
+                "routes": [
+                    {"match": "Host(`a.example.com`, `b.example.com`)", "services": []},
+                ],
+            },
+        },
+    ]
+
+    [transformed] = transform_ingressroutes(raw)
+
+    assert transformed["hostnames"] == ["a.example.com", "b.example.com"]
+
+
+def test_transform_ingressroutetcps_extracts_host_sni_and_skips_wildcard():
+    raw = [
+        {
+            "metadata": {
+                "name": "mqtt",
+                "namespace": "hass",
+                "uid": "irtcp-uid-sni",
+                "creationTimestamp": "2021-10-07T06:22:00+00:00",
+            },
+            "spec": {
+                "entryPoints": ["mqtts"],
+                "routes": [
+                    {"match": "HostSNI(`mqtt.example.com`)", "services": []},
+                    {"match": "HostSNI(`*`)", "services": []},
+                ],
+            },
+        },
+    ]
+
+    [transformed] = transform_ingressroutetcps(raw)
+
+    assert transformed["hostnames"] == ["mqtt.example.com"]
+    # No tls block at all, so passthrough is unknown rather than False.
+    assert transformed["has_tls"] is False
+    assert transformed["tls_passthrough"] is None
+
+
+@patch.object(cartography.intel.kubernetes.traefik_crds, "cleanup")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "load_middlewares")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "load_ingressrouteudps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "load_ingressroutetcps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "load_ingressroutes")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_middlewares")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressrouteudps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressroutetcps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressroutes")
+def test_sync_traefik_crds_runs_cleanup_when_crds_installed_but_empty(
+    mock_get_ingressroutes,
+    mock_get_ingressroutetcps,
+    mock_get_ingressrouteudps,
+    mock_get_middlewares,
+    mock_load_ingressroutes,
+    mock_load_ingressroutetcps,
+    mock_load_ingressrouteudps,
+    mock_load_middlewares,
+    mock_cleanup,
+):
+    # Every CRD is installed but has no objects left: cleanup must still run, otherwise
+    # nodes for deleted routes stay in the graph forever.
+    for mock_get in (
+        mock_get_ingressroutes,
+        mock_get_ingressroutetcps,
+        mock_get_ingressrouteudps,
+        mock_get_middlewares,
+    ):
+        mock_get.return_value = []
+
+    sync_traefik_crds(
+        neo4j_session=MagicMock(),
+        client=MagicMock(),
+        update_tag=1,
+        common_job_parameters={"UPDATE_TAG": 1, "CLUSTER_ID": "cluster-1"},
+    )
+
+    mock_cleanup.assert_called_once()
+    mock_load_ingressroutes.assert_called_once()
+
+
+@patch.object(cartography.intel.kubernetes.traefik_crds, "cleanup")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "load_ingressroutes")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_middlewares")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressrouteudps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressroutetcps")
+@patch.object(cartography.intel.kubernetes.traefik_crds, "get_ingressroutes")
+def test_sync_traefik_crds_skips_everything_when_no_crds_installed(
+    mock_get_ingressroutes,
+    mock_get_ingressroutetcps,
+    mock_get_ingressrouteudps,
+    mock_get_middlewares,
+    mock_load_ingressroutes,
+    mock_cleanup,
+):
+    for mock_get in (
+        mock_get_ingressroutes,
+        mock_get_ingressroutetcps,
+        mock_get_ingressrouteudps,
+        mock_get_middlewares,
+    ):
+        mock_get.return_value = None
+
+    sync_traefik_crds(
+        neo4j_session=MagicMock(),
+        client=MagicMock(),
+        update_tag=1,
+        common_job_parameters={"UPDATE_TAG": 1, "CLUSTER_ID": "cluster-1"},
+    )
+
+    mock_cleanup.assert_not_called()
+    mock_load_ingressroutes.assert_not_called()
 
 
 def test_sync_traefik_crds_skips_when_no_cluster_id(caplog):

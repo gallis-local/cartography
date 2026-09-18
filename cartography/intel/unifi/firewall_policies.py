@@ -6,6 +6,7 @@ from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
 from cartography.models.unifi.firewall_policy import UnifiFirewallPolicySchema
 from cartography.util import timeit
 
@@ -77,6 +78,11 @@ def load_firewall_policies(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi firewall policies to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        multiple={"client_ids": "client_macs"},
+    )
     load(
         neo4j_session,
         UnifiFirewallPolicySchema(),

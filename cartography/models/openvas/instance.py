@@ -13,12 +13,23 @@ from cartography.models.core.nodes import CartographyNodeSchema
 
 @dataclass(frozen=True)
 class OpenVASInstanceNodeProperties(CartographyNodeProperties):
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Identifier for this GVM deployment: host:port, the socket path, or the configured override.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    name: PropertyRef = PropertyRef("name")
-    host: PropertyRef = PropertyRef("host")
-    port: PropertyRef = PropertyRef("port")
-    user: PropertyRef = PropertyRef("user")
+    name: PropertyRef = PropertyRef(
+        "name", description="Display name of this GVM deployment."
+    )
+    host: PropertyRef = PropertyRef(
+        "host", description="Hostname or IP of the gvmd GMP endpoint."
+    )
+    port: PropertyRef = PropertyRef(
+        "port", description="TCP port of the gvmd GMP endpoint."
+    )
+    user: PropertyRef = PropertyRef(
+        "user", description="GVM user cartography authenticated to GMP as."
+    )
 
 
 @dataclass(frozen=True)

@@ -21,7 +21,12 @@ class UnifiSystemInfoNodeProperties(CartographyNodeProperties):
         "lastupdated", set_in_kwargs=True, description="Lastupdated."
     )
     anonymous_controller_id: PropertyRef = PropertyRef(
-        "anonymous_controller_id", extra_index=True
+        "anonymous_controller_id",
+        extra_index=True,
+        description=(
+            "Anonymous identifier the controller generates for this UniFi installation "
+            "and reports to Ubiquiti telemetry. Stable across controller restarts."
+        ),
     )
     hostname: PropertyRef = PropertyRef("hostname", description="Hostname.")
     name: PropertyRef = PropertyRef("name", description="Name.")

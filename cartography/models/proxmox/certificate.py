@@ -29,24 +29,72 @@ class ProxmoxCertificateNodeProperties(CartographyNodeProperties):
     Represents SSL/TLS certificates used by Proxmox nodes.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this certificate, in the form `{cluster_id}/node/{node}/cert/{filename}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    node_id: PropertyRef = PropertyRef("node_id")
-    filename: PropertyRef = PropertyRef("filename", extra_index=True)
-    fingerprint: PropertyRef = PropertyRef("fingerprint", extra_index=True)
-    issuer: PropertyRef = PropertyRef("issuer")
-    subject: PropertyRef = PropertyRef("subject")
-    san: PropertyRef = PropertyRef("san")
-    notbefore: PropertyRef = PropertyRef("notbefore")
-    notafter: PropertyRef = PropertyRef("notafter", extra_index=True)
-    public_key_type: PropertyRef = PropertyRef("public_key_type")
-    public_key_bits: PropertyRef = PropertyRef("public_key_bits")
-    pem: PropertyRef = PropertyRef("pem")
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    node_id: PropertyRef = PropertyRef(
+        "node_id", description="Id of the `ProxmoxNode` that serves this certificate."
+    )
+    filename: PropertyRef = PropertyRef(
+        "filename",
+        extra_index=True,
+        description="Name of the certificate file on the node, e.g. `pve-ssl.pem` or `pveproxy-ssl.pem`.",
+    )
+    fingerprint: PropertyRef = PropertyRef(
+        "fingerprint",
+        extra_index=True,
+        description="Fingerprint of the certificate as reported by Proxmox.",
+    )
+    issuer: PropertyRef = PropertyRef(
+        "issuer",
+        description="Distinguished name of the certificate authority that issued the certificate.",
+    )
+    subject: PropertyRef = PropertyRef(
+        "subject", description="Subject distinguished name of the certificate."
+    )
+    san: PropertyRef = PropertyRef(
+        "san", description="Subject Alternative Names the certificate is valid for."
+    )
+    notbefore: PropertyRef = PropertyRef(
+        "notbefore",
+        description="Start of the certificate validity window as a Unix epoch timestamp in seconds.",
+    )
+    notafter: PropertyRef = PropertyRef(
+        "notafter",
+        extra_index=True,
+        description="End of the certificate validity window as a Unix epoch timestamp in seconds.",
+    )
+    public_key_type: PropertyRef = PropertyRef(
+        "public_key_type", description="Public key algorithm, e.g. `rsa` or `ecdsa`."
+    )
+    public_key_bits: PropertyRef = PropertyRef(
+        "public_key_bits", description="Size of the public key in bits."
+    )
+    pem: PropertyRef = PropertyRef(
+        "pem", description="The certificate itself, PEM encoded."
+    )
     # Computed expiration properties for easy querying
-    expires_in_days: PropertyRef = PropertyRef("expires_in_days", extra_index=True)
-    is_expired: PropertyRef = PropertyRef("is_expired", extra_index=True)
-    expires_soon: PropertyRef = PropertyRef("expires_soon", extra_index=True)
+    expires_in_days: PropertyRef = PropertyRef(
+        "expires_in_days",
+        extra_index=True,
+        description="Whole days from the time of the sync until `notafter`. Negative once the certificate has expired.",
+    )
+    is_expired: PropertyRef = PropertyRef(
+        "is_expired",
+        extra_index=True,
+        description="True when `notafter` was already in the past at the time of the sync.",
+    )
+    expires_soon: PropertyRef = PropertyRef(
+        "expires_soon",
+        extra_index=True,
+        description="True when the certificate is still valid but expires within 30 days of the sync.",
+    )
 
 
 @dataclass(frozen=True)

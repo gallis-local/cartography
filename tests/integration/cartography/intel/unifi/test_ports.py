@@ -176,7 +176,7 @@ async def test_port_to_device_relationship(mock_get, neo4j_session):
     # Verify the relationship
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice{id: 'AA:BB:CC:DD:EE:FF'})-[:HAS_PORT]->(p:UnifiPort)
+        MATCH (d:UnifiDevice{id: 'default_AA:BB:CC:DD:EE:FF'})-[:HAS_PORT]->(p:UnifiPort)
         RETURN count(p) AS count
         """
     )

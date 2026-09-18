@@ -27,20 +27,53 @@ class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     Represents firewall global configuration options at cluster or node level.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this firewall options object, derived from the scope it applies to.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    scope: PropertyRef = PropertyRef("scope")
-    scope_id: PropertyRef = PropertyRef("scope_id")
-    node_id: PropertyRef = PropertyRef("node_id")
-    enable: PropertyRef = PropertyRef("enable")
-    policy_in: PropertyRef = PropertyRef("policy_in")
-    policy_out: PropertyRef = PropertyRef("policy_out")
-    log_level_in: PropertyRef = PropertyRef("log_level_in")
-    log_level_out: PropertyRef = PropertyRef("log_level_out")
-    nf_conntrack_max: PropertyRef = PropertyRef("nf_conntrack_max")
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    scope: PropertyRef = PropertyRef(
+        "scope", description="Level these options apply at: `cluster`, `node` or `vm`."
+    )
+    scope_id: PropertyRef = PropertyRef(
+        "scope_id",
+        description="Identifier of the object the options apply to. Null for cluster-level options.",
+    )
+    node_id: PropertyRef = PropertyRef(
+        "node_id",
+        description="Id of the `ProxmoxNode` these options apply to. Null for cluster- and guest-level options.",
+    )
+    enable: PropertyRef = PropertyRef(
+        "enable",
+        description="True when the firewall is switched on at this level. With it off, no rules at this level are enforced.",
+    )
+    policy_in: PropertyRef = PropertyRef(
+        "policy_in",
+        description="Default action for inbound traffic that no rule matches: `ACCEPT`, `REJECT` or `DROP`.",
+    )
+    policy_out: PropertyRef = PropertyRef(
+        "policy_out",
+        description="Default action for outbound traffic that no rule matches: `ACCEPT`, `REJECT` or `DROP`.",
+    )
+    log_level_in: PropertyRef = PropertyRef(
+        "log_level_in",
+        description="Log level applied to packets handled by the inbound default policy, e.g. `nolog` or `info`.",
+    )
+    log_level_out: PropertyRef = PropertyRef(
+        "log_level_out",
+        description="Log level applied to packets handled by the outbound default policy, e.g. `nolog` or `info`.",
+    )
+    nf_conntrack_max: PropertyRef = PropertyRef(
+        "nf_conntrack_max",
+        description="Maximum number of entries the node's connection tracking table may hold.",
+    )
     nf_conntrack_tcp_timeout_established: PropertyRef = PropertyRef(
-        "nf_conntrack_tcp_timeout_established"
+        "nf_conntrack_tcp_timeout_established",
+        description="Seconds an established TCP connection stays in the connection tracking table without traffic.",
     )
 
 

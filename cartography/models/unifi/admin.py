@@ -18,7 +18,9 @@ class UnifiAdminNodeProperties(CartographyNodeProperties):
     """Properties of a UniFi controller administrator account."""
 
     id: PropertyRef = PropertyRef("id", description="Internal UniFi admin object ID.")
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
     name: PropertyRef = PropertyRef("name", description="Admin's display name.")
     email: PropertyRef = PropertyRef(
         "email", extra_index=True, description="Admin's email/login address."
@@ -33,14 +35,20 @@ class UnifiAdminNodeProperties(CartographyNodeProperties):
     last_site_name: PropertyRef = PropertyRef(
         "last_site_name", description="Name of the site the admin last accessed."
     )
-    site_id: PropertyRef = PropertyRef("site_id", set_in_kwargs=True)
+    site_id: PropertyRef = PropertyRef(
+        "site_id",
+        set_in_kwargs=True,
+        description="Id of the UnifiSite this admin account administers.",
+    )
 
 
 @dataclass(frozen=True)
 class UnifiAdminToSiteRelProperties(CartographyRelProperties):
     """Properties of the relationship connecting a UnifiAdmin to its UnifiSite."""
 
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)
@@ -61,7 +69,9 @@ class UnifiAdminToSiteRel(CartographyRelSchema):
 class UnifiAdminToUserAccountRelProperties(CartographyRelProperties):
     """Properties of the relationship connecting a UnifiAdmin to its ontology UserAccount."""
 
-    lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+    lastupdated: PropertyRef = PropertyRef(
+        "lastupdated", set_in_kwargs=True, description="Lastupdated."
+    )
 
 
 @dataclass(frozen=True)

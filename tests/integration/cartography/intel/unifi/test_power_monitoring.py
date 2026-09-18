@@ -8,6 +8,8 @@ import cartography.intel.unifi.devices
 import cartography.intel.unifi.outlets
 import cartography.intel.unifi.sites
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_POWER_MONITORING
+from cartography.util import run_typed_analysis_job
 
 # Add outlet test data
 UNIFI_OUTLETS = [
@@ -20,10 +22,10 @@ UNIFI_OUTLETS = [
         "cycle_enabled": False,
         "has_metering": True,
         "caps": 3,
-        "voltage": "120.5",
-        "current": "2.5",
-        "power": "300.0",
-        "power_factor": "0.95",
+        "voltage": 120.5,
+        "current": 2.5,
+        "power": 300.0,
+        "power_factor": 0.95,
         "device_mac": "AA:BB:CC:DD:EE:FF",
         "site_id": "default",
     },
@@ -36,10 +38,10 @@ UNIFI_OUTLETS = [
         "cycle_enabled": False,
         "has_metering": True,
         "caps": 3,
-        "voltage": "120.0",
-        "current": "0.0",
-        "power": "0.0",
-        "power_factor": "1.0",
+        "voltage": 120.0,
+        "current": 0.0,
+        "power": 0.0,
+        "power_factor": 1.0,
         "device_mac": "AA:BB:CC:DD:EE:FF",
         "site_id": "default",
     },
@@ -86,10 +88,8 @@ async def test_power_monitoring_analysis(mock_devices, mock_outlets, neo4j_sessi
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_power_monitoring.json",
+    run_typed_analysis_job(
+        UNIFI_POWER_MONITORING,
         neo4j_session,
         common_job_parameters,
     )

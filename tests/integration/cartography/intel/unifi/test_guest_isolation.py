@@ -11,6 +11,8 @@ import cartography.intel.unifi.sites
 import cartography.intel.unifi.vouchers
 import cartography.intel.unifi.wlans
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_GUEST_ISOLATION
+from cartography.util import run_typed_analysis_job
 
 TEST_UPDATE_TAG = 123456789
 
@@ -87,10 +89,8 @@ async def test_guest_isolation_analysis(
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_guest_isolation.json",
+    run_typed_analysis_job(
+        UNIFI_GUEST_ISOLATION,
         neo4j_session,
         common_job_parameters,
     )

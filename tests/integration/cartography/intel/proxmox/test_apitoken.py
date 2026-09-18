@@ -8,7 +8,6 @@ from unittest.mock import patch
 import cartography.intel.proxmox.apitoken
 from cartography.intel.proxmox.apitoken import sync
 from tests.data.proxmox.apitoken import MOCK_API_TOKEN_DATA
-from tests.data.proxmox.apitoken import MOCK_USERS_FOR_TOKENS
 from tests.integration.cartography.intel.proxmox import create_test_cluster
 
 TEST_UPDATE_TAG = 123456789

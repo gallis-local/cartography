@@ -8,6 +8,8 @@ import cartography.intel.unifi.devices
 import cartography.intel.unifi.sites
 import cartography.intel.unifi.speedtests
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_WAN_PERFORMANCE
+from cartography.util import run_typed_analysis_job
 
 # Add speedtest test data
 UNIFI_SPEEDTESTS = [
@@ -72,10 +74,8 @@ async def test_wan_performance_analysis(mock_devices, mock_speedtests, neo4j_ses
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_wan_performance.json",
+    run_typed_analysis_job(
+        UNIFI_WAN_PERFORMANCE,
         neo4j_session,
         common_job_parameters,
     )

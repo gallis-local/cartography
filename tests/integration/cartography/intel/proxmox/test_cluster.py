@@ -362,8 +362,13 @@ def test_cluster_enhanced_metadata(
     assert data is not None
     assert data["c.nodes_total"] == 3  # From MOCK_CLUSTER_DATA
     assert data["c.nodes_online"] == 2  # Two nodes with online=1
-    assert data["c.cluster_id"] == "cluster/test-cluster"  # From MOCK_CLUSTER_DATA
-    assert data["c.corosync_version"] == "8.1.3"
+    # cluster_id means "the cluster this object belongs to" on every Proxmox node
+    # type, so on the cluster itself it equals its own id. It is deliberately not
+    # /cluster/status's `id` field, which is the literal string "cluster".
+    assert data["c.cluster_id"] == "test-cluster"
+    # /cluster/status reports the corosync config version as an int, so it stays an
+    # int. A sentinel string here would make the property mixed-type across clusters.
+    assert data["c.corosync_version"] == 3
     assert data["c.quorate"] is True
 
 

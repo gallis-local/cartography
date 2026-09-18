@@ -29,14 +29,35 @@ class ProxmoxHAGroupNodeProperties(CartographyNodeProperties):
     HA groups define node preferences for high availability resources.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this HA group, in the form `{cluster_id}/ha/group/{group}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    group: PropertyRef = PropertyRef("group", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    nodes: PropertyRef = PropertyRef("nodes")
-    restricted: PropertyRef = PropertyRef("restricted")
-    nofailback: PropertyRef = PropertyRef("nofailback")
-    comment: PropertyRef = PropertyRef("comment")
+    group: PropertyRef = PropertyRef(
+        "group",
+        extra_index=True,
+        description="Name of the HA group, as referenced by `ProxmoxHAResource.group`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    nodes: PropertyRef = PropertyRef(
+        "nodes",
+        description="Member nodes with optional priorities, e.g. `node1:2,node2:1`. The HA stack prefers nodes with a higher priority.",
+    )
+    restricted: PropertyRef = PropertyRef(
+        "restricted",
+        description="True when resources in this group may only run on the group's member nodes. When false, other nodes are used as a last resort.",
+    )
+    nofailback: PropertyRef = PropertyRef(
+        "nofailback",
+        description="True when a resource stays where it is after a higher-priority node comes back, instead of being moved back to it.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the HA group."
+    )
 
 
 @dataclass(frozen=True)
@@ -87,15 +108,39 @@ class ProxmoxHAResourceNodeProperties(CartographyNodeProperties):
     Represents VMs/containers configured for high availability.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this HA resource, in the form `{cluster_id}/ha/resource/{sid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    sid: PropertyRef = PropertyRef("sid", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    state: PropertyRef = PropertyRef("state")
-    group: PropertyRef = PropertyRef("group")
-    max_restart: PropertyRef = PropertyRef("max_restart")
-    max_relocate: PropertyRef = PropertyRef("max_relocate")
-    comment: PropertyRef = PropertyRef("comment")
+    sid: PropertyRef = PropertyRef(
+        "sid",
+        extra_index=True,
+        description="HA service id, in the form `vm:100` for a virtual machine or `ct:200` for a container.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    state: PropertyRef = PropertyRef(
+        "state",
+        description="State the HA stack is asked to keep the resource in: `started`, `stopped`, `disabled` or `ignored`.",
+    )
+    group: PropertyRef = PropertyRef(
+        "group",
+        description="Name of the `ProxmoxHAGroup` constraining where this resource may run. Null when it may run on any node.",
+    )
+    max_restart: PropertyRef = PropertyRef(
+        "max_restart",
+        description="Maximum number of times the HA stack restarts this resource on the same node after a failure before relocating it.",
+    )
+    max_relocate: PropertyRef = PropertyRef(
+        "max_relocate",
+        description="Maximum number of times the HA stack will relocate this resource to another node before giving up. 0 disables relocation.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the HA resource."
+    )
 
 
 @dataclass(frozen=True)

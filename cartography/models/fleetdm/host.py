@@ -290,7 +290,7 @@ class FleetDMHostToPolicyRelProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
     response: PropertyRef = PropertyRef(
         "response",
-        description="The host's result for this policy: 'pass', 'fail', or 'unsupported'.",
+        description="The host's result for this policy: 'pass', 'fail', or an empty string when the host has not yet reported one.",
     )
 
 

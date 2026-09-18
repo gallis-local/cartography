@@ -234,7 +234,7 @@ async def test_unifi_traffic_route_to_client_relationship(mock_get, neo4j_sessio
 
     # route_001 targets client DD:EE:FF:00:11:22 (wired workstation)
     expected_rels = {
-        ("route_001", "DD:EE:FF:00:11:22"),
+        ("route_001", "default_DD:EE:FF:00:11:22"),
     }
     assert (
         check_rels(

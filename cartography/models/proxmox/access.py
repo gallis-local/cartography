@@ -33,19 +33,55 @@ class ProxmoxUserNodeProperties(CartographyNodeProperties):
     Represents user accounts in Proxmox VE.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this user, in the form `{cluster_id}/user/{userid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    userid: PropertyRef = PropertyRef("userid", extra_index=True)
-    realm: PropertyRef = PropertyRef("realm", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    enable: PropertyRef = PropertyRef("enable")
-    expire: PropertyRef = PropertyRef("expire")
-    firstname: PropertyRef = PropertyRef("firstname")
-    lastname: PropertyRef = PropertyRef("lastname")
-    email: PropertyRef = PropertyRef("email", extra_index=True)
-    comment: PropertyRef = PropertyRef("comment")
-    groups: PropertyRef = PropertyRef("groups")
-    tokens: PropertyRef = PropertyRef("tokens")
+    userid: PropertyRef = PropertyRef(
+        "userid",
+        extra_index=True,
+        description="Proxmox login name qualified by its realm, e.g. `root@pam`.",
+    )
+    realm: PropertyRef = PropertyRef(
+        "realm",
+        extra_index=True,
+        description="Name of the authentication realm the user authenticates against, taken from the part of `userid` after the `@`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    enable: PropertyRef = PropertyRef(
+        "enable",
+        description="True when the account may log in. A disabled account keeps its ACL grants but cannot authenticate.",
+    )
+    expire: PropertyRef = PropertyRef(
+        "expire",
+        description="Account expiration as a Unix epoch timestamp in seconds. 0 means the account never expires.",
+    )
+    firstname: PropertyRef = PropertyRef(
+        "firstname", description="Given name recorded on the user account."
+    )
+    lastname: PropertyRef = PropertyRef(
+        "lastname", description="Family name recorded on the user account."
+    )
+    email: PropertyRef = PropertyRef(
+        "email",
+        extra_index=True,
+        description="Email address recorded on the user account, used by Proxmox for notifications.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the user account."
+    )
+    groups: PropertyRef = PropertyRef(
+        "groups",
+        description="Names (`groupid`) of the Proxmox groups this user is a member of.",
+    )
+    tokens: PropertyRef = PropertyRef(
+        "tokens",
+        description="Names (`tokenid`) of the API tokens created under this user.",
+    )
 
 
 @dataclass(frozen=True)
@@ -150,11 +186,23 @@ class ProxmoxGroupNodeProperties(CartographyNodeProperties):
     Represents user groups in Proxmox VE.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this group, in the form `{cluster_id}/group/{groupid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    groupid: PropertyRef = PropertyRef("groupid", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    comment: PropertyRef = PropertyRef("comment")
+    groupid: PropertyRef = PropertyRef(
+        "groupid",
+        extra_index=True,
+        description="Name of the group, as referenced by the `ugid` of an ACL entry.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    comment: PropertyRef = PropertyRef(
+        "comment", description="Free-text comment stored on the group."
+    )
 
 
 @dataclass(frozen=True)
@@ -206,12 +254,28 @@ class ProxmoxRoleNodeProperties(CartographyNodeProperties):
     Represents permission roles in Proxmox VE.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this role, in the form `{cluster_id}/role/{roleid}`.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    roleid: PropertyRef = PropertyRef("roleid", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    privs: PropertyRef = PropertyRef("privs")
-    special: PropertyRef = PropertyRef("special")
+    roleid: PropertyRef = PropertyRef(
+        "roleid",
+        extra_index=True,
+        description="Name of the role as referenced by ACL entries, e.g. `PVEAuditor` or `Administrator`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    privs: PropertyRef = PropertyRef(
+        "privs",
+        description="Proxmox privileges the role grants, e.g. `VM.Audit` or `Datastore.AllocateSpace`.",
+    )
+    special: PropertyRef = PropertyRef(
+        "special",
+        description="True for a role built into Proxmox VE, which cannot be edited or deleted.",
+    )
 
 
 @dataclass(frozen=True)
@@ -261,16 +325,44 @@ class ProxmoxACLNodeProperties(CartographyNodeProperties):
     Represents Access Control List entries granting permissions.
     """
 
-    id: PropertyRef = PropertyRef("id")
+    id: PropertyRef = PropertyRef(
+        "id",
+        description="Cluster-scoped identifier for this ACL entry, combining its path, principal and role.",
+    )
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    path: PropertyRef = PropertyRef("path", extra_index=True)
-    cluster_id: PropertyRef = PropertyRef("cluster_id")
-    roleid: PropertyRef = PropertyRef("roleid")
-    ugid: PropertyRef = PropertyRef("ugid", extra_index=True)
-    propagate: PropertyRef = PropertyRef("propagate")
-    principal_type: PropertyRef = PropertyRef("principal_type")
-    resource_type: PropertyRef = PropertyRef("resource_type")
-    resource_id: PropertyRef = PropertyRef("resource_id")
+    path: PropertyRef = PropertyRef(
+        "path",
+        extra_index=True,
+        description="Proxmox object path the ACL is set on, e.g. `/`, `/vms/100`, `/storage/local` or `/pool/dev`.",
+    )
+    cluster_id: PropertyRef = PropertyRef(
+        "cluster_id",
+        description="Id of the `ProxmoxCluster` this object belongs to. The sync scopes ingestion, analysis and cleanup to a single cluster, so every cross-object join is qualified by this value.",
+    )
+    roleid: PropertyRef = PropertyRef(
+        "roleid", description="Name of the role this ACL entry grants."
+    )
+    ugid: PropertyRef = PropertyRef(
+        "ugid",
+        extra_index=True,
+        description="Principal the ACL grants to: a bare `groupid`, a `user@realm`, or a `user@realm!tokenid` API token.",
+    )
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL applies to child paths as well as the exact path it is set on.",
+    )
+    principal_type: PropertyRef = PropertyRef(
+        "principal_type",
+        description="Kind of principal in `ugid`, derived from its shape: `group`, `user` or `token`.",
+    )
+    resource_type: PropertyRef = PropertyRef(
+        "resource_type",
+        description="Kind of object the ACL path points at, parsed from the path: for example `vm`, `storage`, `pool`, `node` or `cluster`.",
+    )
+    resource_id: PropertyRef = PropertyRef(
+        "resource_id",
+        description="Identifier of the object the ACL path names, e.g. `100` for `/vms/100`. Null for paths that do not name a single object.",
+    )
 
 
 @dataclass(frozen=True)
@@ -322,9 +414,17 @@ class ProxmoxACLToRoleRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class ProxmoxACLToUserRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    path: PropertyRef = PropertyRef("path")
-    propagate: PropertyRef = PropertyRef("propagate")
-    resource_type: PropertyRef = PropertyRef("resource_type")
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    resource_type: PropertyRef = PropertyRef(
+        "resource_type",
+        description="Kind of object the ACL path points at, e.g. `vm`, `storage`, `pool`, `node` or `cluster`.",
+    )
 
 
 @dataclass(frozen=True)
@@ -349,9 +449,17 @@ class ProxmoxACLToUserRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class ProxmoxACLToGroupRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    path: PropertyRef = PropertyRef("path")
-    propagate: PropertyRef = PropertyRef("propagate")
-    resource_type: PropertyRef = PropertyRef("resource_type")
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    resource_type: PropertyRef = PropertyRef(
+        "resource_type",
+        description="Kind of object the ACL path points at, e.g. `vm`, `storage`, `pool`, `node` or `cluster`.",
+    )
 
 
 @dataclass(frozen=True)
@@ -415,8 +523,13 @@ class ProxmoxACLToVMMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Relationship metadata
-    propagate: PropertyRef = PropertyRef("propagate")
-    path: PropertyRef = PropertyRef("path")
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
 
 
 @dataclass(frozen=True)
@@ -457,8 +570,13 @@ class ProxmoxACLToStorageMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Relationship metadata
-    propagate: PropertyRef = PropertyRef("propagate")
-    path: PropertyRef = PropertyRef("path")
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
 
 
 @dataclass(frozen=True)
@@ -501,8 +619,13 @@ class ProxmoxACLToPoolMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Relationship metadata
-    propagate: PropertyRef = PropertyRef("propagate")
-    path: PropertyRef = PropertyRef("path")
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
 
 
 @dataclass(frozen=True)
@@ -545,8 +668,13 @@ class ProxmoxACLToNodeMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Relationship metadata
-    propagate: PropertyRef = PropertyRef("propagate")
-    path: PropertyRef = PropertyRef("path")
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
 
 
 @dataclass(frozen=True)
@@ -589,8 +717,13 @@ class ProxmoxACLToClusterMatchLinkProperties(CartographyRelProperties):
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
 
     # Relationship metadata
-    propagate: PropertyRef = PropertyRef("propagate")
-    path: PropertyRef = PropertyRef("path")
+    propagate: PropertyRef = PropertyRef(
+        "propagate",
+        description="True when the ACL behind this edge also applies to child paths.",
+    )
+    path: PropertyRef = PropertyRef(
+        "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
+    )
 
 
 @dataclass(frozen=True)
