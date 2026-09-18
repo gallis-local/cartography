@@ -26,14 +26,7 @@ def get_cluster_firewall_options(proxmox_client: Any) -> dict[str, Any]:
     :param proxmox_client: Proxmox API client
     :return: Dict of firewall options
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.firewall.options.get()
-    except (ResourceException, RequestException) as e:
-        log_optional_fetch_failure(e, "cluster firewall options")
-        return {}
+    return proxmox_client.cluster.firewall.options.get()
 
 
 @timeit
@@ -48,6 +41,10 @@ def get_node_firewall_options(proxmox_client: Any, node_name: str) -> dict[str, 
     from proxmoxer.core import ResourceException
     from requests.exceptions import RequestException
 
+    # Deliberate departure from the "let get() fail loudly" convention: this is
+    # fetched once per node, so one refusal must not cost us the other
+    # nodes. Collection-level fetches in this module do let errors propagate to
+    # the orchestrator's best-effort wrapper.
     try:
         return proxmox_client.nodes(node_name).firewall.options.get()
     except (ResourceException, RequestException) as e:
@@ -172,7 +169,7 @@ def sync(
 
     load_firewall_options(neo4j_session, all_options, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(all_options)} firewall options configurations")
+    logger.debug("Synced %d firewall options configurations", len(all_options))
 
     cleanup(neo4j_session, common_job_parameters)
 

@@ -33,6 +33,10 @@ def get_tokens_for_user(
     from proxmoxer.core import ResourceException
     from requests.exceptions import RequestException
 
+    # Deliberate departure from the "let get() fail loudly" convention: this is
+    # fetched once per user, so one refusal must not cost us the other
+    # users. Collection-level fetches in this module do let errors propagate to
+    # the orchestrator's best-effort wrapper.
     try:
         return proxmox_client.access.users(userid).token.get()
     except (ResourceException, RequestException) as e:
@@ -65,7 +69,7 @@ def get_all_tokens(
     for user in users:
         userid = user.get("userid")
         if not userid:
-            logger.warning(f"Skipping user with missing userid: {user}")
+            logger.warning("Skipping user with missing userid: %s", user)
             continue
 
         try:
@@ -180,7 +184,7 @@ def sync(
 
     load_tokens(neo4j_session, transformed_tokens, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(transformed_tokens)} API tokens")
+    logger.debug("Synced %d API tokens", len(transformed_tokens))
 
     cleanup(neo4j_session, common_job_parameters)
 

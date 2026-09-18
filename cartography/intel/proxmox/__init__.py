@@ -81,7 +81,7 @@ def _get_proxmox_client(config: Config) -> "ProxmoxAPI":
                 f"not found or is empty"
             )
 
-        logger.info(f"Connecting to Proxmox at {host} using API token")
+        logger.info("Connecting to Proxmox at %s using API token", host)
         return ProxmoxAPI(
             host,
             port=port,
@@ -102,7 +102,7 @@ def _get_proxmox_client(config: Config) -> "ProxmoxAPI":
                 f"not found or is empty"
             )
 
-        logger.info(f"Connecting to Proxmox at {host} using password auth")
+        logger.info("Connecting to Proxmox at %s using password auth", host)
         return ProxmoxAPI(
             host,
             port=port,
@@ -218,7 +218,7 @@ def start_proxmox_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
         logger.info("Proxmox host not configured, skipping Proxmox sync")
         return
 
-    logger.info(f"Starting Proxmox infrastructure sync for {config.proxmox_host}")
+    logger.info("Starting Proxmox infrastructure sync for %s", config.proxmox_host)
 
     common_job_parameters = {
         "UPDATE_TAG": config.update_tag,

@@ -212,7 +212,7 @@ def sync(
         neo4j_session, transformed_storage, cluster_id, update_tag
     )
 
-    logger.info(f"Synced {len(transformed_storage)} storage resources")
+    logger.debug("Synced %d storage resources", len(transformed_storage))
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 
