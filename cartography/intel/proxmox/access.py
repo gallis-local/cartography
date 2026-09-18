@@ -97,14 +97,16 @@ def get_group_members(
         try:
             group_detail = proxmox_client.access.groups(groupid).get()
         except (ResourceException, RequestException) as e:
-            logger.warning(f"Could not fetch member details for group {groupid}: {e}")
+            logger.warning(
+                "Could not fetch member details for group %s: %s", groupid, e
+            )
             continue
 
         members = group_detail.get("members", [])
         if members:
             # Members is a list of user IDs
             group_members[groupid] = members
-            logger.debug(f"Group {groupid} has {len(members)} members")
+            logger.debug("Group %s has %d members", groupid, len(members))
 
     return group_members
 

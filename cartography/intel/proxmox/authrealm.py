@@ -11,7 +11,6 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
-from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.authrealm import ProxmoxAuthRealmSchema
 from cartography.util import timeit
 
@@ -26,14 +25,7 @@ def get_auth_realms(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmox API client
     :return: List of auth realm dicts
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.access.domains.get()
-    except (ResourceException, RequestException) as e:
-        log_optional_fetch_failure(e, "authentication realms")
-        return []
+    return proxmox_client.access.domains.get()
 
 
 def transform_auth_realm_data(
@@ -117,7 +109,7 @@ def sync(
 
     load_auth_realms(neo4j_session, transformed_realms, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(transformed_realms)} authentication realms")
+    logger.debug("Synced %d authentication realms", len(transformed_realms))
 
     cleanup(neo4j_session, common_job_parameters)
 

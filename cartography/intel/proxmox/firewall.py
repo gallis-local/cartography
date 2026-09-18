@@ -67,6 +67,10 @@ def get_vm_firewall_rules(
     from proxmoxer.core import ResourceException
     from requests.exceptions import RequestException
 
+    # Deliberate departure from the "let get() fail loudly" convention: this is
+    # fetched once per guest, so one refusal must not cost us the other
+    # guests. Collection-level fetches in this module do let errors propagate to
+    # the orchestrator's best-effort wrapper.
     try:
         node = proxmox_client.nodes(node_name)
         if vm_type == "qemu":
@@ -504,7 +508,9 @@ def sync(
             neo4j_session, all_rules, cluster_id, update_tag
         )
 
-    logger.info(f"Synced {len(all_rules)} firewall rules and {len(all_ipsets)} IP sets")
+    logger.debug(
+        "Synced %d firewall rules and %d IP sets", len(all_rules), len(all_ipsets)
+    )
 
     cleanup(neo4j_session, common_job_parameters, cluster_id, update_tag)
 

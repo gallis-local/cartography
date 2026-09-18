@@ -552,7 +552,7 @@ class Config:
     :type proxmox_timeout: int
     :param proxmox_timeout: Proxmox API request timeout in seconds (default: 30). Optional.
     :type proxmox_best_effort_mode: bool
-    :param proxmox_best_effort_mode: If True, Proxmox sync will not raise exceptions on sync failures, just log them. If False (default), exceptions will be raised. Optional.
+    :param proxmox_best_effort_mode: If True (default), a failing Proxmox submodule is logged and skipped instead of aborting the whole Proxmox sync. Set False to fail fast. Optional.
     :type proxmox_max_retries: int
     :param proxmox_max_retries: Maximum number of retries for Proxmox API requests (default: 3). Optional.
     :type proxmox_retry_backoff: float
@@ -767,7 +767,7 @@ class Config:
         proxmox_password_env_var=None,
         proxmox_verify_ssl=True,
         proxmox_timeout=30,
-        proxmox_best_effort_mode=False,
+        proxmox_best_effort_mode=True,
         proxmox_max_retries=3,
         proxmox_retry_backoff=1.0,
         proxmox_enable_guest_agent=False,

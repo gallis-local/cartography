@@ -503,7 +503,7 @@ def sync(
         try:
             status = get_node_status(proxmox_client, node_name)
         except (ResourceException, RequestException) as e:
-            logger.warning(f"Could not fetch node status for {node_name}: {e}")
+            logger.warning("Could not fetch node status for %s: %s", node_name, e)
             status = {}
 
         cpuinfo = status.get("cpuinfo") or {}

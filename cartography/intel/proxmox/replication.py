@@ -11,7 +11,6 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
-from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.replication import ProxmoxReplicationJobSchema
 from cartography.util import timeit
 
@@ -26,14 +25,7 @@ def get_replication_jobs(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmox API client
     :return: List of replication job dicts
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.replication.get()
-    except (ResourceException, RequestException) as e:
-        log_optional_fetch_failure(e, "replication jobs")
-        return []
+    return proxmox_client.cluster.replication.get()
 
 
 def transform_replication_job_data(
@@ -126,7 +118,7 @@ def sync(
 
     load_replication_jobs(neo4j_session, transformed_jobs, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(transformed_jobs)} replication jobs")
+    logger.debug("Synced %d replication jobs", len(transformed_jobs))
 
     cleanup(neo4j_session, common_job_parameters)
 

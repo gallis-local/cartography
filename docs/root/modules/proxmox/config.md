@@ -69,11 +69,11 @@ is expected and can be ignored; otherwise grant the extra privilege.
 | `--proxmox-token-name-env-var` | Name of the env var holding the token name | Token auth (recommended) |
 | `--proxmox-token-value-env-var` | Name of the env var holding the token value | Token auth (recommended) |
 | `--proxmox-password-env-var` | Name of the env var holding the password | Password auth (fallback) |
-| `--proxmox-verify-ssl` | — | Verify TLS certificates (default `true`) |
+| `--proxmox-verify-ssl` / `--no-proxmox-verify-ssl` | — | Verify TLS certificates (default `true`). Proxmox ships a self-signed certificate, so the `--no-` form exists for hosts whose certificate is not in the trust store |
 | `--proxmox-timeout` | — | API request timeout in seconds (default `30`) |
 | `--proxmox-enable-guest-agent` | — | Collect QEMU Guest Agent data (requires the agent installed in VMs) |
 | `--proxmox-enable-vm-firewall-rules` | — | Also sync per-guest firewall rules. Off by default because it costs one extra API call per VM and container |
-| `--proxmox-best-effort-mode` | — | Log and continue past a failing submodule sync instead of aborting the whole Proxmox sync |
+| `--proxmox-best-effort-mode` / `--no-proxmox-best-effort-mode` | — | Log and continue past a failing submodule sync instead of aborting the whole Proxmox sync (default: enabled). Pass the `--no-` form to fail fast |
 | `--proxmox-max-retries` | — | Max retry attempts for transient API failures (connection errors, 5xx, rate limiting) |
 | `--proxmox-retry-backoff` | — | Exponential backoff factor between retries |
 

@@ -36,13 +36,17 @@ def get_snapshots_for_vm(
     from proxmoxer.core import ResourceException
     from requests.exceptions import RequestException
 
+    # Deliberate departure from the "let get() fail loudly" convention: this is
+    # fetched once per guest, so one refusal must not cost us the other
+    # guests. Collection-level fetches in this module do let errors propagate to
+    # the orchestrator's best-effort wrapper.
     try:
         if vm_type == "qemu":
             response = proxmox_client.nodes(node_name).qemu(vmid).snapshot.get()
         elif vm_type == "lxc":
             response = proxmox_client.nodes(node_name).lxc(vmid).snapshot.get()
         else:
-            logger.warning(f"Unknown VM type {vm_type} for vmid {vmid}")
+            logger.warning("Unknown VM type %s for vmid %s", vm_type, vmid)
             return []
 
         # Filter out the 'current' pseudo-snapshot
@@ -75,7 +79,7 @@ def get_all_snapshots(
         vm_type = vm.get("type")
 
         if not node_name or not vmid or not vm_type:
-            logger.warning(f"Skipping VM with missing fields: {vm}")
+            logger.warning("Skipping VM with missing fields: %s", vm)
             continue
 
         snapshots = get_snapshots_for_vm(proxmox_client, node_name, vmid, vm_type)
@@ -187,7 +191,7 @@ def sync(
 
     load_snapshots(neo4j_session, transformed_snapshots, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(transformed_snapshots)} snapshots")
+    logger.debug("Synced %d snapshots", len(transformed_snapshots))
 
     cleanup(neo4j_session, common_job_parameters)
 

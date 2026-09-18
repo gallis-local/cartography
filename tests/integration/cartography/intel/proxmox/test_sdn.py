@@ -467,34 +467,40 @@ def test_sync_sdn_ipams(neo4j_session: neo4j.Session, proxmox_client_mock):
     assert record["token"] == "configured"  # Should mask actual token
 
 
-def test_sdn_api_error_handling(neo4j_session: neo4j.Session):
-    """Test handling of API errors during SDN sync."""
+def test_sdn_api_error_propagates(neo4j_session: neo4j.Session):
+    """
+    A refused SDN endpoint must propagate out of sync(), not be swallowed.
+
+    Collection-level fetches deliberately do not catch: cartography's convention is
+    that get() stays dumb and lets errors surface, and Proxmox's best-effort
+    handling lives one level up in start_proxmox_ingestion's wrapper, which decides
+    whether to log-and-continue or abort. Swallowing here instead would make "SDN is
+    not configured" and "SDN was refused" indistinguishable, which is how the
+    missing-data bugs in this module went unnoticed.
+    """
     mock_client = MagicMock()
-
-    # Simulate the API refusing the SDN endpoints. ResourceException is what
-    # proxmoxer actually raises for an HTTP error response, and it is what the
-    # getters catch; a bare Exception here would only prove that an unexpected
-    # error type escapes, which is the intended behaviour.
-    def api_error() -> ResourceException:
-        return ResourceException(500, "Internal Server Error", "API Error")
-
-    mock_client.cluster.sdn.zones.get.side_effect = api_error()
-    mock_client.cluster.sdn.vnets.get.side_effect = api_error()
-    mock_client.cluster.sdn.controllers.get.side_effect = api_error()
-    mock_client.cluster.sdn.ipams.get.side_effect = api_error()
+    # ResourceException is what proxmoxer raises for an HTTP error response.
+    mock_client.cluster.sdn.zones.get.side_effect = ResourceException(
+        500, "Internal Server Error", "API Error"
+    )
 
     update_tag = 12346
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}
 
-    # Should not raise exception
-    sdn.sync(
-        neo4j_session,
-        mock_client,
-        CLUSTER_ID,
-        update_tag,
-        common_job_parameters,
-    )
+    with pytest.raises(ResourceException):
+        sdn.sync(
+            neo4j_session,
+            mock_client,
+            CLUSTER_ID,
+            update_tag,
+            common_job_parameters,
+        )
 
-    # No SDN resources should be created
-    result = neo4j_session.run("MATCH (z:ProxmoxSDNZone) RETURN count(z) as count")
+    # Nothing was written for this run. Scoped to this update_tag on purpose: sync
+    # now raises before reaching its cleanup, so zones left by earlier tests in this
+    # module-scoped session are still present and are not this assertion's concern.
+    result = neo4j_session.run(
+        "MATCH (z:ProxmoxSDNZone {lastupdated: $tag}) RETURN count(z) AS count",
+        tag=update_tag,
+    )
     assert result.single()["count"] == 0

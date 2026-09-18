@@ -9,7 +9,6 @@ import logging
 from datetime import datetime
 from datetime import UTC
 from typing import Any
-from typing import Optional
 
 import neo4j
 
@@ -23,7 +22,7 @@ from cartography.util import timeit
 logger = logging.getLogger(__name__)
 
 
-def _parse_tags(tags: Optional[str]) -> dict:
+def _parse_tags(tags: str | None) -> dict:
     """
     Parse a GVM tags string ("key1=value1|key2=value2") into a dict.
 
@@ -52,7 +51,7 @@ def _parse_tags(tags: Optional[str]) -> dict:
     return result
 
 
-def _first_score(*values: Optional[str]) -> Optional[float]:
+def _first_score(*values: str | None) -> float | None:
     """
     Return the first of the given raw score strings that parses to a float.
 
@@ -261,7 +260,7 @@ def sync_results(
     logger.info("Syncing OpenVAS results")
     from cartography.intel.openvas import api
 
-    since: Optional[datetime] = None
+    since: datetime | None = None
     if lookback_days:
         since = datetime.fromtimestamp(
             update_tag - lookback_days * 86400,

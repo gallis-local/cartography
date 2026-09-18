@@ -16,7 +16,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from datetime import UTC
 from typing import Any
-from typing import Optional
 
 from gvm.connections import SSHConnection
 from gvm.connections import TLSConnection
@@ -48,7 +47,7 @@ class SocketConnection(AbstractGvmConnection):
         self,
         hostname: str = "127.0.0.1",
         port: int = 9390,
-        timeout: Optional[int] = 60,
+        timeout: int | None = 60,
     ) -> None:
         super().__init__(timeout=timeout)
         self.hostname = hostname
@@ -145,7 +144,7 @@ def gmp_session(config: Config) -> Generator[Any, None, None]:
         yield gmp
 
 
-def _text(element: Any, tag: str) -> Optional[str]:
+def _text(element: Any, tag: str) -> str | None:
     """
     Return the text of the first direct child with the given tag, or None.
     """
@@ -158,7 +157,7 @@ def _text(element: Any, tag: str) -> Optional[str]:
     return value.strip()
 
 
-def _attr(element: Any, name: str) -> Optional[str]:
+def _attr(element: Any, name: str) -> str | None:
     """
     Return the given attribute of the element, or None.
     """
@@ -194,9 +193,9 @@ _ITEMS_TAGS = {
 def _fetch_all(
     gmp: Any,
     command: str,
-    filter_string: Optional[str] = None,
-    gmp_method: Optional[str] = None,
-    extra_kwargs: Optional[dict] = None,
+    filter_string: str | None = None,
+    gmp_method: str | None = None,
+    extra_kwargs: dict | None = None,
 ) -> list:
     """
     Fetch every page of a GMP list command, honoring its count tag.
@@ -217,7 +216,7 @@ def _fetch_all(
     """
     all_items: list = []
     first = 1
-    full_count: Optional[int] = None
+    full_count: int | None = None
     while True:
         logger.debug(
             "Fetching %s page %d..%d",
@@ -269,7 +268,7 @@ def get_tasks(gmp: Any) -> list:
     return _fetch_all(gmp, "get_tasks", extra_kwargs={"details": True})
 
 
-def get_results(gmp: Any, since: Optional[datetime] = None) -> list:
+def get_results(gmp: Any, since: datetime | None = None) -> list:
     filter_string = None
     if since is not None:
         filter_string = (

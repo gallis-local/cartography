@@ -73,11 +73,20 @@ cluster-scoped stale-edge cleanup.
 
 ## Resilience
 
-Proxmox is treated as a system that can be partially unreachable: pass
-`--proxmox-best-effort-mode` to have a failing submodule (say, SDN is
-disabled on this cluster) log and get skipped rather than aborting the whole
-sync, and `--proxmox-max-retries`/`--proxmox-retry-backoff` to control
-retry-with-backoff behavior for transient API failures.
+Proxmox is treated as a system that can be partially unreachable, and
+best-effort mode is **on by default**: a failing submodule (SDN disabled on this
+cluster, HA absent, a read-only token that cannot enumerate API tokens) is logged
+with its reason and skipped rather than aborting the whole sync. Pass
+`--no-proxmox-best-effort-mode` to fail fast instead.
+
+Individual fetches deliberately do not swallow errors. A fetch of a whole
+collection lets the error propagate to that best-effort boundary; only fetches
+issued once per guest, node or user catch and continue, so one refusal does not
+cost the other items. Permission denials are reported as such, and say the data
+will be absent rather than empty.
+
+`--proxmox-max-retries`/`--proxmox-retry-backoff` control retry-with-backoff for
+transient API failures.
 
 ```{toctree}
 config

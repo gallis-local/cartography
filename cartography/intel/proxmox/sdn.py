@@ -33,14 +33,7 @@ def get_sdn_zones(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of zone data dictionaries
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.sdn.zones.get()
-    except (ResourceException, RequestException) as e:
-        logger.warning(f"Failed to get SDN zones: {e}")
-        return []
+    return proxmox_client.cluster.sdn.zones.get()
 
 
 @timeit
@@ -51,14 +44,7 @@ def get_sdn_vnets(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of VNet data dictionaries
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.sdn.vnets.get()
-    except (ResourceException, RequestException) as e:
-        logger.warning(f"Failed to get SDN VNets: {e}")
-        return []
+    return proxmox_client.cluster.sdn.vnets.get()
 
 
 @timeit
@@ -73,6 +59,10 @@ def get_sdn_subnets(proxmox_client: Any, vnet: str) -> list[dict[str, Any]]:
     from proxmoxer.core import ResourceException
     from requests.exceptions import RequestException
 
+    # Deliberate departure from the "let get() fail loudly" convention: this is
+    # fetched once per VNet, so one refusal must not cost us the other
+    # VNets. Collection-level fetches in this module do let errors propagate to
+    # the orchestrator's best-effort wrapper.
     try:
         return proxmox_client.cluster.sdn.vnets(vnet).subnets.get()
     except (ResourceException, RequestException) as e:
@@ -88,14 +78,7 @@ def get_sdn_controllers(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of controller data dictionaries
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.sdn.controllers.get()
-    except (ResourceException, RequestException) as e:
-        logger.warning(f"Failed to get SDN controllers: {e}")
-        return []
+    return proxmox_client.cluster.sdn.controllers.get()
 
 
 @timeit
@@ -106,14 +89,7 @@ def get_sdn_ipams(proxmox_client: Any) -> list[dict[str, Any]]:
     :param proxmox_client: Proxmoxer API client
     :return: List of IPAM data dictionaries
     """
-    from proxmoxer.core import ResourceException
-    from requests.exceptions import RequestException
-
-    try:
-        return proxmox_client.cluster.sdn.ipams.get()
-    except (ResourceException, RequestException) as e:
-        logger.warning(f"Failed to get SDN IPAMs: {e}")
-        return []
+    return proxmox_client.cluster.sdn.ipams.get()
 
 
 @timeit
@@ -500,7 +476,7 @@ def sync(
     :param cluster_id: Cluster identifier
     :param update_tag: Update tag for cleanup
     """
-    logger.info(f"Syncing SDN resources for cluster {cluster_id}")
+    logger.info("Syncing SDN resources for cluster %s", cluster_id)
 
     # Sync SDN zones
     zones_data = get_sdn_zones(proxmox_client)

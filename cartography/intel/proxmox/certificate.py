@@ -160,7 +160,7 @@ def sync(
 
     load_certificates(neo4j_session, all_certificates, cluster_id, update_tag)
 
-    logger.info(f"Synced {len(all_certificates)} SSL/TLS certificates")
+    logger.debug("Synced %d SSL/TLS certificates", len(all_certificates))
 
     cleanup(neo4j_session, common_job_parameters)
 

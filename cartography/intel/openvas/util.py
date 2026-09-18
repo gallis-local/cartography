@@ -4,7 +4,6 @@ Shared helpers for the OpenVAS intel module.
 
 import logging
 from typing import Any
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +99,7 @@ def log_optional_fetch_failure(
         )
 
 
-def float_or_none(value: Optional[str]) -> Optional[float]:
+def float_or_none(value: str | None) -> float | None:
     """
     Coerce a GVM numeric string to a float, or None when absent or unparseable.
 
@@ -119,7 +118,7 @@ def float_or_none(value: Optional[str]) -> Optional[float]:
         return None
 
 
-def int_or_none(value: Optional[str]) -> Optional[int]:
+def int_or_none(value: str | None) -> int | None:
     """
     Coerce a GVM integer string to an int, or None when absent or unparseable.
 
@@ -134,7 +133,7 @@ def int_or_none(value: Optional[str]) -> Optional[int]:
         return None
 
 
-def bool_or_none(value: Optional[str]) -> Optional[bool]:
+def bool_or_none(value: str | None) -> bool | None:
     """
     Coerce a GVM "0"/"1" flag to a bool, or None when the element is absent.
 

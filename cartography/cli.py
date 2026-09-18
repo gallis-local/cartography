@@ -2839,8 +2839,13 @@ class CLI:
             proxmox_verify_ssl: Annotated[
                 bool,
                 typer.Option(
-                    "--proxmox-verify-ssl",
-                    help="Verify SSL certificates when connecting to Proxmox (default: True).",
+                    "--proxmox-verify-ssl/--no-proxmox-verify-ssl",
+                    help=(
+                        "Verify TLS certificates when connecting to Proxmox "
+                        "(default: True). Proxmox ships a self-signed certificate, so "
+                        "--no-proxmox-verify-ssl exists for hosts whose certificate is "
+                        "not in the trust store."
+                    ),
                     rich_help_panel=PANEL_PROXMOX,
                     hidden=PANEL_PROXMOX not in visible_panels,
                 ),
@@ -2883,15 +2888,19 @@ class CLI:
             proxmox_best_effort_mode: Annotated[
                 bool,
                 typer.Option(
-                    "--proxmox-best-effort-mode",
+                    "--proxmox-best-effort-mode/--no-proxmox-best-effort-mode",
                     help=(
-                        "If True, Proxmox sync will not raise exceptions on sync failures, "
-                        "just log them. If False (default), exceptions will be raised."
+                        "Log and continue past a failing Proxmox submodule instead of "
+                        "aborting the whole Proxmox sync (default: True). A Proxmox "
+                        "estate is routinely partially available -- SDN disabled on one "
+                        "cluster, HA absent on another, a read-only token that cannot "
+                        "read API tokens -- and every skipped submodule is logged with "
+                        "the reason. Pass --no-proxmox-best-effort-mode to fail fast."
                     ),
                     rich_help_panel=PANEL_PROXMOX,
                     hidden=PANEL_PROXMOX not in visible_panels,
                 ),
-            ] = False,
+            ] = True,
             proxmox_max_retries: Annotated[
                 int,
                 typer.Option(
