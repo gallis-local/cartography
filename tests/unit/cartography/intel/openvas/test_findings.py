@@ -18,10 +18,14 @@ def _results() -> list:
     return response.findall("result")
 
 
-def test_parse_tags():
-    assert _parse_tags("cvss_base_vector=AV:N/AC:L;summary=some text") == {
+def test_parse_tags_splits_on_pipe():
+    # A CVSS vector contains "/" and ":" and summaries contain ";", so "|" is
+    # the only separator that survives real GVM tag strings.
+    assert _parse_tags(
+        "cvss_base_vector=AV:N/AC:L|summary=some text; and more|insight="
+    ) == {
         "cvss_base_vector": "AV:N/AC:L",
-        "summary": "some text",
+        "summary": "some text; and more",
     }
 
 
@@ -33,7 +37,7 @@ def test_parse_tags_empty():
 def test_extract_cves_dedupes_across_sources():
     nvt = ElementTree.fromstring(
         """
-        <nvt id="1.3.6.1.4.1.25623.1.0.1">
+        <nvt oid="1.3.6.1.4.1.25623.1.0.1">
             <cve>CVE-2024-1000, CVE-2024-2000</cve>
             <refs>
                 <ref type="cve" id="CVE-2024-1000"/>
@@ -57,6 +61,23 @@ def test_transform_result_first_result():
     assert transformed["cve_id"] == "CVE-2024-1000"
     assert transformed["cve_list"] == ["CVE-2024-1000"]
     assert transformed["task_name"] == "Full Scan"
+    assert transformed["summary"] == "summary text"
+
+
+def test_transform_result_reads_hostname_from_host_element():
+    # gvmd nests <hostname> inside <host>, whose own text is the IP.
+    transformed = _transform_result(_results()[0])
+
+    assert transformed["hostname"] == "web-01.example.com"
+    assert transformed["host"] == "10.0.0.5"
+
+
+def test_transform_result_reads_qod_from_child_elements():
+    # <qod><value/><type/></qod>, not attributes of <qod>.
+    transformed = _transform_result(_results()[0])
+
+    assert transformed["qod"] == 70.0
+    assert transformed["qod_type"] == "remote_banner"
 
 
 def test_transform_result_no_cve():
@@ -66,6 +87,7 @@ def test_transform_result_no_cve():
     assert transformed["has_cve"] == "false"
     assert transformed["cve_id"] is None
     assert transformed["cve_list"] is None
+    assert transformed["hostname"] is None
 
 
 def test_transform_result_missing_id_raises():
@@ -83,6 +105,44 @@ def test_transform_nvt_captures_solution_type_and_method():
     assert transformed["solution_type"] == "VendorFix"
     assert transformed["cvss_base_vector"] == "AV:N/AC:L/Au:N/C:P/I:P/A:P"
     assert transformed["cve_list"] == ["CVE-2024-1000"]
+    assert transformed["summary"] == "summary text"
+
+
+def test_transform_nvt_scores_are_floats():
+    # A score stored as a string compares lexically in Cypher, so severity
+    # thresholds silently mis-sort.
+    transformed = _transform_nvt(_results()[0].find("nvt"))
+
+    assert transformed["severity"] == 7.5
+    assert transformed["cvss_base"] == 7.5
+    assert isinstance(transformed["severity"], float)
+
+
+def test_transform_nvt_zero_severity_is_not_none():
+    # 0.0 is falsy; a naive `score or cvss_base` fallback would read it as None.
+    transformed = _transform_nvt(_results()[1].find("nvt"))
+
+    assert transformed["severity"] == 0.0
+    assert transformed["cvss_base"] == 0.0
+
+
+def test_transform_nvt_empty_solution_attrs_become_none():
+    transformed = _transform_nvt(_results()[1].find("nvt"))
+
+    assert transformed["solution"] is None
+    assert transformed["solution_type"] is None
+    assert transformed["solution_method"] is None
+
+
+def test_transform_nvt_reads_severity_from_severities_score():
+    nvt = ElementTree.fromstring(
+        """
+        <nvt oid="1.3.6.1.4.1.25623.1.0.2">
+            <severities score="9.8"/>
+        </nvt>
+        """
+    )
+    assert _transform_nvt(nvt)["severity"] == 9.8
 
 
 def test_transform_nvt_missing_oid_raises():

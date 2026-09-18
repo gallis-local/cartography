@@ -23,8 +23,9 @@ def _transform_host(asset: Any) -> dict:
     item is an <asset> element (identified by asset id, not a separate host
     id) with a nested <host> element carrying severity/detail, and an
     <identifiers> list of <identifier><name>ip|hostname|OS</name><value>
-    entries scraped from scan reports. There is no latest_scan/task
-    reference in this API version, so LAST_SCANNED_BY stays unset.
+    entries scraped from scan reports. get_assets exposes no latest-scan or
+    task reference, so latest_scan_* and LAST_SCANNED_BY are derived from the
+    host's results by the typed analysis job in cartography/analysis/openvas.
     """
     identifiers = asset.find("identifiers")
     ip = None
@@ -82,9 +83,6 @@ def _transform_host(asset: Any) -> dict:
         "modification_time": asset.findtext("modification_time"),
         "severity": severity,
         "asset_id": asset_id,
-        "latest_scan_date": None,
-        "latest_scan_task_id": None,
-        "latest_scan_task_name": None,
         "source_type": asset.findtext("type"),
         "identifiers": ",".join(identifier_names) or None,
     }

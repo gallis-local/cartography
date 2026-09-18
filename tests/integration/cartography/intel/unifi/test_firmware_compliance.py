@@ -7,6 +7,8 @@ import pytest
 import cartography.intel.unifi.devices
 import cartography.intel.unifi.sites
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_FIRMWARE_COMPLIANCE
+from cartography.util import run_typed_analysis_job
 
 TEST_UPDATE_TAG = 123456789
 
@@ -40,10 +42,8 @@ async def test_firmware_compliance_analysis(mock_devices, neo4j_session):
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_firmware_compliance.json",
+    run_typed_analysis_job(
+        UNIFI_FIRMWARE_COMPLIANCE,
         neo4j_session,
         common_job_parameters,
     )
@@ -51,7 +51,7 @@ async def test_firmware_compliance_analysis(mock_devices, neo4j_session):
     # Assert - Check that upgradable device (Main Switch) is non-compliant
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: 'AA:BB:CC:DD:EE:FF'})
+        MATCH (d:UnifiDevice {id: 'default_AA:BB:CC:DD:EE:FF'})
         RETURN d.firmware_compliant as compliant, d.firmware_version_current as current, d.firmware_version_latest as latest
         """
     ).data()
@@ -64,7 +64,7 @@ async def test_firmware_compliance_analysis(mock_devices, neo4j_session):
     # Assert - Check that non-upgradable device (Office AP) is compliant
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: '00:11:22:33:44:55'})
+        MATCH (d:UnifiDevice {id: 'default_00:11:22:33:44:55'})
         RETURN d.firmware_compliant as compliant, d.firmware_version_current as current, d.firmware_version_latest as latest
         """
     ).data()

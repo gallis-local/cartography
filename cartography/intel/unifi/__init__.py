@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from typing import Any
 
 import neo4j
@@ -23,12 +24,13 @@ import cartography.intel.unifi.traffic_routes
 import cartography.intel.unifi.traffic_rules
 import cartography.intel.unifi.vouchers
 import cartography.intel.unifi.wlans
+from cartography.analysis.unifi.analysis import UNIFI_ANALYSIS_JOBS
 from cartography.config import Config
 from cartography.intel.unifi.util import close_controller
 from cartography.intel.unifi.util import create_unifi_controller
 from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
-from cartography.util import run_analysis_and_ensure_deps
+from cartography.util import run_typed_analysis_job
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -55,29 +57,6 @@ UNIFI_MODULE_DEPENDENCIES = {
     "network_configs": ["sites", "firewall_zones"],
     "outlets": ["sites", "devices"],
     "speedtests": ["sites", "devices"],
-}
-
-# Analysis job requirements - which modules must be synced before running each analysis
-UNIFI_ANALYSIS_REQUIREMENTS = {
-    "unifi_internet_exposure.json": {
-        "port_forwards",
-        "devices",
-        "wlans",
-        "firewall_zones",
-        "firewall_policies",
-    },
-    "unifi_firmware_compliance.json": {"devices"},
-    "unifi_guest_isolation.json": {
-        "wlans",
-        "firewall_policies",
-        "firewall_zones",
-        "vouchers",
-        "clients",
-    },
-    "unifi_device_health.json": {"devices"},
-    "unifi_network_config_audit.json": {"network_configs"},
-    "unifi_power_monitoring.json": {"outlets"},
-    "unifi_wan_performance.json": {"speedtests"},
 }
 
 
@@ -304,73 +283,17 @@ async def _run_unifi_analysis(
     """
     Run post-ingestion analysis jobs for UniFi.
 
+    Each job is a typed AnalysisJob scoped to the site in common_job_parameters, so the
+    generated property cleanup removes the previous run's flags for this site only before
+    recomputing them. Declaration order in UNIFI_ANALYSIS_JOBS is execution order.
+
     :param common_job_parameters: Common job parameters
     :param neo4j_session: Neo4j session
     """
     logger.debug("Running UniFi post-ingestion analysis jobs")
 
-    # Internet exposure analysis
-    run_analysis_and_ensure_deps(
-        "unifi_internet_exposure.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_internet_exposure.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # Firmware compliance analysis
-    run_analysis_and_ensure_deps(
-        "unifi_firmware_compliance.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_firmware_compliance.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # Guest network isolation analysis
-    run_analysis_and_ensure_deps(
-        "unifi_guest_isolation.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_guest_isolation.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # Device health analysis
-    run_analysis_and_ensure_deps(
-        "unifi_device_health.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_device_health.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # Network config audit analysis
-    run_analysis_and_ensure_deps(
-        "unifi_network_config_audit.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_network_config_audit.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # Power monitoring analysis
-    run_analysis_and_ensure_deps(
-        "unifi_power_monitoring.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_power_monitoring.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
-
-    # WAN performance analysis
-    run_analysis_and_ensure_deps(
-        "unifi_wan_performance.json",
-        UNIFI_ANALYSIS_REQUIREMENTS["unifi_wan_performance.json"],
-        set(UNIFI_MODULE_DEPENDENCIES.keys()),
-        common_job_parameters,
-        neo4j_session,
-    )
+    for job in UNIFI_ANALYSIS_JOBS:
+        run_typed_analysis_job(job, neo4j_session, common_job_parameters)
 
 
 @timeit
@@ -398,7 +321,7 @@ def start_unifi_ingestion(neo4j_session: neo4j.Session, config: Config) -> None:
 
     # Default values for optional config parameters
     unifi_port = config.unifi_port or 443
-    update_tag = config.update_tag or int(__import__("time").time())
+    update_tag = config.update_tag or int(time.time())
 
     # Determine sites to sync
     sites_to_sync = config.unifi_sites or [config.unifi_site or "default"]

@@ -42,8 +42,8 @@ async def test_load_unifi_devices(mock_get, neo4j_session):
 
     # Assert - Check that devices were loaded with correct properties
     expected_nodes = {
-        ("00:11:22:33:44:55", "Office AP", "U7PG2"),
-        ("AA:BB:CC:DD:EE:FF", "Main Switch", "US24P250"),
+        ("default_00:11:22:33:44:55", "Office AP", "U7PG2"),
+        ("default_AA:BB:CC:DD:EE:FF", "Main Switch", "US24P250"),
     }
     assert (
         check_nodes(neo4j_session, "UnifiDevice", ["id", "name", "model"])
@@ -79,7 +79,7 @@ async def test_unifi_devices_have_correct_properties(mock_get, neo4j_session):
     # Assert - Verify device properties
     nodes = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: '00:11:22:33:44:55'})
+        MATCH (d:UnifiDevice {id: 'default_00:11:22:33:44:55'})
         RETURN d.mac as mac, d.adopted as adopted, d.type as type
         """
     ).data()
@@ -158,7 +158,7 @@ async def test_unifi_devices_cleanup(mock_get, neo4j_session):
     # Assert - Stale device should be removed
     nodes = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: 'FF:FF:FF:FF:FF:FF'})
+        MATCH (d:UnifiDevice {id: 'default_FF:FF:FF:FF:FF:FF'})
         RETURN d
         """
     ).data()
@@ -196,7 +196,7 @@ async def test_unifi_device_new_properties(mock_get, neo4j_session):
 
     result = neo4j_session.run(
         """
-        MATCH (d:UnifiDevice {id: '00:11:22:33:44:55'})
+        MATCH (d:UnifiDevice {id: 'default_00:11:22:33:44:55'})
         RETURN d.ip as ip, d.version as version, d.state as state,
                d.uptime as uptime, d.upgradable as upgradable
         """
@@ -234,7 +234,7 @@ async def test_unifi_device_uplink_topology(mock_get, neo4j_session):
 
     # AP (00:11:22:33:44:55) uplinks to switch (AA:BB:CC:DD:EE:FF)
     expected_rels = {
-        ("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF"),
+        ("default_00:11:22:33:44:55", "default_AA:BB:CC:DD:EE:FF"),
     }
     assert (
         check_rels(
@@ -277,8 +277,8 @@ async def test_unifi_device_broadcasts_wlan(mock_get, neo4j_session):
 
     # Office AP broadcasts both Corporate WiFi and Guest WiFi
     expected_rels = {
-        ("00:11:22:33:44:55", "wlan_001"),
-        ("00:11:22:33:44:55", "wlan_002"),
+        ("default_00:11:22:33:44:55", "wlan_001"),
+        ("default_00:11:22:33:44:55", "wlan_002"),
     }
     assert (
         check_rels(
@@ -323,7 +323,7 @@ async def test_unifi_device_uplink_via_port(mock_get, neo4j_session):
 
     # AP uplinks via switch port AA:BB:CC:DD:EE:FF_1
     expected_rels = {
-        ("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF_1"),
+        ("default_00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF_1"),
     }
     assert (
         check_rels(

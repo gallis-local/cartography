@@ -10,6 +10,7 @@ import neo4j
 from cartography.client.core.tx import load
 from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.firewall import ProxmoxFirewallIPSetSchema
 from cartography.models.proxmox.firewall import ProxmoxFirewallRuleSchema
 from cartography.models.proxmox.firewall import ProxmoxFirewallRuleToIPSetMatchLink
@@ -45,6 +46,38 @@ def get_node_firewall_rules(
     :raises: Exception if API call fails
     """
     return proxmox_client.nodes(node_name).firewall.rules.get()
+
+
+@timeit
+def get_vm_firewall_rules(
+    proxmox_client: Any, node_name: str, vmid: int, vm_type: str
+) -> list[dict[str, Any]]:
+    """
+    Get VM- or container-level firewall rules.
+
+    Returns an empty list rather than raising if the guest's firewall endpoint is
+    unavailable, so one unreadable guest does not lose the rules of every other one.
+
+    :param proxmox_client: Proxmox API client
+    :param node_name: Name of the node hosting the guest
+    :param vmid: Guest VMID
+    :param vm_type: Either "qemu" or "lxc"
+    :return: List of firewall rule dicts
+    """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
+    try:
+        node = proxmox_client.nodes(node_name)
+        if vm_type == "qemu":
+            return node.qemu(vmid).firewall.rules.get()
+        if vm_type == "lxc":
+            return node.lxc(vmid).firewall.rules.get()
+        logger.warning("Unknown VM type %s for vmid %s", vm_type, vmid)
+        return []
+    except (ResourceException, RequestException) as e:
+        log_optional_fetch_failure(e, "guest firewall rules", vmid=vmid, node=node_name)
+        return []
 
 
 @timeit
@@ -387,6 +420,7 @@ def sync(
     cluster_id: str,
     update_tag: int,
     common_job_parameters: dict[str, Any],
+    enable_vm_firewall_rules: bool = False,
 ) -> None:
     """
     Sync firewall configuration.
@@ -396,6 +430,8 @@ def sync(
     :param cluster_id: Parent cluster ID
     :param update_tag: Sync timestamp
     :param common_job_parameters: Common parameters
+    :param enable_vm_firewall_rules: Also sync per-guest firewall rules. Off by
+        default because it costs one extra API call per VM and container.
     """
     logger.info("Syncing Proxmox firewall configuration")
 
@@ -420,7 +456,17 @@ def sync(
     )
     all_ipsets.extend(transformed_ipsets)
 
+    # VM-level rules cost one API call per guest, so they are opt-in. Say so when
+    # they are off: no vm-scoped ProxmoxFirewallRule nodes would otherwise read as
+    # "no guest firewall rules exist" rather than "we never asked".
+    if not enable_vm_firewall_rules:
+        logger.info(
+            "Skipping VM-level Proxmox firewall rules; enable with "
+            "--proxmox-enable-vm-firewall-rules. This costs one API call per guest."
+        )
+
     nodes = proxmox_client.nodes.get()
+    guest_count = 0
     for node in nodes:
         node_name = node["node"]
         node_rules = get_node_firewall_rules(proxmox_client, node_name)
@@ -429,8 +475,22 @@ def sync(
         )
         all_rules.extend(transformed_node_rules)
 
-    # In production, you might want to limit this or make it configurable
-    logger.debug("Skipping VM-level firewall rules to avoid excessive API calls")
+        if not enable_vm_firewall_rules:
+            continue
+
+        for vm_type in ("qemu", "lxc"):
+            for guest in getattr(proxmox_client.nodes(node_name), vm_type).get():
+                vmid = guest["vmid"]
+                guest_count += 1
+                vm_rules = get_vm_firewall_rules(
+                    proxmox_client, node_name, vmid, vm_type
+                )
+                all_rules.extend(
+                    transform_firewall_rule_data(vm_rules, cluster_id, "vm", str(vmid))
+                )
+
+    if enable_vm_firewall_rules:
+        logger.info("Fetched VM-level firewall rules for %d guests", guest_count)
 
     load_firewall_rules(neo4j_session, all_rules, cluster_id, update_tag)
     load_ipsets(neo4j_session, all_ipsets, cluster_id, update_tag)

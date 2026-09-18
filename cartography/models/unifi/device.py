@@ -16,7 +16,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 class UnifiDeviceNodeProperties(CartographyNodeProperties):
     """Properties of a UnifiDevice."""
 
-    id: PropertyRef = PropertyRef("mac", description="Mac.")
+    id: PropertyRef = PropertyRef("device_id", description="Site-scoped device id.")
     lastupdated: PropertyRef = PropertyRef(
         "lastupdated", set_in_kwargs=True, description="Lastupdated."
     )
@@ -49,7 +49,12 @@ class UnifiDeviceNodeProperties(CartographyNodeProperties):
         "outlet_ac_power_budget", description="Outlet ac power budget."
     )
     outlet_ac_power_consumption: PropertyRef = PropertyRef(
-        "outlet_ac_power_consumption"
+        "outlet_ac_power_consumption",
+        description=(
+            "Combined AC power currently drawn across the device's switched outlets, in "
+            "watts. Null on devices without metered outlets, or when the controller "
+            "reports no numeric reading."
+        ),
     )
 
 
@@ -92,7 +97,7 @@ class UnifiDeviceToUplinkRel(CartographyRelSchema):
 
     target_node_label: str = "UnifiDevice"
     target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
-        {"id": PropertyRef("uplink_mac")},
+        {"id": PropertyRef("uplink_id")},
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "UPLINK_TO"

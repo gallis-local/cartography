@@ -3356,6 +3356,19 @@ class CLI:
                     hidden=PANEL_PROXMOX not in visible_panels,
                 ),
             ] = False,
+            proxmox_enable_vm_firewall_rules: Annotated[
+                bool,
+                typer.Option(
+                    "--proxmox-enable-vm-firewall-rules",
+                    help=(
+                        "Also sync per-guest Proxmox firewall rules. "
+                        "Costs one extra API call per VM and container. "
+                        "Default is False."
+                    ),
+                    rich_help_panel=PANEL_PROXMOX,
+                    hidden=PANEL_PROXMOX not in visible_panels,
+                ),
+            ] = False,
             proxmox_timeout: Annotated[
                 int,
                 typer.Option(
@@ -4684,6 +4697,7 @@ class CLI:
                 proxmox_max_retries=proxmox_max_retries,
                 proxmox_retry_backoff=proxmox_retry_backoff,
                 proxmox_enable_guest_agent=proxmox_enable_guest_agent,
+                proxmox_enable_vm_firewall_rules=proxmox_enable_vm_firewall_rules,
                 _warn_on_legacy_report_source=False,
             )
 

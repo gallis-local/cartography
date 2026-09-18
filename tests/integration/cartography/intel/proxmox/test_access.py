@@ -6,7 +6,6 @@ from typing import Any
 from unittest.mock import patch
 
 import cartography.intel.proxmox.access
-import cartography.intel.proxmox.analysis
 from tests.data.proxmox.access import MOCK_ACL_DATA
 from tests.data.proxmox.access import MOCK_GROUP_DATA
 from tests.data.proxmox.access import MOCK_GROUP_MEMBERS_DATA
@@ -409,34 +408,29 @@ def test_effective_permissions(
         TEST_UPDATE_TAG,
         common_job_parameters,
     )
-    cartography.intel.proxmox.analysis.run_effective_permissions(
-        neo4j_session,
-        TEST_UPDATE_TAG,
-        TEST_CLUSTER_ID,
-    )
 
     # Assert - Direct user permissions exist
     result = neo4j_session.run(
         """
         MATCH (u:ProxmoxUser {userid: 'root@pam'})-[p:HAS_PERMISSION]->(c:ProxmoxCluster)
-        RETURN p.role as role, p.privileges as privileges, p.via_group as via_group
+        RETURN p.roles as roles, p.privileges as privileges, p.via_group as via_group
         """
     )
     permission = result.single()
     assert permission is not None
-    assert permission["role"] == "Administrator"
+    assert "Administrator" in permission["roles"]
     assert "VM.Allocate" in permission["privileges"]
 
     # Assert - Group permissions exist
     result = neo4j_session.run(
         """
         MATCH (g:ProxmoxGroup {groupid: 'admins'})-[p:HAS_PERMISSION]->(c:ProxmoxCluster)
-        RETURN p.role as role
+        RETURN p.roles as roles
         """
     )
     group_permission = result.single()
     assert group_permission is not None
-    assert group_permission["role"] == "Administrator"
+    assert group_permission["roles"] == ["Administrator"]
 
     # Assert - Inherited permissions (user -> group -> resource)
     result = neo4j_session.run(
@@ -454,13 +448,13 @@ def test_effective_permissions(
     result = neo4j_session.run(
         """
         MATCH (u:ProxmoxUser {userid: 'readonly@pam'})-[p:HAS_PERMISSION]->(vm:ProxmoxVM {vmid: 100})
-        RETURN p.via_acl as via_acl, p.path as path, p.propagate as propagate
+        RETURN p.via_acls as via_acls, p.paths as paths, p.propagate as propagate
         """
     )
     vm_permission = result.single()
     if vm_permission:  # Only if VM was created
-        assert vm_permission["via_acl"] is not None
-        assert vm_permission["path"] == "/vms/100"
+        assert vm_permission["via_acls"]
+        assert vm_permission["paths"] == ["/vms/100"]
         assert vm_permission["propagate"] is not None
 
 

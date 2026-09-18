@@ -11,6 +11,8 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import is_permission_error
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.apitoken import ProxmoxAPITokenSchema
 from cartography.util import timeit
 
@@ -34,7 +36,12 @@ def get_tokens_for_user(
     try:
         return proxmox_client.access.users(userid).token.get()
     except (ResourceException, RequestException) as e:
-        logger.debug(f"Could not fetch tokens for user {userid}: {e}")
+        if is_permission_error(e):
+            # Raised so the caller can report one summary instead of one line per
+            # user: listing another user's tokens needs rights beyond PVEAuditor, so
+            # a read-only sync hits this for every user it looks at.
+            raise
+        log_optional_fetch_failure(e, "API tokens", user=userid)
         return []
 
 
@@ -49,7 +56,11 @@ def get_all_tokens(
     :param users: List of user dicts (must have 'userid' field)
     :return: List of token dicts with user metadata
     """
+    from proxmoxer.core import ResourceException
+    from requests.exceptions import RequestException
+
     all_tokens = []
+    denied_users = 0
 
     for user in users:
         userid = user.get("userid")
@@ -57,13 +68,30 @@ def get_all_tokens(
             logger.warning(f"Skipping user with missing userid: {user}")
             continue
 
-        tokens = get_tokens_for_user(proxmox_client, userid)
+        try:
+            tokens = get_tokens_for_user(proxmox_client, userid)
+        except (ResourceException, RequestException):
+            denied_users += 1
+            continue
 
         # Add user metadata to each token
         for token in tokens:
             token["userid"] = userid
 
         all_tokens.extend(tokens)
+
+    if denied_users:
+        # One summary rather than one line per user. Saying this out loud matters
+        # because zero ProxmoxAPIToken nodes otherwise reads as "no tokens exist"
+        # when it actually means "we were not allowed to look".
+        logger.warning(
+            "Permission denied listing API tokens for %d of %d Proxmox users, so "
+            "their tokens are ABSENT from the graph rather than empty. Listing another "
+            "user's tokens needs rights beyond PVEAuditor; grant them or expect no "
+            "ProxmoxAPIToken coverage.",
+            denied_users,
+            len(users),
+        )
 
     return all_tokens
 

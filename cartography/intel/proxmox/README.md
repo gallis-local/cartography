@@ -543,13 +543,16 @@ LEGEND:
 | ProxmoxUser | HAS_PERMISSION | ProxmoxVM/Storage/Pool/Node/Cluster | User has effective permission on resource |
 | ProxmoxGroup | HAS_PERMISSION | ProxmoxVM/Storage/Pool/Node/Cluster | Group has effective permission on resource |
 
-These derived `HAS_PERMISSION` relationships include metadata:
-- `via_acl`: The ACL that granted this permission
-- `role`: The role being granted
-- `privileges`: Array of specific privileges
-- `path`: Original ACL path
-- `propagate`: Whether permission propagates to children
-- `via_group`: True if permission is inherited through group membership
+These derived `HAS_PERMISSION` relationships include metadata. A principal can
+reach the same resource through more than one ACL (two roles on one path, or
+directly as well as via a group), and Neo4j holds only one edge per pair, so the
+contributing values are aggregated into arrays rather than overwritten:
+- `roles`: Array of roles granted on this resource
+- `privileges`: Array of the privileges those roles carry
+- `via_acls`: Array of the ACLs that contribute this permission
+- `paths`: Array of the original ACL paths
+- `propagate`: True if any contributing ACL propagates to child paths
+- `via_group`: True if the permission is inherited through group membership
 
 #### Security
 | From | Relationship | To | Description |
@@ -796,7 +799,7 @@ ORDER BY permission_count DESC
 ### Find all users who can access a specific VM (using HAS_PERMISSION)
 ```cypher
 MATCH (u:ProxmoxUser)-[p:HAS_PERMISSION]->(vm:ProxmoxVM {name: 'production-db'})
-RETURN u.userid, u.email, p.role, p.privileges, p.via_group
+RETURN u.userid, u.email, p.roles, p.privileges, p.via_group
 ORDER BY u.userid
 ```
 
@@ -805,7 +808,7 @@ ORDER BY u.userid
 MATCH (u:ProxmoxUser {userid: 'admin@pam'})-[p:HAS_PERMISSION]->(resource)
 RETURN labels(resource)[0] as resource_type,
        resource.id as resource_id,
-       p.role,
+       p.roles,
        p.privileges,
        p.via_group as inherited_from_group
 ORDER BY resource_type, resource_id
@@ -814,15 +817,15 @@ ORDER BY resource_type, resource_id
 ### Find users with cluster-wide admin access
 ```cypher
 MATCH (u:ProxmoxUser)-[p:HAS_PERMISSION]->(c:ProxmoxCluster)
-WHERE 'Sys.Modify' IN p.privileges OR p.role = 'Administrator'
-RETURN u.userid, u.email, p.role, p.via_group
+WHERE 'Sys.Modify' IN p.privileges OR 'Administrator' IN p.roles
+RETURN u.userid, u.email, p.roles, p.via_group
 ORDER BY u.userid
 ```
 
 ### Find VMs accessible by a specific group
 ```cypher
 MATCH (g:ProxmoxGroup {groupid: 'developers'})-[p:HAS_PERMISSION]->(vm:ProxmoxVM)
-RETURN vm.name, vm.status, p.role, p.privileges
+RETURN vm.name, vm.status, p.roles, p.privileges
 ORDER BY vm.name
 ```
 
@@ -831,7 +834,7 @@ ORDER BY vm.name
 MATCH (u:ProxmoxUser)-[p:HAS_PERMISSION]->(resource)
 WHERE p.via_group = true
 RETURN u.userid, labels(resource)[0] as resource_type,
-       resource.id as resource_id, p.role
+       resource.id as resource_id, p.roles
 ORDER BY u.userid, resource_type
 ```
 

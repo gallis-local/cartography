@@ -19,6 +19,25 @@ from cartography.models.proxmox.access import ProxmoxACLToVMMatchLink
 from cartography.models.proxmox.access import ProxmoxGroupSchema
 from cartography.models.proxmox.access import ProxmoxRoleSchema
 from cartography.models.proxmox.access import ProxmoxUserSchema
+from cartography.models.proxmox.permissions import (
+    ProxmoxGroupToClusterPermissionMatchLink,
+)
+from cartography.models.proxmox.permissions import ProxmoxGroupToNodePermissionMatchLink
+from cartography.models.proxmox.permissions import ProxmoxGroupToPoolPermissionMatchLink
+from cartography.models.proxmox.permissions import (
+    ProxmoxGroupToStoragePermissionMatchLink,
+)
+from cartography.models.proxmox.permissions import ProxmoxGroupToVMPermissionMatchLink
+from cartography.models.proxmox.permissions import (
+    ProxmoxUserToClusterPermissionMatchLink,
+)
+from cartography.models.proxmox.permissions import ProxmoxUserToNodePermissionMatchLink
+from cartography.models.proxmox.permissions import ProxmoxUserToPoolPermissionMatchLink
+from cartography.models.proxmox.permissions import ProxmoxUserToRoleMatchLink
+from cartography.models.proxmox.permissions import (
+    ProxmoxUserToStoragePermissionMatchLink,
+)
+from cartography.models.proxmox.permissions import ProxmoxUserToVMPermissionMatchLink
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -514,6 +533,249 @@ def load_acl_resource_relationships(
         )
 
 
+# Resource type as parsed from the ACL path -> the MatchLink pair that connects a
+# user and a group to that resource type.
+_PERMISSION_MATCHLINKS: dict[str, tuple[Any, Any]] = {
+    "vm": (
+        ProxmoxUserToVMPermissionMatchLink,
+        ProxmoxGroupToVMPermissionMatchLink,
+    ),
+    "storage": (
+        ProxmoxUserToStoragePermissionMatchLink,
+        ProxmoxGroupToStoragePermissionMatchLink,
+    ),
+    "pool": (
+        ProxmoxUserToPoolPermissionMatchLink,
+        ProxmoxGroupToPoolPermissionMatchLink,
+    ),
+    "node": (
+        ProxmoxUserToNodePermissionMatchLink,
+        ProxmoxGroupToNodePermissionMatchLink,
+    ),
+    "cluster": (
+        ProxmoxUserToClusterPermissionMatchLink,
+        ProxmoxGroupToClusterPermissionMatchLink,
+    ),
+}
+
+
+def transform_effective_permissions(
+    acls: list[dict[str, Any]],
+    users: list[dict[str, Any]],
+    roles: list[dict[str, Any]],
+    cluster_id: str,
+) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    """
+    Resolve ACL entries into one row per (principal, resource) pair.
+
+    Proxmox grants access by pairing a path with a role, so a principal can reach the
+    same resource through several ACLs, and a user additionally inherits every grant
+    held by the groups they belong to. All of those collapse onto a single graph edge,
+    so the contributing roles, ACLs, privileges and paths are accumulated into lists
+    instead of overwriting one another.
+
+    :param acls: Transformed ACL dicts from :func:`transform_acl_data`
+    :param users: Transformed user dicts from :func:`transform_user_data`
+    :param roles: Transformed role dicts from :func:`transform_role_data`
+    :param cluster_id: Parent cluster ID
+    :return: Mapping of (resource_type, principal_type) to rows ready for load
+    """
+    privileges_by_role = {role["roleid"]: role.get("privs") or [] for role in roles}
+
+    # groupid -> ids of the users in it, so a group grant can be fanned out to members.
+    members_by_group: dict[str, list[str]] = {}
+    for user in users:
+        for groupid in user.get("groups") or []:
+            members_by_group.setdefault(groupid, []).append(user["id"])
+
+    # (resource_type, principal_type, principal_id, resource_id) -> accumulated row
+    accumulator: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+
+    def _accumulate(
+        resource_type: str,
+        principal_type: str,
+        principal_id: str,
+        acl: dict[str, Any],
+        via_group: bool,
+    ) -> None:
+        resource_id = (
+            cluster_id if resource_type == "cluster" else str(acl["resource_id"])
+        )
+        key = (resource_type, principal_type, principal_id, resource_id)
+        row = accumulator.get(key)
+        if row is None:
+            row = {
+                "principal_id": principal_id,
+                "resource_id": resource_id,
+                "cluster_id": cluster_id,
+                "roles": [],
+                "privileges": [],
+                "via_acls": [],
+                "paths": [],
+                "propagate": False,
+                "via_group": False,
+            }
+            if resource_type == "vm":
+                # ProxmoxVM.vmid is an int, so the matcher needs an int to compare to.
+                row["resource_id_int"] = int(acl["resource_id"])
+            accumulator[key] = row
+
+        roleid = acl["roleid"]
+        if roleid not in row["roles"]:
+            row["roles"].append(roleid)
+        for priv in privileges_by_role.get(roleid, []):
+            if priv not in row["privileges"]:
+                row["privileges"].append(priv)
+        if acl["id"] not in row["via_acls"]:
+            row["via_acls"].append(acl["id"])
+        if acl["path"] not in row["paths"]:
+            row["paths"].append(acl["path"])
+        row["propagate"] = row["propagate"] or bool(acl.get("propagate"))
+        row["via_group"] = row["via_group"] or via_group
+
+    for acl in acls:
+        resource_type = acl.get("resource_type")
+        if resource_type not in _PERMISSION_MATCHLINKS:
+            continue
+        if resource_type != "cluster" and not acl.get("resource_id"):
+            continue
+
+        principal_type = acl["principal_type"]
+        if principal_type == "user":
+            _accumulate(
+                resource_type,
+                "user",
+                f"{cluster_id}/user/{acl['base_userid']}",
+                acl,
+                via_group=False,
+            )
+        elif principal_type == "group":
+            groupid = acl["ugid"]
+            _accumulate(
+                resource_type,
+                "group",
+                f"{cluster_id}/group/{groupid}",
+                acl,
+                via_group=False,
+            )
+            # A group grant is also an effective grant for each of its members.
+            for member_id in members_by_group.get(groupid, []):
+                _accumulate(resource_type, "user", member_id, acl, via_group=True)
+        # principal_type == "token": API tokens are modelled separately and inherit
+        # their user's permissions in Proxmox, so they get no edge of their own here.
+
+    rows_by_target: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for (resource_type, principal_type, _, _), row in accumulator.items():
+        rows_by_target.setdefault((resource_type, principal_type), []).append(row)
+    return rows_by_target
+
+
+def load_effective_permissions(
+    neo4j_session: neo4j.Session,
+    rows_by_target: dict[tuple[str, str], list[dict[str, Any]]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Load the derived HAS_PERMISSION edges.
+
+    :param neo4j_session: Neo4j session
+    :param rows_by_target: Output of :func:`transform_effective_permissions`
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    """
+    for (resource_type, principal_type), rows in rows_by_target.items():
+        user_link, group_link = _PERMISSION_MATCHLINKS[resource_type]
+        matchlink = user_link() if principal_type == "user" else group_link()
+        load_matchlinks(
+            neo4j_session,
+            matchlink,
+            rows,
+            lastupdated=update_tag,
+            _sub_resource_label="ProxmoxCluster",
+            _sub_resource_id=cluster_id,
+        )
+
+
+def transform_user_role_links(
+    acls: list[dict[str, Any]],
+    users: list[dict[str, Any]],
+    cluster_id: str,
+) -> list[dict[str, Any]]:
+    """
+    Resolve ACL entries into one row per (user, role) pair.
+
+    Proxmox only relates a user to a role through an ACL. The ontology wants the
+    direct edge, and a user may hold the same role on several paths, so the paths are
+    collected into a list.
+
+    :param acls: Transformed ACL dicts from :func:`transform_acl_data`
+    :param users: Transformed user dicts from :func:`transform_user_data`
+    :param cluster_id: Parent cluster ID
+    :return: Rows ready for load
+    """
+    members_by_group: dict[str, list[str]] = {}
+    for user in users:
+        for groupid in user.get("groups") or []:
+            members_by_group.setdefault(groupid, []).append(user["id"])
+
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def _accumulate(principal_id: str, acl: dict[str, Any], via_group: bool) -> None:
+        key = (principal_id, acl["roleid"])
+        row = rows.get(key)
+        if row is None:
+            row = {
+                "principal_id": principal_id,
+                "roleid": acl["roleid"],
+                "cluster_id": cluster_id,
+                "paths": [],
+                "propagate": False,
+                "via_group": False,
+            }
+            rows[key] = row
+        if acl["path"] not in row["paths"]:
+            row["paths"].append(acl["path"])
+        row["propagate"] = row["propagate"] or bool(acl.get("propagate"))
+        row["via_group"] = row["via_group"] or via_group
+
+    for acl in acls:
+        if acl["principal_type"] == "user":
+            _accumulate(f"{cluster_id}/user/{acl['base_userid']}", acl, via_group=False)
+        elif acl["principal_type"] == "group":
+            for member_id in members_by_group.get(acl["ugid"], []):
+                _accumulate(member_id, acl, via_group=True)
+
+    return list(rows.values())
+
+
+def load_user_role_links(
+    neo4j_session: neo4j.Session,
+    rows: list[dict[str, Any]],
+    cluster_id: str,
+    update_tag: int,
+) -> None:
+    """
+    Load the derived HAS_ROLE edges.
+
+    :param neo4j_session: Neo4j session
+    :param rows: Output of :func:`transform_user_role_links`
+    :param cluster_id: Parent cluster ID
+    :param update_tag: Sync timestamp
+    """
+    if not rows:
+        return
+
+    load_matchlinks(
+        neo4j_session,
+        ProxmoxUserToRoleMatchLink(),
+        rows,
+        lastupdated=update_tag,
+        _sub_resource_label="ProxmoxCluster",
+        _sub_resource_id=cluster_id,
+    )
+
+
 @timeit
 def sync(
     neo4j_session: neo4j.Session,
@@ -562,6 +824,21 @@ def sync(
         # Create relationships between ACLs and resources they grant access to
         load_acl_resource_relationships(
             neo4j_session, transformed_acls, cluster_id, update_tag
+        )
+        # Materialize the derived "who can reach what" edges from the same ACL data.
+        load_effective_permissions(
+            neo4j_session,
+            transform_effective_permissions(
+                transformed_acls, transformed_users, transformed_roles, cluster_id
+            ),
+            cluster_id,
+            update_tag,
+        )
+        load_user_role_links(
+            neo4j_session,
+            transform_user_role_links(transformed_acls, transformed_users, cluster_id),
+            cluster_id,
+            update_tag,
         )
 
     logger.info(
@@ -616,3 +893,22 @@ def cleanup(
     GraphJob.from_matchlink(
         ProxmoxACLToClusterMatchLink(), "ProxmoxCluster", cluster_id, update_tag
     ).run(neo4j_session)
+
+    # Derived permission edges. Cleanup is scoped to this cluster so a multi-cluster
+    # install does not delete, or perpetually refresh, another cluster's edges.
+    for matchlink in (
+        ProxmoxUserToVMPermissionMatchLink(),
+        ProxmoxUserToStoragePermissionMatchLink(),
+        ProxmoxUserToPoolPermissionMatchLink(),
+        ProxmoxUserToNodePermissionMatchLink(),
+        ProxmoxUserToClusterPermissionMatchLink(),
+        ProxmoxGroupToVMPermissionMatchLink(),
+        ProxmoxGroupToStoragePermissionMatchLink(),
+        ProxmoxGroupToPoolPermissionMatchLink(),
+        ProxmoxGroupToNodePermissionMatchLink(),
+        ProxmoxGroupToClusterPermissionMatchLink(),
+        ProxmoxUserToRoleMatchLink(),
+    ):
+        GraphJob.from_matchlink(
+            matchlink, "ProxmoxCluster", cluster_id, update_tag
+        ).run(neo4j_session)

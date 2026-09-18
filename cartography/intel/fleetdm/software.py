@@ -54,6 +54,14 @@ def transform(api_result: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "versions_count": title.get("versions_count"),
                 "bundle_identifier": title.get("bundle_identifier"),
                 "display_name": title.get("display_name"),
+                # Each title carries the ids of its concrete versions. Without these
+                # the FleetDMSoftware nodes are islands: nothing connects a title to
+                # the versions, hosts, or CVEs that give it meaning.
+                "software_version_ids": [
+                    str(version["id"])
+                    for version in (title.get("versions") or [])
+                    if version.get("id") is not None
+                ],
             }
         )
     return result

@@ -1,15 +1,24 @@
 """
 Integration tests for Proxmox analysis jobs.
 
-Tests each post-ingestion analysis job defined in cartography/data/jobs/analysis/
+Tests each typed post-ingestion analysis job defined in cartography/analysis/proxmox/
 to verify they correctly enrich graph data with risk flags and computed properties.
 
 Each test class uses a unique cluster ID to avoid cross-test contamination
 (since the neo4j_session fixture is module-scoped).
 """
 
-from cartography.util import run_analysis_job
+from cartography.analysis.proxmox.analysis import PROXMOX_BACKUP_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_CERTIFICATE_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_GUEST_AGENT_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_HA_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_ONTOLOGY_LINKING
+from cartography.analysis.proxmox.analysis import PROXMOX_REPLICATION_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_SECURITY_ANALYSIS
+from cartography.analysis.proxmox.analysis import PROXMOX_STORAGE_ANALYSIS
+from cartography.util import run_typed_analysis_job
 from tests.integration.cartography.intel.proxmox import create_test_cluster
+from tests.integration.cartography.intel.proxmox import link_cluster_resources
 
 TEST_UPDATE_TAG = 123456789
 
@@ -25,8 +34,9 @@ class TestBackupAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_backup_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_BACKUP_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -50,8 +60,9 @@ class TestBackupAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_backup_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_BACKUP_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -76,8 +87,9 @@ class TestBackupAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_backup_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_BACKUP_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -103,8 +115,9 @@ class TestReplicationAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_replication_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_REPLICATION_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -129,8 +142,9 @@ class TestReplicationAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_replication_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_REPLICATION_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -166,8 +180,9 @@ class TestHaAnalysis:
             cluster=self.CLUSTER,
             update=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_ha_analysis.json",
+        link_cluster_resources(neo4j_session, self.CLUSTER, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_HA_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": self.CLUSTER},
         )
@@ -210,8 +225,9 @@ class TestCertificateAnalysis:
             c,
             {"is_expired": False, "filename": "valid.pem"},
         )
-        run_analysis_job(
-            "proxmox_certificate_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_CERTIFICATE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -234,8 +250,9 @@ class TestCertificateAnalysis:
             c,
             {"expires_soon": True, "filename": "expiring.pem", "is_expired": False},
         )
-        run_analysis_job(
-            "proxmox_certificate_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_CERTIFICATE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -260,8 +277,9 @@ class TestCertificateAnalysis:
                 "expires_soon": False,
             },
         )
-        run_analysis_job(
-            "proxmox_certificate_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_CERTIFICATE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -285,8 +303,9 @@ class TestCertificateAnalysis:
                 "is_expired": False,
             },
         )
-        run_analysis_job(
-            "proxmox_certificate_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_CERTIFICATE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -309,8 +328,9 @@ class TestGuestAgentAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_guest_agent_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_GUEST_AGENT_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -333,8 +353,9 @@ class TestGuestAgentAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_guest_agent_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_GUEST_AGENT_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -354,8 +375,9 @@ class TestGuestAgentAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_guest_agent_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_GUEST_AGENT_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -380,8 +402,9 @@ class TestStorageAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_storage_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_STORAGE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -401,8 +424,9 @@ class TestStorageAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_storage_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_STORAGE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -422,8 +446,9 @@ class TestStorageAnalysis:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_storage_analysis.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_STORAGE_ANALYSIS,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -447,8 +472,9 @@ class TestOntologyLinking:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_ontology_linking.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_ONTOLOGY_LINKING,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -471,8 +497,9 @@ class TestOntologyLinking:
             c=c,
             u=TEST_UPDATE_TAG,
         )
-        run_analysis_job(
-            "proxmox_ontology_linking.json",
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_ONTOLOGY_LINKING,
             neo4j_session,
             {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
         )
@@ -482,3 +509,117 @@ class TestOntologyLinking:
             )
         )
         assert len(result) == 1
+
+
+class TestSecurityAnalysis:
+    def test_marks_vms_on_the_uplink_bridge_as_exposed(self, neo4j_session):
+        """
+        A running guest attached to vmbr0 must come out flagged.
+
+        This statement joins through ProxmoxNetworkInterface and filters it by
+        cluster_id. That property was missing from the interface model, so the join
+        matched nothing and every VM reported exposed_internet = false no matter how
+        it was attached -- a security finding that silently never fired.
+        """
+        c = "test-sec-exposed"
+        create_test_cluster(neo4j_session, c, TEST_UPDATE_TAG)
+        neo4j_session.run(
+            """
+            MERGE (v:ProxmoxVM {id: $exposed_id})
+              SET v.cluster_id=$c, v.lastupdated=$u, v.vmid=100, v.status='running', v.template=false
+            MERGE (i:ProxmoxNetworkInterface {id: $exposed_nic})
+              SET i.cluster_id=$c, i.lastupdated=$u, i.bridge='vmbr0'
+            MERGE (v)-[:HAS_NETWORK_INTERFACE]->(i)
+            MERGE (v2:ProxmoxVM {id: $internal_id})
+              SET v2.cluster_id=$c, v2.lastupdated=$u, v2.vmid=101, v2.status='running', v2.template=false
+            MERGE (i2:ProxmoxNetworkInterface {id: $internal_nic})
+              SET i2.cluster_id=$c, i2.lastupdated=$u, i2.bridge='vmbr1'
+            MERGE (v2)-[:HAS_NETWORK_INTERFACE]->(i2)
+            MERGE (v3:ProxmoxVM {id: $stopped_id})
+              SET v3.cluster_id=$c, v3.lastupdated=$u, v3.vmid=102, v3.status='stopped', v3.template=false
+            MERGE (i3:ProxmoxNetworkInterface {id: $stopped_nic})
+              SET i3.cluster_id=$c, i3.lastupdated=$u, i3.bridge='vmbr0'
+            MERGE (v3)-[:HAS_NETWORK_INTERFACE]->(i3)
+            """,
+            exposed_id=f"{c}/vm/100",
+            exposed_nic=f"{c}/vm/100/net0",
+            internal_id=f"{c}/vm/101",
+            internal_nic=f"{c}/vm/101/net0",
+            stopped_id=f"{c}/vm/102",
+            stopped_nic=f"{c}/vm/102/net0",
+            c=c,
+            u=TEST_UPDATE_TAG,
+        )
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_SECURITY_ANALYSIS,
+            neo4j_session,
+            {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
+        )
+        rows = {
+            r["id"]: r["exposed"]
+            for r in neo4j_session.run(
+                "MATCH (v:ProxmoxVM {cluster_id: $c}) RETURN v.id as id, v.exposed_internet as exposed",
+                c=c,
+            )
+        }
+        assert rows[f"{c}/vm/100"] is True
+        # Not on the uplink bridge, and not running: neither is exposed. The flag is
+        # removed rather than set false, so absence is the negative result.
+        assert rows[f"{c}/vm/101"] is None
+        assert rows[f"{c}/vm/102"] is None
+
+    def test_clears_a_finding_once_it_no_longer_holds(self, neo4j_session):
+        """
+        Re-running after the condition goes away must drop the flag.
+
+        Every statement in these jobs only ever sets a flag to true, so without the
+        generated cleanup a VM would keep reporting exposure forever after being
+        moved off the uplink bridge.
+        """
+        c = "test-sec-stale"
+        create_test_cluster(neo4j_session, c, TEST_UPDATE_TAG)
+        neo4j_session.run(
+            """
+            MERGE (v:ProxmoxVM {id: $vm_id})
+              SET v.cluster_id=$c, v.lastupdated=$u, v.vmid=200, v.status='running', v.template=false
+            MERGE (i:ProxmoxNetworkInterface {id: $nic})
+              SET i.cluster_id=$c, i.lastupdated=$u, i.bridge='vmbr0'
+            MERGE (v)-[:HAS_NETWORK_INTERFACE]->(i)
+            """,
+            vm_id=f"{c}/vm/200",
+            nic=f"{c}/vm/200/net0",
+            c=c,
+            u=TEST_UPDATE_TAG,
+        )
+        link_cluster_resources(neo4j_session, c, TEST_UPDATE_TAG)
+        run_typed_analysis_job(
+            PROXMOX_SECURITY_ANALYSIS,
+            neo4j_session,
+            {"UPDATE_TAG": TEST_UPDATE_TAG, "CLUSTER_ID": c},
+        )
+        assert (
+            neo4j_session.run(
+                "MATCH (v:ProxmoxVM {id: $id}) RETURN v.exposed_internet as e",
+                id=f"{c}/vm/200",
+            ).single()["e"]
+            is True
+        )
+
+        # Move the guest to an internal bridge and re-run.
+        neo4j_session.run(
+            "MATCH (i:ProxmoxNetworkInterface {id: $nic}) SET i.bridge='vmbr1'",
+            nic=f"{c}/vm/200/net0",
+        )
+        run_typed_analysis_job(
+            PROXMOX_SECURITY_ANALYSIS,
+            neo4j_session,
+            {"UPDATE_TAG": TEST_UPDATE_TAG + 1, "CLUSTER_ID": c},
+        )
+        assert (
+            neo4j_session.run(
+                "MATCH (v:ProxmoxVM {id: $id}) RETURN v.exposed_internet as e",
+                id=f"{c}/vm/200",
+            ).single()["e"]
+            is None
+        )

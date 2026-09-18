@@ -46,7 +46,10 @@ TRAEFIK_INGRESSROUTES_DATA = [
         "namespace": _TARGET_NS,
         "qualified_name": f"{_TARGET_NS}/my-ingressroute",
         "entry_points": ["web", "websecure"],
+        "ingress_class_name": None,
         "hostnames": ["app.example.com"],
+        "match_rules": ["Host(`app.example.com`) && PathPrefix(`/api`)"],
+        "traefik_service_names": [],
         "has_tls": True,
         "tls_secret_name": "my-tls-secret",
         "tls_cert_resolver": "letsencrypt",
@@ -100,6 +103,11 @@ TRAEFIK_INGRESSROUTETCPS_DATA = [
         "namespace": _TARGET_NS,
         "qualified_name": f"{_TARGET_NS}/my-tcp-route",
         "entry_points": ["websecure"],
+        "ingress_class_name": None,
+        # HostSNI(`*`) is a wildcard rather than a hostname, so nothing is extracted.
+        "hostnames": [],
+        "match_rules": ["HostSNI(`*`)"],
+        "traefik_service_names": [],
         "has_tls": True,
         "tls_passthrough": True,
         "backend_service_qualified_names": [
@@ -143,6 +151,8 @@ TRAEFIK_INGRESSROUTEUDPS_DATA = [
         "namespace": _TARGET_NS,
         "qualified_name": f"{_TARGET_NS}/my-udp-route",
         "entry_points": ["dnsserver"],
+        "ingress_class_name": None,
+        "traefik_service_names": [],
         "backend_service_qualified_names": [
             f"{_TARGET_NS}/app-service",
         ],

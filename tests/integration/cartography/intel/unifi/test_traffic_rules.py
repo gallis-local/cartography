@@ -198,7 +198,7 @@ async def test_unifi_traffic_rule_to_client_relationship(mock_get, neo4j_session
 
     # tr_001 targets client 11:22:33:44:55:66
     expected_rels = {
-        ("tr_001", "11:22:33:44:55:66"),
+        ("tr_001", "default_11:22:33:44:55:66"),
     }
     assert (
         check_rels(

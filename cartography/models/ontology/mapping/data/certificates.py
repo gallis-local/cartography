@@ -96,8 +96,12 @@ openvas_mapping = OntologyMapping(
                 OntologyFieldMapping(
                     ontology_field="domain", node_field="name", required=True
                 ),
-                OntologyFieldMapping(ontology_field="expiry", node_field="not_after"),
-                OntologyFieldMapping(ontology_field="issuer", node_field="issuer"),
+                # GMP names these expiration_time and issuer_dn; the older
+                # not_after/issuer spellings were never fields the protocol emits.
+                OntologyFieldMapping(
+                    ontology_field="expiry", node_field="expiration_time"
+                ),
+                OntologyFieldMapping(ontology_field="issuer", node_field="issuer_dn"),
             ],
         ),
     ],

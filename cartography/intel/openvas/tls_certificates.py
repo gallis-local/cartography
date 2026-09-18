@@ -8,8 +8,13 @@ from typing import Any
 import neo4j
 
 from cartography.client.core.tx import load
-from cartography.client.core.tx import run_write_query
+from cartography.client.core.tx import load_matchlinks
 from cartography.graph.job import GraphJob
+from cartography.intel.openvas.util import bool_or_none
+from cartography.intel.openvas.util import int_or_none
+from cartography.models.openvas.tls_certificates import (
+    OpenVASCertificateToHostMatchLink,
+)
 from cartography.models.openvas.tls_certificates import OpenVASTLSCertificateSchema
 from cartography.util import timeit
 
@@ -17,27 +22,85 @@ logger = logging.getLogger(__name__)
 
 
 def _transform_tls_certificate(cert: Any) -> dict:
+    """
+    Transform a <tls_certificate> element from a get_tls_certificates response.
+
+    Element names follow gvmd's get_tls_certificates_run(): subject_dn/issuer_dn
+    (not subject/issuer), expiration_time (not not_after/expiry_time),
+    sha256_fingerprint/md5_fingerprint (not fingerprint), and time_status (not
+    status). The previous names matched no gvmd element, so every one of those
+    properties -- including the certificate expiry date -- loaded as null.
+
+    :param cert: A <tls_certificate> element
+    :return: Node data dict for OpenVASTLSCertificateSchema
+    """
+    certificate = cert.find("certificate")
+
     return {
         "id": cert.get("id"),
         "name": cert.findtext("name"),
-        "subject": cert.findtext("subject"),
-        "issuer": cert.findtext("issuer"),
-        "not_before": cert.findtext("not_before"),
-        "not_after": cert.findtext("not_after"),
+        "comment": cert.findtext("comment"),
+        "creation_time": cert.findtext("creation_time"),
+        "modification_time": cert.findtext("modification_time"),
+        "subject_dn": cert.findtext("subject_dn"),
+        "issuer_dn": cert.findtext("issuer_dn"),
         "serial": cert.findtext("serial"),
-        "fingerprint": cert.findtext("fingerprint"),
-        "certificate_format": cert.findtext("certificate_format"),
-        "key_type": cert.findtext("key_type"),
-        "key_bits": cert.findtext("key_bits"),
+        "sha256_fingerprint": cert.findtext("sha256_fingerprint"),
+        "md5_fingerprint": cert.findtext("md5_fingerprint"),
+        "certificate_format": (
+            certificate.get("format") if certificate is not None else None
+        ),
         "activation_time": cert.findtext("activation_time"),
-        "expiry_time": cert.findtext("expiry_time"),
-        "source_type": cert.findtext("source_type"),
-        "status": cert.findtext("status"),
+        "expiration_time": cert.findtext("expiration_time"),
+        "last_seen": cert.findtext("last_seen"),
+        "valid": bool_or_none(cert.findtext("valid")),
+        "trust": int_or_none(cert.findtext("trust")),
+        "time_status": cert.findtext("time_status"),
     }
 
 
-def transform_tls_certificates(certs: list) -> list:
-    return [_transform_tls_certificate(cert) for cert in certs]
+def transform_tls_certificates(certs: list) -> tuple[list, list]:
+    """
+    Transform raw <tls_certificate> elements into (certificates, host links).
+
+    :param certs: Raw <tls_certificate> elements
+    :return: Tuple of (certificate node data, certificate-to-host link data)
+    """
+    cert_data = [_transform_tls_certificate(cert) for cert in certs]
+    return cert_data, transform_certificate_host_links(certs)
+
+
+def transform_certificate_host_links(certs: list) -> list:
+    """
+    Resolve which host IPs each certificate was observed on.
+
+    With details requested, gvmd reports every observation of a certificate under
+    <sources>, each carrying the host IP and the port it was served from. One
+    certificate is routinely served on several ports of the same host (and the
+    same port across hosts), so ports are aggregated into a list per
+    (certificate, host) pair: a relationship keyed on its two endpoints would
+    otherwise keep one port and silently drop the rest.
+
+    :param certs: Raw <tls_certificate> elements
+    :return: One dict per (certificate, host) pair with the observed ports
+    """
+    ports_by_pair: dict[tuple[str, str], list[str]] = {}
+    for cert in certs:
+        cert_id = cert.get("id")
+        if not cert_id:
+            continue
+        for source in cert.findall("sources/source"):
+            ip = source.findtext("location/host/ip")
+            if not ip:
+                continue
+            ports = ports_by_pair.setdefault((cert_id, ip), [])
+            port = source.findtext("location/port")
+            if port and port not in ports:
+                ports.append(port)
+    return [
+        {"certificate_id": cert_id, "host_ip": ip, "ports": ports or None}
+        for (cert_id, ip), ports in ports_by_pair.items()
+    ]
 
 
 @timeit
@@ -57,40 +120,19 @@ def load_tls_certificates(
 
 
 @timeit
-def _link_certificates_to_hosts(
+def load_certificate_host_links(
     neo4j_session: neo4j.Session,
+    links: list,
     instance_id: str,
     update_tag: int,
 ) -> None:
-    """
-    Link TLS certificates to the OpenVAS hosts that presented them.
-
-    GMP does not expose which host a certificate was observed on, so the link
-    is made by fuzzy-matching the certificate name against host ips/hostnames.
-    """
-    run_write_query(
+    load_matchlinks(
         neo4j_session,
-        """
-        MATCH (cert:OpenVASTLSCertificate {instance_id: $INSTANCE_ID})
-        MATCH (host:OpenVASHost {instance_id: $INSTANCE_ID})
-        WHERE cert.name = host.ip OR cert.name = host.hostname
-        MERGE (cert)-[r:CERTIFICATE_FOR]->(host)
-        SET r.lastupdated = $UPDATE_TAG
-        """,
-        INSTANCE_ID=instance_id,
-        UPDATE_TAG=update_tag,
-    )
-    # Clean up stale links from certificates that no longer match a host.
-    run_write_query(
-        neo4j_session,
-        """
-        MATCH (cert:OpenVASTLSCertificate {instance_id: $INSTANCE_ID})
-            -[r:CERTIFICATE_FOR]->(host:OpenVASHost {instance_id: $INSTANCE_ID})
-        WHERE r.lastupdated <> $UPDATE_TAG
-        DELETE r
-        """,
-        INSTANCE_ID=instance_id,
-        UPDATE_TAG=update_tag,
+        OpenVASCertificateToHostMatchLink(),
+        links,
+        lastupdated=update_tag,
+        _sub_resource_label="OpenVASInstance",
+        _sub_resource_id=instance_id,
     )
 
 
@@ -103,6 +145,12 @@ def cleanup(
     GraphJob.from_node_schema(
         OpenVASTLSCertificateSchema(),
         common_job_parameters,
+    ).run(neo4j_session)
+    GraphJob.from_matchlink(
+        OpenVASCertificateToHostMatchLink(),
+        "OpenVASInstance",
+        common_job_parameters["OPENVAS_INSTANCE_ID"],
+        common_job_parameters["UPDATE_TAG"],
     ).run(neo4j_session)
 
 
@@ -121,7 +169,7 @@ def sync_tls_certificates(
     from cartography.intel.openvas import api
 
     raw_certs = api.get_tls_certificates(gmp)
-    certs = transform_tls_certificates(raw_certs)
+    certs, host_links = transform_tls_certificates(raw_certs)
     load_tls_certificates(neo4j_session, certs, instance_id, update_tag)
+    load_certificate_host_links(neo4j_session, host_links, instance_id, update_tag)
     cleanup(neo4j_session, common_job_parameters)
-    _link_certificates_to_hosts(neo4j_session, instance_id, update_tag)

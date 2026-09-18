@@ -50,13 +50,26 @@ same resource types from other providers: `UserAccount`, `UserGroup`,
 
 ## Post-ingestion analysis
 
-After ingestion, several analysis jobs derive additional relationships and
-findings: effective-permissions propagation, role assignment
-(`HAS_ROLE`) linking, ontology linking, and dedicated jobs for backup
+After ingestion, typed analysis jobs under
+`cartography/analysis/proxmox/analysis.py` derive additional findings: backup
 coverage, replication, HA, certificate expiry, guest-agent presence, and
-storage/security posture. See [analysis.md](analysis.md) if present, or the
-job definitions under `cartography/data/jobs/analysis/proxmox_*.json`, for
-the underlying queries.
+storage/security posture, plus linking into the shared ontology.
+
+Each job is scoped to one cluster and clears the properties it sets before
+re-evaluating them, so a finding stops being reported once its condition no
+longer holds. Two consequences worth knowing:
+
+- A finding property is **absent** rather than `false` when it does not apply.
+  Query `WHERE n.backup_risk` or `WHERE n.backup_risk IS NOT NULL`, not
+  `WHERE n.backup_risk = false`.
+- Findings that only make sense when a feature is configured (`ha_risk`,
+  `replication_risk`) stay silent on clusters that do not use HA or
+  replication, and on standalone nodes where HA is not possible.
+
+Effective permissions (`HAS_PERMISSION`) and role assignment (`HAS_ROLE`) are
+not analysis jobs: they are derived at ingestion time in
+`cartography/intel/proxmox/access.py` and loaded as MatchLinks, so they get
+cluster-scoped stale-edge cleanup.
 
 ## Resilience
 

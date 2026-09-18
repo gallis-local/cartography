@@ -6,6 +6,8 @@ from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
+from cartography.intel.unifi.util import to_float
 from cartography.models.unifi.outlet import UnifiOutletSchema
 from cartography.util import timeit
 
@@ -42,10 +44,12 @@ async def get(controller: Controller) -> list[dict[str, Any]]:
                 "cycle_enabled": outlet.cycle_enabled,
                 "has_metering": outlet.has_metering,
                 "caps": outlet.caps,
-                "voltage": outlet.voltage,
-                "current": outlet.current,
-                "power": outlet.power,
-                "power_factor": outlet.power_factor,
+                # The controller reports these as decimal strings; store them as numbers
+                # so the graph properties are comparable without toFloat() at query time.
+                "voltage": to_float(outlet.voltage),
+                "current": to_float(outlet.current),
+                "power": to_float(outlet.power),
+                "power_factor": to_float(outlet.power_factor),
                 "device_mac": device_mac,
             }
         )
@@ -69,6 +73,11 @@ def load_outlets(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi outlets to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        single={"device_id": "device_mac"},
+    )
     load(
         neo4j_session,
         UnifiOutletSchema(),

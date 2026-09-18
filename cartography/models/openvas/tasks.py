@@ -19,7 +19,11 @@ from cartography.models.core.relationships import TargetNodeMatcher
 class OpenVASTaskNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this scan task.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef("name", description="The task's display name.")
     comment: PropertyRef = PropertyRef(
         "comment", description="Free-text comment set on the task."
@@ -47,7 +51,7 @@ class OpenVASTaskNodeProperties(CartographyNodeProperties):
     )
     last_report_severity: PropertyRef = PropertyRef(
         "last_report_severity",
-        description="Highest CVSS severity recorded in the task's most recent report.",
+        description="Highest CVSS severity recorded in the task's most recent report, as a float.",
     )
     last_report_scan_start: PropertyRef = PropertyRef(
         "last_report_scan_start", description="Start time of the most recent scan run."
@@ -177,7 +181,11 @@ class OpenVASTaskSchema(CartographyNodeSchema):
 class OpenVASTargetNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this scan target.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef("name", description="The target's display name.")
     comment: PropertyRef = PropertyRef(
         "comment", description="Free-text comment set on the target."
@@ -373,7 +381,11 @@ class OpenVASTargetSchema(CartographyNodeSchema):
 class OpenVASConfigNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this scan config.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef(
         "name", description="The scan config's display name."
     )
@@ -434,7 +446,11 @@ class OpenVASConfigSchema(CartographyNodeSchema):
 class OpenVASScheduleNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this schedule.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef("name", description="The schedule's display name.")
     comment: PropertyRef = PropertyRef(
         "comment", description="Free-text comment set on the schedule."

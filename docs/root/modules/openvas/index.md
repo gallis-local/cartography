@@ -16,15 +16,18 @@ ingests the scanner's configuration, scan results, and discovered assets into th
 - **OpenVASSchedule** — a recurrence rule that triggers a task automatically.
 - **OpenVASCredential** — an SSH/SMB/ESXi/SNMP credential used for authenticated scanning.
 - **OpenVASPortList** — a set of ports/port ranges a target is scoped to.
-- **OpenVASHost** — a host asset from GVM's asset management, carrying its latest scan severity. Also labeled
-  `DeviceInstance` under the cross-provider ontology.
+- **OpenVASHost** — a host asset from GVM's asset management, keyed by IP address and carrying its latest scan
+  severity. Also labeled `DeviceInstance` under the cross-provider ontology. `latest_scan_date`,
+  `latest_scan_task_id`, `latest_scan_task_name` and the `LAST_SCANNED_BY` edge to `OpenVASTask` are derived by
+  an analysis job from the host's findings, because GVM's asset API reports no latest-scan reference.
 - **OpenVASResult** — an individual vulnerability finding, linking the affected `OpenVASHost`, the `OpenVASNVT`
   that detected it, and the `OpenVASTask` run that produced it. Findings with an associated CVE also carry the
   `CVE` ontology label and connect into Cartography's shared CVE nodes.
 - **OpenVASNVT** — a Network Vulnerability Test (an individual scanner check), including its CVSS scoring and
   any CVEs it tests for.
-- **OpenVASTLSCertificate** — a TLS certificate discovered via GVM's TLS certificate asset scanning. Also
-  labeled `Certificate` under the cross-provider ontology.
+- **OpenVASTLSCertificate** — a TLS certificate discovered via GVM's TLS certificate asset scanning, with a
+  `CERTIFICATE_FOR` edge to each `OpenVASHost` GVM observed it on (the observed ports are kept on the edge).
+  Also labeled `Certificate` under the cross-provider ontology.
 
 ## Architecture
 
@@ -33,5 +36,15 @@ Ingestion follows the standard sync = get → transform → load → cleanup pat
 (`cartography/models/openvas/`). All nodes are scoped to a single `OpenVASInstance` (identified by
 `--openvas-instance-id`, defaulting to `host:port` or the configured socket path), so cleanup only ever removes
 stale data belonging to that instance.
+
+Derived properties and relationships live in a typed analysis job (`cartography/analysis/openvas/analysis.py`),
+which removes the properties it owns before recomputing them so a host that stops being scanned does not keep a
+stale "last scanned" value forever.
+
+### Permissions and empty results
+
+GVM permissions are per-command. If the sync user may read results but not credentials, the credential fetch is
+skipped and the sync continues — but it logs a WARNING naming the refused command, so that zero nodes of a type
+is never silently mistaken for "none exist".
 
 See [Configuration](config.md) for connection and authentication setup.

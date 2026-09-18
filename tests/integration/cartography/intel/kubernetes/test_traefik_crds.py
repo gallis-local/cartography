@@ -96,6 +96,46 @@ def test_load_traefik_ingressroutes(neo4j_session):
         _cleanup_test_cluster(neo4j_session)
 
 
+def test_load_traefik_ingressroutes_persists_route_match_details(neo4j_session):
+    _create_test_cluster(neo4j_session)
+
+    try:
+        load_ingressroutes(
+            neo4j_session,
+            TRAEFIK_INGRESSROUTES_DATA,
+            update_tag=TEST_UPDATE_TAG,
+            cluster_id=KUBERNETES_CLUSTER_IDS[0],
+            cluster_name=KUBERNETES_CLUSTER_NAMES[0],
+        )
+
+        # The hostnames and the raw match rules are what exposure queries pivot on, so
+        # assert they survive the round trip rather than only checking the node exists.
+        # check_nodes() cannot be used here because it hashes the returned row and list
+        # properties are unhashable.
+        records = [
+            dict(record)
+            for record in neo4j_session.run(
+                """
+                MATCH (r:TraefikIngressRoute)
+                RETURN r.name AS name, r.hostnames AS hostnames,
+                       r.match_rules AS match_rules, r.has_tls AS has_tls,
+                       r.traefik_service_names AS traefik_service_names
+                """
+            )
+        ]
+        assert records == [
+            {
+                "name": "my-ingressroute",
+                "hostnames": ["app.example.com"],
+                "match_rules": ["Host(`app.example.com`) && PathPrefix(`/api`)"],
+                "has_tls": True,
+                "traefik_service_names": [],
+            },
+        ]
+    finally:
+        _cleanup_test_cluster(neo4j_session)
+
+
 def test_load_traefik_ingressroutetcps(neo4j_session):
     _create_test_cluster(neo4j_session)
 

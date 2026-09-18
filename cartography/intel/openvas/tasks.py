@@ -9,6 +9,9 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.openvas.util import bool_or_none
+from cartography.intel.openvas.util import float_or_none
+from cartography.intel.openvas.util import int_or_none
 from cartography.models.openvas.credentials import OpenVASCredentialSchema
 from cartography.models.openvas.credentials import OpenVASPortListSchema
 from cartography.models.openvas.tasks import OpenVASConfigSchema
@@ -31,7 +34,7 @@ def _transform_task(task: Any) -> dict:
         "name": task.findtext("name"),
         "comment": task.findtext("comment"),
         "status": task.findtext("status"),
-        "alterable": task.findtext("alterable"),
+        "alterable": bool_or_none(task.findtext("alterable")),
         "creation_time": task.findtext("creation_time"),
         "modification_time": task.findtext("modification_time"),
         "last_report_id": last_report.get("id") if last_report is not None else None,
@@ -39,7 +42,9 @@ def _transform_task(task: Any) -> dict:
             last_report.findtext("timestamp") if last_report is not None else None
         ),
         "last_report_severity": (
-            last_report.findtext("severity") if last_report is not None else None
+            float_or_none(last_report.findtext("severity"))
+            if last_report is not None
+            else None
         ),
         "last_report_scan_start": (
             last_report.findtext("scan_start") if last_report is not None else None
@@ -70,14 +75,16 @@ def _transform_target(target: Any) -> dict:
         "creation_time": target.findtext("creation_time"),
         "modification_time": target.findtext("modification_time"),
         "hosts": target.findtext("hosts"),
-        "max_hosts": target.findtext("max_hosts"),
+        "max_hosts": int_or_none(target.findtext("max_hosts")),
         "exclude_hosts": target.findtext("exclude_hosts"),
         "port_list_id": port_list.get("id") if port_list is not None else None,
         "port_list_name": port_list.findtext("name") if port_list is not None else None,
         "alive_test": target.findtext("alive_test"),
-        "allow_simultaneous_ips": target.findtext("allow_simultaneous_ips"),
-        "reverse_lookup_only": target.findtext("reverse_lookup_only"),
-        "reverse_lookup_unify": target.findtext("reverse_lookup_unify"),
+        "allow_simultaneous_ips": bool_or_none(
+            target.findtext("allow_simultaneous_ips")
+        ),
+        "reverse_lookup_only": bool_or_none(target.findtext("reverse_lookup_only")),
+        "reverse_lookup_unify": bool_or_none(target.findtext("reverse_lookup_unify")),
         "ssh_credential_id": (
             ssh_credential.get("id") if ssh_credential is not None else None
         ),
@@ -100,8 +107,8 @@ def _transform_config(config: Any) -> dict:
         "comment": config.findtext("comment"),
         "config_type": config.findtext("config_type"),
         "usage_type": config.findtext("usage_type"),
-        "family_count": config.findtext("family_count"),
-        "nvt_count": config.findtext("nvt_count"),
+        "family_count": int_or_none(config.findtext("family_count")),
+        "nvt_count": int_or_none(config.findtext("nvt_count")),
         "creation_time": config.findtext("creation_time"),
         "modification_time": config.findtext("modification_time"),
     }
@@ -125,7 +132,7 @@ def _transform_port_list(port_list: Any) -> dict:
         "id": port_list.get("id"),
         "name": port_list.findtext("name"),
         "comment": port_list.findtext("comment"),
-        "port_count": port_list.findtext("port_count"),
+        "port_count": int_or_none(port_list.findtext("port_count")),
         "creation_time": port_list.findtext("creation_time"),
         "modification_time": port_list.findtext("modification_time"),
     }
@@ -137,7 +144,7 @@ def _transform_credential(credential: Any) -> dict:
         "name": credential.findtext("name"),
         "comment": credential.findtext("comment"),
         "credential_type": credential.findtext("type"),
-        "allow_insecure": credential.findtext("allow_insecure"),
+        "allow_insecure": bool_or_none(credential.findtext("allow_insecure")),
         "creation_time": credential.findtext("creation_time"),
         "modification_time": credential.findtext("modification_time"),
     }

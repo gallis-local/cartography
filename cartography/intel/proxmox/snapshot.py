@@ -11,6 +11,7 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.snapshot import ProxmoxSnapshotSchema
 from cartography.util import timeit
 
@@ -49,8 +50,8 @@ def get_snapshots_for_vm(
         return snapshots
 
     except (ResourceException, RequestException) as e:
-        logger.debug(
-            f"Could not fetch snapshots for {vm_type} {vmid} on node {node_name}: {e}"
+        log_optional_fetch_failure(
+            e, "snapshots", vm_type=vm_type, vmid=vmid, node=node_name
         )
         return []
 

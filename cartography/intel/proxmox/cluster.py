@@ -104,6 +104,30 @@ def get_cluster_config(proxmox_client: Any) -> Any:
     return proxmox_client.cluster.config.get()
 
 
+def _coerce_corosync_version(raw: Any) -> int | None:
+    """
+    Normalize the corosync config version from /cluster/status to an int.
+
+    Proxmox reports this as an integer that increments whenever the corosync
+    membership changes. Older releases have been observed returning it as a
+    string, so coerce tolerantly rather than letting a surprise value abort the
+    whole cluster sync.
+
+    :param raw: Raw ``version`` value from the /cluster/status cluster entry
+    :return: The version as an int, or None if absent or unparseable
+    """
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Unexpected corosync version %r from /cluster/status; recording as null",
+            raw,
+        )
+        return None
+
+
 def transform_cluster_data(
     cluster_status: list[dict[str, Any]],
     proxmox_host: str,
@@ -122,7 +146,8 @@ def transform_cluster_data(
             break
 
     if not cluster_info:
-        # Create synthetic cluster ID from hostname
+        # Standalone node: /cluster/status has no "cluster" entry, so synthesize an
+        # id from the hostname. corosync is not running, hence a null version.
         cluster_id = proxmox_host.replace(".", "-")
         nodes_total = len([i for i in cluster_status if i["type"] == "node"])
         nodes_online = len(
@@ -131,11 +156,13 @@ def transform_cluster_data(
         return {
             "id": cluster_id,
             "name": cluster_id,
-            "corosync_version": "unknown",
+            "corosync_version": None,
             "quorate": True,
             "nodes_online": nodes_online,
             "nodes_total": nodes_total,
-            "cluster_id": None,
+            # `cluster_id` means "the cluster this object belongs to" on every other
+            # Proxmox node type. Keep that meaning here so joins on it are valid.
+            "cluster_id": cluster_id,
         }
     nodes_total = cluster_info.get(
         "nodes", len([i for i in cluster_status if i["type"] == "node"])
@@ -144,16 +171,23 @@ def transform_cluster_data(
         [i for i in cluster_status if i["type"] == "node" and i.get("online")]
     )
 
+    corosync_version = _coerce_corosync_version(cluster_info.get("version"))
     return {
         "id": cluster_info["name"],
         "name": cluster_info["name"],
-        "corosync_version": cluster_info.get("version", "unknown"),
+        # /cluster/status reports the corosync config version as an int. Keep it
+        # typed (or null) rather than substituting an "unknown" sentinel string,
+        # which would make the property mixed-type across clusters.
+        "corosync_version": corosync_version,
         "quorate": bool(
             cluster_info.get("quorate", True)
         ),  # Optional with default, convert to bool
         "nodes_online": nodes_online,
         "nodes_total": nodes_total,
-        "cluster_id": cluster_info.get("id"),  # Internal cluster ID from API
+        # Deliberately not cluster_info["id"]: /cluster/status returns the literal
+        # string "cluster" there, which is not an identifier. `cluster_id` must mean
+        # "the cluster this object belongs to", as it does on every child node type.
+        "cluster_id": cluster_info["name"],
     }
 
 

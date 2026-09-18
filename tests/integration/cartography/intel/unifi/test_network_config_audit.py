@@ -7,6 +7,8 @@ import pytest
 import cartography.intel.unifi.network_configs
 import cartography.intel.unifi.sites
 import tests.data.unifi
+from cartography.analysis.unifi.analysis import UNIFI_NETWORK_CONFIG_AUDIT
+from cartography.util import run_typed_analysis_job
 
 # Add network config test data, shaped like the real /rest/networkconf response.
 UNIFI_NETWORK_CONFIGS = [
@@ -86,10 +88,8 @@ async def test_network_config_audit(mock_configs, neo4j_session):
     )
 
     # Run analysis job directly
-    from cartography.util import run_analysis_job
-
-    run_analysis_job(
-        "unifi_network_config_audit.json",
+    run_typed_analysis_job(
+        UNIFI_NETWORK_CONFIG_AUDIT,
         neo4j_session,
         common_job_parameters,
     )

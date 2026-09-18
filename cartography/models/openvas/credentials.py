@@ -18,7 +18,11 @@ from cartography.models.core.relationships import TargetNodeMatcher
 class OpenVASCredentialNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this credential.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef(
         "name", description="The credential's display name."
     )
@@ -77,7 +81,11 @@ class OpenVASCredentialSchema(CartographyNodeSchema):
 class OpenVASPortListNodeProperties(CartographyNodeProperties):
     id: PropertyRef = PropertyRef("id", description="The GVM UUID of this port list.")
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
-    instance_id: PropertyRef = PropertyRef("OPENVAS_INSTANCE_ID", set_in_kwargs=True)
+    instance_id: PropertyRef = PropertyRef(
+        "OPENVAS_INSTANCE_ID",
+        set_in_kwargs=True,
+        description="Id of the OpenVASInstance (GVM deployment) this resource belongs to.",
+    )
     name: PropertyRef = PropertyRef("name", description="The port list's display name.")
     comment: PropertyRef = PropertyRef(
         "comment", description="Free-text comment set on the port list."

@@ -11,6 +11,7 @@ import neo4j
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.proxmox.util import log_optional_fetch_failure
 from cartography.models.proxmox.firewalloptions import ProxmoxFirewallOptionsSchema
 from cartography.util import timeit
 
@@ -31,7 +32,7 @@ def get_cluster_firewall_options(proxmox_client: Any) -> dict[str, Any]:
     try:
         return proxmox_client.cluster.firewall.options.get()
     except (ResourceException, RequestException) as e:
-        logger.debug(f"Could not fetch cluster firewall options: {e}")
+        log_optional_fetch_failure(e, "cluster firewall options")
         return {}
 
 
@@ -50,7 +51,7 @@ def get_node_firewall_options(proxmox_client: Any, node_name: str) -> dict[str, 
     try:
         return proxmox_client.nodes(node_name).firewall.options.get()
     except (ResourceException, RequestException) as e:
-        logger.debug(f"Could not fetch firewall options for node {node_name}: {e}")
+        log_optional_fetch_failure(e, "node firewall options", node=node_name)
         return {}
 
 

@@ -3,10 +3,10 @@ Integration tests for Proxmox SDN (Software-Defined Networking) sync.
 """
 
 from unittest.mock import MagicMock
-from unittest.mock import patch
 
 import neo4j
 import pytest
+from proxmoxer.core import ResourceException
 
 from cartography.intel.proxmox import sdn
 
@@ -471,11 +471,17 @@ def test_sdn_api_error_handling(neo4j_session: neo4j.Session):
     """Test handling of API errors during SDN sync."""
     mock_client = MagicMock()
 
-    # Simulate API errors
-    mock_client.cluster.sdn.zones.get.side_effect = Exception("API Error")
-    mock_client.cluster.sdn.vnets.get.side_effect = Exception("API Error")
-    mock_client.cluster.sdn.controllers.get.side_effect = Exception("API Error")
-    mock_client.cluster.sdn.ipams.get.side_effect = Exception("API Error")
+    # Simulate the API refusing the SDN endpoints. ResourceException is what
+    # proxmoxer actually raises for an HTTP error response, and it is what the
+    # getters catch; a bare Exception here would only prove that an unexpected
+    # error type escapes, which is the intended behaviour.
+    def api_error() -> ResourceException:
+        return ResourceException(500, "Internal Server Error", "API Error")
+
+    mock_client.cluster.sdn.zones.get.side_effect = api_error()
+    mock_client.cluster.sdn.vnets.get.side_effect = api_error()
+    mock_client.cluster.sdn.controllers.get.side_effect = api_error()
+    mock_client.cluster.sdn.ipams.get.side_effect = api_error()
 
     update_tag = 12346
     common_job_parameters = {"UPDATE_TAG": update_tag, "CLUSTER_ID": CLUSTER_ID}

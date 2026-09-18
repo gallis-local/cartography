@@ -624,6 +624,8 @@ class Config:
     :param proxmox_retry_backoff: Base backoff factor in seconds for Proxmox API retries (default: 1.0). Optional.
     :type proxmox_enable_guest_agent: bool
     :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
+    :type proxmox_enable_vm_firewall_rules: bool
+    :param proxmox_enable_vm_firewall_rules: Also sync per-guest Proxmox firewall rules. Costs one extra API call per VM and container (default: False). Optional.
     """
 
     def __init__(
@@ -835,6 +837,7 @@ class Config:
         proxmox_max_retries=3,
         proxmox_retry_backoff=1.0,
         proxmox_enable_guest_agent=False,
+        proxmox_enable_vm_firewall_rules=False,
         slack_token=None,
         slack_teams=None,
         slack_channels_memberships=False,
@@ -1212,6 +1215,7 @@ class Config:
         self.proxmox_token_name = None
         self.proxmox_token_value = None
         self.proxmox_password = None
+        self.proxmox_enable_vm_firewall_rules = proxmox_enable_vm_firewall_rules
         self.slack_token = slack_token
         self.slack_teams = slack_teams
         self.slack_channels_memberships = slack_channels_memberships

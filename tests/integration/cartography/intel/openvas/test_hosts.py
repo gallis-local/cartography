@@ -68,7 +68,7 @@ def test_sync_hosts_dedupes_reissued_asset_ids(neo4j_session):
     gmp = FakeGmp()
     gmp._responses[
         "get_hosts"
-    ] = f"""
+    ] = """
     <get_assets_response status="200" status_text="OK">
       <asset_count>2<filtered>2</filtered></asset_count>
       <asset id="asset-aaa">

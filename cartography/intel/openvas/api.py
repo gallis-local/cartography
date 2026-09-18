@@ -22,10 +22,12 @@ from gvm.connections import SSHConnection
 from gvm.connections import TLSConnection
 from gvm.connections import UnixSocketConnection
 from gvm.connections._unix import AbstractGvmConnection
+from gvm.errors import GvmError
 from gvm.protocols.gmp import Gmp
 from gvm.transforms import EtreeCheckCommandTransform
 
 from cartography.config import Config
+from cartography.intel.openvas.util import log_optional_fetch_failure
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +210,10 @@ def _fetch_all(
     (e.g. get_configs -> gmp.get_scan_configs). `extra_kwargs` is passed
     through to the gmp method call (e.g. `details=True` for get_tasks, which
     GMP requires in order to include each task's `<last_report>` element).
+
+    A GMP error aborts this command only, after logging why: GVM permissions are
+    per-command, so a user allowed to read results but not credentials must still
+    produce a results graph rather than no graph at all.
     """
     all_items: list = []
     first = 1
@@ -222,9 +228,17 @@ def _fetch_all(
         page_filter = f"first={first} rows={_PAGE_SIZE}"
         if filter_string:
             page_filter = f"{filter_string} {page_filter}"
-        response = getattr(gmp, gmp_method or command)(
-            filter_string=page_filter, **(extra_kwargs or {})
-        )
+        try:
+            response = getattr(gmp, gmp_method or command)(
+                filter_string=page_filter, **(extra_kwargs or {})
+            )
+        except GvmError as exc:
+            log_optional_fetch_failure(
+                exc,
+                f"OpenVAS {command}",
+                fetched_so_far=len(all_items),
+            )
+            return all_items
         items = _children(response, _ITEMS_TAGS[command])
         all_items.extend(items)
         # List responses carry a <X_count> element. When no filter applies the
@@ -270,7 +284,11 @@ def get_results(gmp: Any, since: Optional[datetime] = None) -> list:
 
 
 def get_tls_certificates(gmp: Any) -> list:
-    return _fetch_all(gmp, "get_tls_certificates")
+    # details=True is required for GMP to include each certificate's <sources>
+    # element, which carries the host IP and port the certificate was actually
+    # observed on. Without it there is no way to link a certificate to a host:
+    # the certificate's own <name> is its SHA-256 fingerprint, not an address.
+    return _fetch_all(gmp, "get_tls_certificates", extra_kwargs={"details": True})
 
 
 def get_targets(gmp: Any) -> list:

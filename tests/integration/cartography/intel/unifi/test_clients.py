@@ -65,9 +65,9 @@ async def test_load_unifi_clients(mock_get, neo4j_session):
 
     # Assert - Check that clients were loaded
     expected_nodes = {
-        ("11:22:33:44:55:66", "192.168.1.100"),
-        ("77:88:99:AA:BB:CC", "192.168.1.101"),
-        ("DD:EE:FF:00:11:22", "192.168.1.102"),
+        ("default_11:22:33:44:55:66", "192.168.1.100"),
+        ("default_77:88:99:AA:BB:CC", "192.168.1.101"),
+        ("default_DD:EE:FF:00:11:22", "192.168.1.102"),
     }
     assert check_nodes(neo4j_session, "UnifiClient", ["id", "ip"]) == expected_nodes
 
@@ -102,8 +102,8 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
 
     # Assert - Wireless clients connected to Office AP via CONNECTED_TO_AP
     expected_wireless_rels = {
-        ("11:22:33:44:55:66", "00:11:22:33:44:55"),
-        ("77:88:99:AA:BB:CC", "00:11:22:33:44:55"),
+        ("default_11:22:33:44:55:66", "default_00:11:22:33:44:55"),
+        ("default_77:88:99:AA:BB:CC", "default_00:11:22:33:44:55"),
     }
     assert (
         check_rels(
@@ -120,7 +120,10 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
 
     # Assert - Wired client connected directly to switch via CONNECTED_TO_SWITCH
     expected_wired_switch_rels = {
-        ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF"),  # Dell wired directly
+        (
+            "default_DD:EE:FF:00:11:22",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # Dell wired directly
     }
     assert (
         check_rels(
@@ -137,8 +140,14 @@ async def test_unifi_clients_to_device_relationships(mock_get, neo4j_session):
 
     # Assert - Wireless clients linked to switch via UPLINKED_TO_SWITCH (AP's uplink switch)
     expected_uplinked_switch_rels = {
-        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),  # iPhone via AP uplink
-        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),  # Samsung via AP uplink
+        (
+            "default_11:22:33:44:55:66",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # iPhone via AP uplink
+        (
+            "default_77:88:99:AA:BB:CC",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # Samsung via AP uplink
     }
     assert (
         check_rels(
@@ -185,7 +194,7 @@ async def test_unifi_clients_properties(mock_get, neo4j_session):
     # Assert - Check wireless client properties
     wireless_client = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: '11:22:33:44:55:66'})
+        MATCH (c:UnifiClient {id: 'default_11:22:33:44:55:66'})
         RETURN c.is_guest as is_guest, c.is_wired as is_wired,
                c.satisfaction as satisfaction, c.oui as oui
         """
@@ -200,7 +209,7 @@ async def test_unifi_clients_properties(mock_get, neo4j_session):
     # Assert - Check wired client properties
     wired_client = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: 'DD:EE:FF:00:11:22'})
+        MATCH (c:UnifiClient {id: 'default_DD:EE:FF:00:11:22'})
         RETURN c.is_wired as is_wired, c.oui as oui
         """
     ).data()
@@ -274,7 +283,7 @@ async def test_unifi_clients_cleanup(mock_get, neo4j_session):
     # Assert - Disconnected client should be removed
     nodes = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: '99:99:99:99:99:99'})
+        MATCH (c:UnifiClient {id: 'default_99:99:99:99:99:99'})
         RETURN c
         """
     ).data()
@@ -362,7 +371,7 @@ async def test_unifi_client_new_properties(mock_get, neo4j_session):
     # Wireless client
     result = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: '11:22:33:44:55:66'})
+        MATCH (c:UnifiClient {id: 'default_11:22:33:44:55:66'})
         RETURN c.hostname as hostname, c.essid as essid,
                c.blocked as blocked, c.uptime as uptime
         """
@@ -378,7 +387,7 @@ async def test_unifi_client_new_properties(mock_get, neo4j_session):
     # Verify vlan (which is still a node property) and the relationship is present.
     wired = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: 'DD:EE:FF:00:11:22'})
+        MATCH (c:UnifiClient {id: 'default_DD:EE:FF:00:11:22'})
         RETURN c.vlan as vlan
         """
     ).data()
@@ -388,12 +397,12 @@ async def test_unifi_client_new_properties(mock_get, neo4j_session):
     # Verify wired switch relationship exists
     switch_rels = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: 'DD:EE:FF:00:11:22'})-[:CONNECTED_TO_SWITCH]->(d:UnifiDevice)
+        MATCH (c:UnifiClient {id: 'default_DD:EE:FF:00:11:22'})-[:CONNECTED_TO_SWITCH]->(d:UnifiDevice)
         RETURN d.id as switch_id
         """
     ).data()
     assert len(switch_rels) == 1
-    assert switch_rels[0]["switch_id"] == "AA:BB:CC:DD:EE:FF"
+    assert switch_rels[0]["switch_id"] == "default_AA:BB:CC:DD:EE:FF"
 
 
 @pytest.mark.asyncio
@@ -419,8 +428,14 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
 
     # Wireless clients linked to switch via UPLINKED_TO_SWITCH (AP's uplink)
     expected_uplinked_rels = {
-        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),  # iPhone -> switch (via AP)
-        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),  # Samsung -> switch (via AP)
+        (
+            "default_11:22:33:44:55:66",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # iPhone -> switch (via AP)
+        (
+            "default_77:88:99:AA:BB:CC",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # Samsung -> switch (via AP)
     }
     assert (
         check_rels(
@@ -437,7 +452,10 @@ async def test_unifi_wireless_client_to_switch_relationships(mock_get, neo4j_ses
 
     # Wired client connected directly via CONNECTED_TO_SWITCH
     expected_wired_rels = {
-        ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF"),  # Dell -> switch (direct)
+        (
+            "default_DD:EE:FF:00:11:22",
+            "default_AA:BB:CC:DD:EE:FF",
+        ),  # Dell -> switch (direct)
     }
     assert (
         check_rels(
@@ -478,8 +496,8 @@ async def test_unifi_client_to_wlan_relationships(mock_get, neo4j_session):
     )
 
     expected_rels = {
-        ("11:22:33:44:55:66", "wlan_001"),  # iPhone -> Corporate WiFi
-        ("77:88:99:AA:BB:CC", "wlan_002"),  # Samsung -> Guest WiFi
+        ("default_11:22:33:44:55:66", "wlan_001"),  # iPhone -> Corporate WiFi
+        ("default_77:88:99:AA:BB:CC", "wlan_002"),  # Samsung -> Guest WiFi
     }
     assert (
         check_rels(
@@ -517,7 +535,7 @@ async def test_unifi_client_network_and_auth_properties(mock_get, neo4j_session)
 
     result = neo4j_session.run(
         """
-        MATCH (c:UnifiClient {id: '11:22:33:44:55:66'})
+        MATCH (c:UnifiClient {id: 'default_11:22:33:44:55:66'})
         RETURN c.network_id as network_id, c.authorized as authorized
         """
     ).data()
@@ -548,8 +566,8 @@ async def test_unifi_client_to_gateway_relationships(mock_get, neo4j_session):
     )
 
     expected_rels = {
-        ("11:22:33:44:55:66", "AA:BB:CC:DD:EE:FF"),
-        ("77:88:99:AA:BB:CC", "AA:BB:CC:DD:EE:FF"),
+        ("default_11:22:33:44:55:66", "default_AA:BB:CC:DD:EE:FF"),
+        ("default_77:88:99:AA:BB:CC", "default_AA:BB:CC:DD:EE:FF"),
     }
     assert (
         check_rels(
@@ -591,7 +609,7 @@ async def test_unifi_wired_client_to_port_relationships(mock_get, neo4j_session)
 
     # Wired client connects via port AA:BB:CC:DD:EE:FF_1
     expected_rels = {
-        ("DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF_1"),
+        ("default_DD:EE:FF:00:11:22", "AA:BB:CC:DD:EE:FF_1"),
     }
     assert (
         check_rels(

@@ -14,12 +14,14 @@ import cartography.intel.openvas.findings
 import cartography.intel.openvas.hosts
 import cartography.intel.openvas.tasks
 import cartography.intel.openvas.tls_certificates
+from cartography.analysis.openvas.analysis import OPENVAS_ANALYSIS_JOBS
 from cartography.client.core.tx import load
 from cartography.config import Config
 from cartography.intel.openvas.api import gmp_session
 from cartography.models.openvas.instance import OpenVASInstanceSchema
 from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
+from cartography.util import run_typed_analysis_job
 from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
@@ -108,6 +110,9 @@ def start_openvas_ingestion(neo4j_session: neo4j.Session, config: Config) -> Non
             config.update_tag,
             common_job_parameters,
         )
+
+    for analysis_job in OPENVAS_ANALYSIS_JOBS:
+        run_typed_analysis_job(analysis_job, neo4j_session, common_job_parameters)
 
     merge_module_sync_metadata(
         neo4j_session,

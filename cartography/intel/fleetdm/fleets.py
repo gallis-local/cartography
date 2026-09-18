@@ -6,6 +6,8 @@ import requests
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.fleetdm.utils import is_license_error
+from cartography.intel.fleetdm.utils import log_optional_fetch_failure
 from cartography.intel.fleetdm.utils import paginated_get
 from cartography.models.fleetdm.fleet import FleetDMFleetSchema
 from cartography.util import timeit
@@ -29,21 +31,15 @@ def sync(
     try:
         fleets = get(api_session, base_url)
     except requests.HTTPError as e:
-        status = e.response.status_code if e.response is not None else None
         # 402/403 indicate the Fleet Premium license is not present, which is
         # expected on Fleet CE - treat this as "no fleets" so that any
         # previously-synced FleetDMFleet nodes get cleaned up (e.g. after a
         # license downgrade). Any other status code is unexpected and should
         # propagate so operational issues (auth failures, rate limits, server
         # errors) are not silently swallowed.
-        if status not in (402, 403):
+        if not is_license_error(e):
             raise
-        logger.warning(
-            "FleetDM fleets endpoint returned HTTP %s "
-            "(this is expected on Fleet CE without Premium license). "
-            "Treating as no fleets.",
-            status,
-        )
+        log_optional_fetch_failure(e, "FleetDM fleets")
         fleets = []
 
     transformed = transform(fleets)

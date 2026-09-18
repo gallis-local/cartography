@@ -6,6 +6,7 @@ from aiounifi.controller import Controller
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.unifi.util import attach_scoped_ids
 from cartography.models.unifi.port import UnifiPortSchema
 from cartography.util import timeit
 
@@ -67,6 +68,11 @@ def load_ports(
     :param update_tag: Update tag for the sync
     """
     logger.debug("Loading %d UniFi ports to the graph.", len(data))
+    data = attach_scoped_ids(
+        data,
+        site_id,
+        single={"device_id": "device_mac"},
+    )
     load(
         neo4j_session,
         UnifiPortSchema(),

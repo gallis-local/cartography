@@ -37,6 +37,16 @@ cartography --neo4j-uri <uri> \
 
 If either option is omitted, the FleetDM sync is skipped with a log message.
 
+## Fleet Premium
+
+`GET /api/v1/fleet/fleets` is gated behind Fleet Premium. On Fleet Free it
+answers 402/403, which the sync logs as a warning and treats as "no fleets",
+so `FleetDMFleet` will be empty and no host will have a `PART_OF_FLEET`
+relationship. Vulnerability severity metadata (`cvss_score`,
+`epss_probability`, `cisa_known_exploit`, `cve_published`,
+`resolved_in_version`) and a host's `critical_vulnerabilities_count` are also
+Premium-only and stay `null` on Fleet Free.
+
 ## References
 
 - [Fleet REST API documentation](https://fleetdm.com/docs/rest-api/rest-api)
