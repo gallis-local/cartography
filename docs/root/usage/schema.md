@@ -68,6 +68,7 @@ Cartography metadata schema, which is attached here to keep it out of the orphan
 - [Openvas](../modules/openvas/schema.md)
 - [Orca Security](../modules/orca/schema.md)
 - [Pagerduty](../modules/pagerduty/schema.md)
+- [Prowler](../modules/prowler/schema.md)
 - [Proxmox](../modules/proxmox/schema.md)
 - [Railway](../modules/railway/schema.md)
 - [Salesforce](../modules/salesforce/schema.md)
