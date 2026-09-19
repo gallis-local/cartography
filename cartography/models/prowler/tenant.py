@@ -34,7 +34,15 @@ class ProwlerTenantNodeProperties(CartographyNodeProperties):
 
 @dataclass(frozen=True)
 class ProwlerTenantSchema(CartographyNodeSchema):
-    """A Prowler tenant whose scans and security findings are ingested by Cartography."""
+    """A Prowler tenant whose scans and security findings are ingested by Cartography.
+
+    This node is deliberately never cleaned up. It is the scope every other
+    Prowler cleanup runs through, and the module syncs one tenant per
+    invocation, so a scoped cleanup could only ever target the tenant just
+    written and an unscoped one would delete the root nodes of every other
+    tenant in the graph. A tenant that disappears upstream, or a changed
+    `--prowler-tenant-id`, therefore leaves its node behind.
+    """
 
     label: str = "ProwlerTenant"
     properties: ProwlerTenantNodeProperties = ProwlerTenantNodeProperties()
