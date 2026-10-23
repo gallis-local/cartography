@@ -582,7 +582,54 @@ orca_mapping = OntologyMapping(
     ],
 )
 
+_HARBOR_SEVERITY = {
+    **_CVSS_SEVERITY,
+    "NEGLIGIBLE": "info",
+}
+
+harbor_mapping = OntologyMapping(
+    module_name="harbor",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="HarborVulnerability",
+            fields=[
+                OntologyFieldMapping(ontology_field="cve_id", node_field="cve_id"),
+                OntologyFieldMapping(
+                    ontology_field="description",
+                    node_field="description",
+                    indexed=False,
+                ),
+                OntologyFieldMapping(
+                    ontology_field="references",
+                    node_field="links",
+                    indexed=False,
+                ),
+                OntologyFieldMapping(
+                    ontology_field="problem_types",
+                    node_field="cwe_ids",
+                    indexed=False,
+                ),
+                OntologyFieldMapping(
+                    ontology_field="vector_string",
+                    node_field="cvss_v3_vector",
+                ),
+                OntologyFieldMapping(
+                    ontology_field="base_score",
+                    node_field="cvss_v3_score",
+                ),
+                OntologyFieldMapping(
+                    ontology_field="base_severity",
+                    node_field="severity",
+                    special_handling="mapping",
+                    extra={"map": _HARBOR_SEVERITY},
+                ),
+            ],
+        ),
+    ],
+)
+
 CVES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
+    "harbor": harbor_mapping,
     "cve": cve_mapping,
     "trivy": trivy_mapping,
     "ubuntu": ubuntu_mapping,

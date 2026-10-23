@@ -92,7 +92,26 @@ scaleway_mapping = OntologyMapping(
     ],
 )
 
+harbor_mapping = OntologyMapping(
+    module_name="harbor",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="HarborImage",
+            fields=[
+                OntologyFieldMapping(ontology_field="digest", node_field="digest"),
+                OntologyFieldMapping(ontology_field="uri", node_field="uri"),
+                OntologyFieldMapping(
+                    ontology_field="architecture", node_field="architecture"
+                ),
+                OntologyFieldMapping(ontology_field="os", node_field="os"),
+                OntologyFieldMapping(ontology_field="variant", node_field="variant"),
+            ],
+        ),
+    ],
+)
+
 IMAGES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
+    "harbor": harbor_mapping,
     "aws": aws_ecr_mapping,
     "gcp": gcp_mapping,
     "github": github_mapping,

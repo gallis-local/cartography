@@ -106,6 +106,7 @@ password options in [the rules docs](https://docs.cartography.dev/usage/rules.ht
 - [GitHub](https://docs.cartography.dev/modules/github/index.html) - repos, branches, users, teams, dependency graph manifests, dependencies, organization and repository security settings, verified domains, installed GitHub Apps, webhooks
 - [Google Cloud Platform](https://docs.cartography.dev/modules/gcp/index.html) - Artifact Registry, Bigtable, Cloud Functions, Cloud Resource Manager, Cloud Run, Cloud SQL, Compute including SSL policies and target proxies, DNS, IAM, KMS, Secret Manager, Storage, Google Kubernetes Engine, Vertex AI
 - [Google Workspace](https://docs.cartography.dev/modules/googleworkspace/index.html) - users, groups, devices, OAuth apps
+- [Harbor](https://docs.cartography.dev/modules/harbor/index.html) - Projects, Repositories, Images, Tags, Vulnerabilities, SBOM Packages
 - [Huntress](https://docs.cartography.dev/modules/huntress/index.html) - accounts, organizations, agents, incident reports, console users and roles
 - [Jira Cloud](https://docs.cartography.dev/modules/jira/index.html) - users, groups, project roles, permission grants, and API-reported admin groups
 - [Jumpcloud](https://docs.cartography.dev/modules/jumpcloud/index.html)
