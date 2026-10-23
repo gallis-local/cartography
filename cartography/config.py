@@ -711,6 +711,14 @@ class Config:
     :param proxmox_enable_guest_agent: Enable QEMU Guest Agent data collection for VMs (default: False). Optional.
     :type proxmox_enable_vm_firewall_rules: bool
     :param proxmox_enable_vm_firewall_rules: Also sync per-guest Proxmox firewall rules. Costs one extra API call per VM and container (default: False). Optional.
+    :type harbor_url: str
+    :param harbor_url: Base https URL of the Harbor instance, e.g. https://harbor.example.com. Optional.
+    :type harbor_username: str
+    :param harbor_username: Harbor user or robot account name used to authenticate. Optional.
+    :type harbor_password: str
+    :param harbor_password: Password or robot account secret for harbor_username. Optional.
+    :type harbor_verify_ssl: bool
+    :param harbor_verify_ssl: Whether to verify the Harbor TLS certificate (default: True). Optional.
     """
 
     def __init__(
@@ -1032,6 +1040,10 @@ class Config:
         neon_api_key: str | None = None,
         neon_org_ids: str | None = None,
         neon_base_url: str | None = None,
+        harbor_url=None,
+        harbor_username=None,
+        harbor_password=None,
+        harbor_verify_ssl=True,
     ):
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
@@ -1364,6 +1376,10 @@ class Config:
         self.proxmox_token_value: Optional[str] = None
         self.proxmox_password: Optional[str] = None
         self.proxmox_enable_vm_firewall_rules = proxmox_enable_vm_firewall_rules
+        self.harbor_url = harbor_url
+        self.harbor_username = harbor_username
+        self.harbor_password = harbor_password
+        self.harbor_verify_ssl = harbor_verify_ssl
         self.slack_token = slack_token
         self.slack_teams = slack_teams
         self.slack_channels_memberships = slack_channels_memberships
