@@ -115,6 +115,24 @@ gcp_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxAuthRealm",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="realm", required=True
+                ),
+                OntologyFieldMapping(ontology_field="protocol", node_field="type"),
+                # _ont_issuer: Not available - Proxmox auth realms do not expose issuer URLs.
+                # _ont_enabled: Proxmox auth realms don't have an explicit enabled/disabled
+                # state; they are either configured or not.
+            ],
+        ),
+    ],
+)
+
 supabase_mapping = OntologyMapping(
     module_name="supabase",
     nodes=[
@@ -159,29 +177,12 @@ supabase_mapping = OntologyMapping(
     ],
 )
 
-proxmox_mapping = OntologyMapping(
-    module_name="proxmox",
-    nodes=[
-        OntologyNodeMapping(
-            node_label="ProxmoxAuthRealm",
-            fields=[
-                OntologyFieldMapping(
-                    ontology_field="name", node_field="realm", required=True
-                ),
-                OntologyFieldMapping(ontology_field="protocol", node_field="type"),
-                # _ont_issuer: Not available - Proxmox auth realms do not expose issuer URLs.
-                # _ont_enabled: Proxmox auth realms don't have an explicit enabled/disabled
-                # state; they are either configured or not.
-            ],
-        ),
-    ],
-)
-
 IDENTITYPROVIDERS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "kubernetes": kubernetes_mapping,
     "keycloak": keycloak_mapping,
     "gcp": gcp_mapping,
+    "proxmox": proxmox_mapping,
     "supabase": supabase_mapping,
     "snowflake": OntologyMapping(
         module_name="snowflake",
@@ -208,5 +209,4 @@ IDENTITYPROVIDERS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
             ),
         ],
     ),
-    "proxmox": proxmox_mapping,
 }

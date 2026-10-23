@@ -19,6 +19,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxFirewallRule Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleNodeProperties(CartographyNodeProperties):
     """
@@ -112,9 +113,11 @@ class ProxmoxFirewallRuleNodeProperties(CartographyNodeProperties):
         description="Names of the IP sets referenced with `+` in `dest`. Null when the rule references none.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
@@ -134,6 +137,7 @@ class ProxmoxFirewallRuleToClusterRel(CartographyRelSchema):
         ProxmoxFirewallRuleToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleSchema(CartographyNodeSchema):
     """
@@ -148,7 +152,9 @@ class ProxmoxFirewallRuleSchema(CartographyNodeSchema):
         ProxmoxFirewallRuleToClusterRel()
     )
 
+
 # ProxmoxFirewallIPSet Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetNodeProperties(CartographyNodeProperties):
@@ -187,9 +193,11 @@ class ProxmoxFirewallIPSetNodeProperties(CartographyNodeProperties):
         "cidrs", description="Addresses and CIDR ranges that are members of the set."
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
@@ -209,6 +217,7 @@ class ProxmoxFirewallIPSetToClusterRel(CartographyRelSchema):
         ProxmoxFirewallIPSetToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallIPSetSchema(CartographyNodeSchema):
     """
@@ -225,8 +234,10 @@ class ProxmoxFirewallIPSetSchema(CartographyNodeSchema):
         ProxmoxFirewallIPSetToClusterRel()
     )
 
+
 # MatchLink Schemas for Firewall Relationships
 # These MatchLinks connect firewall rules to their scope (nodes/VMs) and IPSets.
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToNodeMatchLinkProperties(CartographyRelProperties):
@@ -240,6 +251,7 @@ class ProxmoxFirewallRuleToNodeMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToNodeMatchLink(CartographyRelSchema):
@@ -265,6 +277,7 @@ class ProxmoxFirewallRuleToNodeMatchLink(CartographyRelSchema):
         ProxmoxFirewallRuleToNodeMatchLinkProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToVMMatchLinkProperties(CartographyRelProperties):
     """
@@ -277,6 +290,7 @@ class ProxmoxFirewallRuleToVMMatchLinkProperties(CartographyRelProperties):
         "_sub_resource_label", set_in_kwargs=True
     )
     _sub_resource_id: PropertyRef = PropertyRef("_sub_resource_id", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToVMMatchLink(CartographyRelSchema):
@@ -303,6 +317,7 @@ class ProxmoxFirewallRuleToVMMatchLink(CartographyRelSchema):
         ProxmoxFirewallRuleToVMMatchLinkProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToIPSetMatchLinkProperties(CartographyRelProperties):
     """
@@ -325,6 +340,7 @@ class ProxmoxFirewallRuleToIPSetMatchLinkProperties(CartographyRelProperties):
         "in_dest",
         description="True when the rule references this IP set in its destination match.",
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallRuleToIPSetMatchLink(CartographyRelSchema):

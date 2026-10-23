@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_SECURITY_POLICY
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,6 @@ class UnifiDPIAppSchema(CartographyNodeSchema):
     """A UnifiDPIApp."""
 
     label: str = "UnifiDPIApp"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkSecurityPolicy"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_SECURITY_POLICY])
     properties: UnifiDPIAppNodeProperties = UnifiDPIAppNodeProperties()
     sub_resource_relationship: UnifiDPIAppToSiteRel = UnifiDPIAppToSiteRel()

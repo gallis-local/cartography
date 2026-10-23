@@ -10,6 +10,8 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import USER_ACCOUNT
+from cartography.models.unifi.extra_labels import NETWORK_ENDPOINT
 
 
 @dataclass(frozen=True)
@@ -302,7 +304,9 @@ class UnifiClientSchema(CartographyNodeSchema):
     """A UnifiClient."""
 
     label: str = "UnifiClient"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkEndpoint"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
+        [NETWORK_ENDPOINT, USER_ACCOUNT]
+    )
     properties: UnifiClientNodeProperties = UnifiClientNodeProperties()
     sub_resource_relationship: UnifiClientToSiteRel = UnifiClientToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

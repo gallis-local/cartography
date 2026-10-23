@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_INTERFACE
 
 
 @dataclass(frozen=True)
@@ -108,9 +109,7 @@ class UnifiNetworkConfigToSiteRel(CartographyRelSchema):
 @dataclass(frozen=True)
 class UnifiNetworkConfigSchema(CartographyNodeSchema):
     label: str = "UnifiNetworkConfig"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(
-        ["NetworkQoSPolicy", "NetworkSecurityPolicy", "NetworkRoutingPolicy"]
-    )
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_INTERFACE])
     properties: UnifiNetworkConfigNodeProperties = UnifiNetworkConfigNodeProperties()
     sub_resource_relationship: UnifiNetworkConfigToSiteRel = (
         UnifiNetworkConfigToSiteRel()

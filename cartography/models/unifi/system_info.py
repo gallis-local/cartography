@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_CONTROLLER
 
 
 @dataclass(frozen=True)
@@ -78,6 +79,6 @@ class UnifiSystemInfoSchema(CartographyNodeSchema):
     """A UnifiSystemInfo."""
 
     label: str = "UnifiSystemInfo"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkController"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_CONTROLLER])
     properties: UnifiSystemInfoNodeProperties = UnifiSystemInfoNodeProperties()
     sub_resource_relationship: UnifiSystemInfoToSiteRel = UnifiSystemInfoToSiteRel()

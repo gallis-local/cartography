@@ -18,6 +18,8 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import SUBNET
+from cartography.models.ontology.labels import VIRTUAL_NETWORK
 
 # ProxmoxSDNZone Node Schema
 
@@ -153,7 +155,7 @@ class ProxmoxSDNZoneSchema(CartographyNodeSchema):
     label: str = "ProxmoxSDNZone"
     properties: ProxmoxSDNZoneNodeProperties = ProxmoxSDNZoneNodeProperties()
     sub_resource_relationship: ProxmoxSDNZoneToClusterRel = ProxmoxSDNZoneToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["VirtualNetwork"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([VIRTUAL_NETWORK])
 
 
 # MatchLink Schema for Zone Availability Relationships
@@ -305,7 +307,7 @@ class ProxmoxSDNVNetSchema(CartographyNodeSchema):
     label: str = "ProxmoxSDNVNet"
     properties: ProxmoxSDNVNetNodeProperties = ProxmoxSDNVNetNodeProperties()
     sub_resource_relationship: ProxmoxSDNVNetToClusterRel = ProxmoxSDNVNetToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["Subnet"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([SUBNET])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxSDNVNetToZoneRel(),

@@ -214,6 +214,26 @@ kubernetes_mapping = OntologyMapping(
     ],
 )
 
+proxmox_mapping = OntologyMapping(
+    module_name="proxmox",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="ProxmoxPool",
+            fields=[
+                OntologyFieldMapping(ontology_field="name", node_field="poolid"),
+                OntologyFieldMapping(
+                    ontology_field="platform",
+                    node_field="cluster_id",
+                    special_handling="static_value",
+                    extra={"value": "proxmox"},
+                ),
+                OntologyFieldMapping(ontology_field="region", node_field="cluster_id"),
+            ],
+            eligible_for_source=True,
+        ),
+    ],
+)
+
 scaleway_kapsule_mapping = OntologyMapping(
     module_name="scaleway",
     nodes=[
@@ -238,26 +258,6 @@ scaleway_kapsule_mapping = OntologyMapping(
                 # (ACLs) but the endpoint itself is public. The ACL config isn't
                 # exposed on the cluster node, so leave this unmapped.
             ],
-        ),
-    ],
-)
-
-proxmox_mapping = OntologyMapping(
-    module_name="proxmox",
-    nodes=[
-        OntologyNodeMapping(
-            node_label="ProxmoxPool",
-            fields=[
-                OntologyFieldMapping(ontology_field="name", node_field="poolid"),
-                OntologyFieldMapping(
-                    ontology_field="platform",
-                    node_field="cluster_id",
-                    special_handling="static_value",
-                    extra={"value": "proxmox"},
-                ),
-                OntologyFieldMapping(ontology_field="region", node_field="cluster_id"),
-            ],
-            eligible_for_source=True,
         ),
     ],
 )
@@ -290,6 +290,7 @@ CLUSTERS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "azure_aks": azure_aks_mapping,
     "gcp_gke": gcp_gke_mapping,
     "kubernetes": kubernetes_mapping,
+    "proxmox": proxmox_mapping,
     "scaleway_kapsule": scaleway_kapsule_mapping,
     "snowflake": OntologyMapping(
         module_name="snowflake",
@@ -320,5 +321,4 @@ CLUSTERS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
             ),
         ],
     ),
-    "proxmox": proxmox_mapping,
 }

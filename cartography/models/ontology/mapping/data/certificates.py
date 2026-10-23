@@ -110,7 +110,7 @@ openvas_mapping = OntologyMapping(
 CERTIFICATES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "azure": azure_mapping,
-    "netlify": netlify_mapping,
     "proxmox": proxmox_mapping,
     "openvas": openvas_mapping,
+    "netlify": netlify_mapping,
 }

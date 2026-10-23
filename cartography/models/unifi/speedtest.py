@@ -10,6 +10,7 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_PERFORMANCE_TEST
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,7 @@ class UnifiSpeedtestSchema(CartographyNodeSchema):
     """A UnifiSpeedtest."""
 
     label: str = "UnifiSpeedtest"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkPerformanceTest"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_PERFORMANCE_TEST])
     properties: UnifiSpeedtestNodeProperties = UnifiSpeedtestNodeProperties()
     sub_resource_relationship: UnifiSpeedtestToSiteRel = UnifiSpeedtestToSiteRel()
     other_relationships: OtherRelationships = OtherRelationships(

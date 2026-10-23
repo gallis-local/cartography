@@ -16,8 +16,10 @@ from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import API_KEY
 
 # ProxmoxAPIToken Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenNodeProperties(CartographyNodeProperties):
@@ -56,9 +58,11 @@ class ProxmoxAPITokenNodeProperties(CartographyNodeProperties):
         "comment", description="Free-text comment stored on the token."
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
@@ -74,11 +78,15 @@ class ProxmoxAPITokenToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxAPITokenToClusterRelProperties = ProxmoxAPITokenToClusterRelProperties()
+    properties: ProxmoxAPITokenToClusterRelProperties = (
+        ProxmoxAPITokenToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToUserRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenToUserRel(CartographyRelSchema):
@@ -94,8 +102,11 @@ class ProxmoxAPITokenToUserRel(CartographyRelSchema):
         }
     )
     direction: LinkDirection = LinkDirection.OUTWARD
-    rel_label: str = "BELONGS_TO"
-    properties: ProxmoxAPITokenToUserRelProperties = ProxmoxAPITokenToUserRelProperties()
+    rel_label: str = "OWNED_BY"
+    properties: ProxmoxAPITokenToUserRelProperties = (
+        ProxmoxAPITokenToUserRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxAPITokenSchema(CartographyNodeSchema):
@@ -107,8 +118,10 @@ class ProxmoxAPITokenSchema(CartographyNodeSchema):
 
     label: str = "ProxmoxAPIToken"
     properties: ProxmoxAPITokenNodeProperties = ProxmoxAPITokenNodeProperties()
-    sub_resource_relationship: ProxmoxAPITokenToClusterRel = ProxmoxAPITokenToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["APIKey"])
+    sub_resource_relationship: ProxmoxAPITokenToClusterRel = (
+        ProxmoxAPITokenToClusterRel()
+    )
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([API_KEY])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxAPITokenToUserRel(),

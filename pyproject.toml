@@ -26,14 +26,13 @@ classifiers = [
   'Natural Language :: English',
   'Programming Language :: Python',
   'Programming Language :: Python :: 3',
-  'Programming Language :: Python :: 3.11',
   'Programming Language :: Python :: 3.12',
   'Programming Language :: Python :: 3.13',
   'Topic :: Security',
   'Topic :: Software Development :: Libraries',
   'Topic :: Software Development :: Libraries :: Python Modules',
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 # By convention (per pip/uv recommendations), dependencies should use a loose
 # lower bound and no upper bound unless explicitly needed. Exact pinning is
 # handled by the lockfile (uv.lock).

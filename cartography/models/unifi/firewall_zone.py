@@ -9,6 +9,7 @@ from cartography.models.core.relationships import CartographyRelSchema
 from cartography.models.core.relationships import LinkDirection
 from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.unifi.extra_labels import NETWORK_ZONE
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,6 @@ class UnifiFirewallZoneSchema(CartographyNodeSchema):
     """A UnifiFirewallZone."""
 
     label: str = "UnifiFirewallZone"
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["NetworkZone"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([NETWORK_ZONE])
     properties: UnifiFirewallZoneNodeProperties = UnifiFirewallZoneNodeProperties()
     sub_resource_relationship: UnifiFirewallZoneToSiteRel = UnifiFirewallZoneToSiteRel()

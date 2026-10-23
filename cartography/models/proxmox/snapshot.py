@@ -18,6 +18,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxSnapshot Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxSnapshotNodeProperties(CartographyNodeProperties):
     """
@@ -70,9 +71,11 @@ class ProxmoxSnapshotNodeProperties(CartographyNodeProperties):
         description="Name of the snapshot this one was taken from. Proxmox reports an empty string on the root of the chain.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxSnapshotToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxSnapshotToClusterRel(CartographyRelSchema):
@@ -88,11 +91,15 @@ class ProxmoxSnapshotToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxSnapshotToClusterRelProperties = ProxmoxSnapshotToClusterRelProperties()
+    properties: ProxmoxSnapshotToClusterRelProperties = (
+        ProxmoxSnapshotToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxSnapshotToVMRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxSnapshotToVMRel(CartographyRelSchema):
@@ -110,6 +117,7 @@ class ProxmoxSnapshotToVMRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "SNAPSHOT_OF"
     properties: ProxmoxSnapshotToVMRelProperties = ProxmoxSnapshotToVMRelProperties()
+
 
 @dataclass(frozen=True)
 class ProxmoxSnapshotToParentRelProperties(CartographyRelProperties):
@@ -149,7 +157,9 @@ class ProxmoxSnapshotSchema(CartographyNodeSchema):
 
     label: str = "ProxmoxSnapshot"
     properties: ProxmoxSnapshotNodeProperties = ProxmoxSnapshotNodeProperties()
-    sub_resource_relationship: ProxmoxSnapshotToClusterRel = ProxmoxSnapshotToClusterRel()
+    sub_resource_relationship: ProxmoxSnapshotToClusterRel = (
+        ProxmoxSnapshotToClusterRel()
+    )
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxSnapshotToVMRel(),

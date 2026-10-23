@@ -350,9 +350,7 @@ proxmox_mapping = OntologyMapping(
                 OntologyFieldMapping(
                     ontology_field="id", node_field="id", required=True
                 ),
-                OntologyFieldMapping(
-                    ontology_field="name", node_field="name"
-                ),
+                OntologyFieldMapping(ontology_field="name", node_field="name"),
                 OntologyFieldMapping(ontology_field="region", node_field="node"),
                 OntologyFieldMapping(ontology_field="state", node_field="status"),
                 OntologyFieldMapping(ontology_field="type", node_field="type"),
@@ -367,6 +365,6 @@ COMPUTE_INSTANCE_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "digitalocean": digitalocean_mapping,
     "gcp": gcp_mapping,
     "azure": azure_mapping,
-    "netlify": netlify_mapping,
     "proxmox": proxmox_mapping,
+    "netlify": netlify_mapping,
 }

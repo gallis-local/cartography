@@ -274,6 +274,20 @@ TENANT = ExtraNodeLabel(
 )
 
 
+DEVICE = ExtraNodeLabel(
+    label="Device",
+    description="A cross-provider Device resource in Cartography's ontology.",
+    kind=LabelKind.ONTOLOGY,
+)
+
+
+DEVICE_INSTANCE = ExtraNodeLabel(
+    label="DeviceInstance",
+    description="A cross-provider DeviceInstance resource in Cartography's ontology.",
+    kind=LabelKind.ONTOLOGY,
+)
+
+
 THIRD_PARTY_APP = ExtraNodeLabel(
     label="ThirdPartyApp",
     description="A cross-provider ThirdPartyApp resource in Cartography's ontology.",

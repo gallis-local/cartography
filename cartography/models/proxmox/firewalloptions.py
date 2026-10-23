@@ -18,6 +18,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxFirewallOptions Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
     """
@@ -80,6 +81,7 @@ class ProxmoxFirewallOptionsNodeProperties(CartographyNodeProperties):
 class ProxmoxFirewallOptionsToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
     """
@@ -98,9 +100,11 @@ class ProxmoxFirewallOptionsToClusterRel(CartographyRelSchema):
         ProxmoxFirewallOptionsToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
@@ -121,6 +125,7 @@ class ProxmoxFirewallOptionsToNodeRel(CartographyRelSchema):
         ProxmoxFirewallOptionsToNodeRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     """
@@ -130,7 +135,9 @@ class ProxmoxFirewallOptionsSchema(CartographyNodeSchema):
     """
 
     label: str = "ProxmoxFirewallOptions"
-    properties: ProxmoxFirewallOptionsNodeProperties = ProxmoxFirewallOptionsNodeProperties()
+    properties: ProxmoxFirewallOptionsNodeProperties = (
+        ProxmoxFirewallOptionsNodeProperties()
+    )
     sub_resource_relationship: ProxmoxFirewallOptionsToClusterRel = (
         ProxmoxFirewallOptionsToClusterRel()
     )

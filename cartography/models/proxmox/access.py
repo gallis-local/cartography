@@ -18,8 +18,12 @@ from cartography.models.core.relationships import make_target_node_matcher
 from cartography.models.core.relationships import OtherRelationships
 from cartography.models.core.relationships import SourceNodeMatcher
 from cartography.models.core.relationships import TargetNodeMatcher
+from cartography.models.ontology.labels import PERMISSION_ROLE
+from cartography.models.ontology.labels import USER_ACCOUNT
+from cartography.models.ontology.labels import USER_GROUP
 
 # ProxmoxUser Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxUserNodeProperties(CartographyNodeProperties):
@@ -79,9 +83,11 @@ class ProxmoxUserNodeProperties(CartographyNodeProperties):
         description="Names (`tokenid`) of the API tokens created under this user.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxUserToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxUserToClusterRel(CartographyRelSchema):
@@ -99,9 +105,11 @@ class ProxmoxUserToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxUserToClusterRelProperties = ProxmoxUserToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxUserToGroupRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxUserToGroupRel(CartographyRelSchema):
@@ -120,9 +128,11 @@ class ProxmoxUserToGroupRel(CartographyRelSchema):
     rel_label: str = "MEMBER_OF"
     properties: ProxmoxUserToGroupRelProperties = ProxmoxUserToGroupRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxUserToAuthRealmRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxUserToAuthRealmRel(CartographyRelSchema):
@@ -140,7 +150,10 @@ class ProxmoxUserToAuthRealmRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "AUTHENTICATES_VIA"
-    properties: ProxmoxUserToAuthRealmRelProperties = ProxmoxUserToAuthRealmRelProperties()
+    properties: ProxmoxUserToAuthRealmRelProperties = (
+        ProxmoxUserToAuthRealmRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxUserSchema(CartographyNodeSchema):
@@ -153,7 +166,7 @@ class ProxmoxUserSchema(CartographyNodeSchema):
     label: str = "ProxmoxUser"
     properties: ProxmoxUserNodeProperties = ProxmoxUserNodeProperties()
     sub_resource_relationship: ProxmoxUserToClusterRel = ProxmoxUserToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserAccount"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_ACCOUNT])
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxUserToGroupRel(),
@@ -161,7 +174,9 @@ class ProxmoxUserSchema(CartographyNodeSchema):
         ]
     )
 
+
 # ProxmoxGroup Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxGroupNodeProperties(CartographyNodeProperties):
@@ -189,9 +204,11 @@ class ProxmoxGroupNodeProperties(CartographyNodeProperties):
         "comment", description="Free-text comment stored on the group."
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxGroupToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxGroupToClusterRel(CartographyRelSchema):
@@ -211,6 +228,7 @@ class ProxmoxGroupToClusterRel(CartographyRelSchema):
         ProxmoxGroupToClusterRelProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxGroupSchema(CartographyNodeSchema):
     """
@@ -222,9 +240,11 @@ class ProxmoxGroupSchema(CartographyNodeSchema):
     label: str = "ProxmoxGroup"
     properties: ProxmoxGroupNodeProperties = ProxmoxGroupNodeProperties()
     sub_resource_relationship: ProxmoxGroupToClusterRel = ProxmoxGroupToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["UserGroup"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([USER_GROUP])
+
 
 # ProxmoxRole Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxRoleNodeProperties(CartographyNodeProperties):
@@ -257,9 +277,11 @@ class ProxmoxRoleNodeProperties(CartographyNodeProperties):
         description="True for a role built into Proxmox VE, which cannot be edited or deleted.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxRoleToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxRoleToClusterRel(CartographyRelSchema):
@@ -277,6 +299,7 @@ class ProxmoxRoleToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxRoleToClusterRelProperties = ProxmoxRoleToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxRoleSchema(CartographyNodeSchema):
     """
@@ -288,9 +311,11 @@ class ProxmoxRoleSchema(CartographyNodeSchema):
     label: str = "ProxmoxRole"
     properties: ProxmoxRoleNodeProperties = ProxmoxRoleNodeProperties()
     sub_resource_relationship: ProxmoxRoleToClusterRel = ProxmoxRoleToClusterRel()
-    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels(["PermissionRole"])
+    extra_node_labels: ExtraNodeLabels = ExtraNodeLabels([PERMISSION_ROLE])
+
 
 # ProxmoxACL Node Schema
+
 
 @dataclass(frozen=True)
 class ProxmoxACLNodeProperties(CartographyNodeProperties):
@@ -339,9 +364,11 @@ class ProxmoxACLNodeProperties(CartographyNodeProperties):
         description="Identifier of the object the ACL path names, e.g. `100` for `/vms/100`. Null for paths that do not name a single object.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToClusterRel(CartographyRelSchema):
@@ -359,9 +386,11 @@ class ProxmoxACLToClusterRel(CartographyRelSchema):
     rel_label: str = "RESOURCE"
     properties: ProxmoxACLToClusterRelProperties = ProxmoxACLToClusterRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToRoleRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToRoleRel(CartographyRelSchema):
@@ -381,6 +410,7 @@ class ProxmoxACLToRoleRel(CartographyRelSchema):
     rel_label: str = "GRANTS_ROLE"
     properties: ProxmoxACLToRoleRelProperties = ProxmoxACLToRoleRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToUserRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
@@ -395,6 +425,7 @@ class ProxmoxACLToUserRelProperties(CartographyRelProperties):
         "resource_type",
         description="Kind of object the ACL path points at, e.g. `vm`, `storage`, `pool`, `node` or `cluster`.",
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToUserRel(CartographyRelSchema):
@@ -414,6 +445,7 @@ class ProxmoxACLToUserRel(CartographyRelSchema):
     rel_label: str = "APPLIES_TO_USER"
     properties: ProxmoxACLToUserRelProperties = ProxmoxACLToUserRelProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToGroupRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
@@ -428,6 +460,7 @@ class ProxmoxACLToGroupRelProperties(CartographyRelProperties):
         "resource_type",
         description="Kind of object the ACL path points at, e.g. `vm`, `storage`, `pool`, `node` or `cluster`.",
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToGroupRel(CartographyRelSchema):
@@ -446,6 +479,7 @@ class ProxmoxACLToGroupRel(CartographyRelSchema):
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "APPLIES_TO_GROUP"
     properties: ProxmoxACLToGroupRelProperties = ProxmoxACLToGroupRelProperties()
+
 
 @dataclass(frozen=True)
 class ProxmoxACLSchema(CartographyNodeSchema):
@@ -466,12 +500,14 @@ class ProxmoxACLSchema(CartographyNodeSchema):
         ]
     )
 
+
 # MatchLink Schemas for ACL Resource Permissions
 # These MatchLinks connect ACLs to the resources they grant access to.
 # We use MatchLinks here because:
 # 1. ACLs can grant access to different types of resources (VMs, Storage, Pools, Nodes, Clusters)
 # 2. The resource data comes from separate API calls/sync functions
 # 3. We need rich relationship properties (path, propagate)
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToVMMatchLinkProperties(CartographyRelProperties):
@@ -494,6 +530,7 @@ class ProxmoxACLToVMMatchLinkProperties(CartographyRelProperties):
     path: PropertyRef = PropertyRef(
         "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToVMMatchLink(CartographyRelSchema):
@@ -518,6 +555,7 @@ class ProxmoxACLToVMMatchLink(CartographyRelSchema):
     rel_label: str = "GRANTS_ACCESS_TO"
     properties: ProxmoxACLToVMMatchLinkProperties = ProxmoxACLToVMMatchLinkProperties()
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToStorageMatchLinkProperties(CartographyRelProperties):
     """
@@ -539,6 +577,7 @@ class ProxmoxACLToStorageMatchLinkProperties(CartographyRelProperties):
     path: PropertyRef = PropertyRef(
         "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToStorageMatchLink(CartographyRelSchema):
@@ -565,6 +604,7 @@ class ProxmoxACLToStorageMatchLink(CartographyRelSchema):
         ProxmoxACLToStorageMatchLinkProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToPoolMatchLinkProperties(CartographyRelProperties):
     """
@@ -586,6 +626,7 @@ class ProxmoxACLToPoolMatchLinkProperties(CartographyRelProperties):
     path: PropertyRef = PropertyRef(
         "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToPoolMatchLink(CartographyRelSchema):
@@ -612,6 +653,7 @@ class ProxmoxACLToPoolMatchLink(CartographyRelSchema):
         ProxmoxACLToPoolMatchLinkProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToNodeMatchLinkProperties(CartographyRelProperties):
     """
@@ -633,6 +675,7 @@ class ProxmoxACLToNodeMatchLinkProperties(CartographyRelProperties):
     path: PropertyRef = PropertyRef(
         "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToNodeMatchLink(CartographyRelSchema):
@@ -659,6 +702,7 @@ class ProxmoxACLToNodeMatchLink(CartographyRelSchema):
         ProxmoxACLToNodeMatchLinkProperties()
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxACLToClusterMatchLinkProperties(CartographyRelProperties):
     """
@@ -680,6 +724,7 @@ class ProxmoxACLToClusterMatchLinkProperties(CartographyRelProperties):
     path: PropertyRef = PropertyRef(
         "path", description="ACL path that produced this edge, e.g. `/` or `/vms/100`."
     )
+
 
 @dataclass(frozen=True)
 class ProxmoxACLToClusterMatchLink(CartographyRelSchema):

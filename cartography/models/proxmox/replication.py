@@ -20,6 +20,7 @@ from cartography.models.core.relationships import TargetNodeMatcher
 
 # ProxmoxReplicationJob Node Schema
 
+
 @dataclass(frozen=True)
 class ProxmoxReplicationJobNodeProperties(CartographyNodeProperties):
     """
@@ -72,9 +73,11 @@ class ProxmoxReplicationJobNodeProperties(CartographyNodeProperties):
         description="Name of the node the volumes are replicated from. Null when Proxmox reports no explicit source.",
     )
 
+
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
@@ -90,11 +93,15 @@ class ProxmoxReplicationJobToClusterRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.INWARD
     rel_label: str = "RESOURCE"
-    properties: ProxmoxReplicationJobToClusterRelProperties = ProxmoxReplicationJobToClusterRelProperties()
+    properties: ProxmoxReplicationJobToClusterRelProperties = (
+        ProxmoxReplicationJobToClusterRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToVMRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
@@ -111,11 +118,15 @@ class ProxmoxReplicationJobToVMRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "REPLICATES"
-    properties: ProxmoxReplicationJobToVMRelProperties = ProxmoxReplicationJobToVMRelProperties()
+    properties: ProxmoxReplicationJobToVMRelProperties = (
+        ProxmoxReplicationJobToVMRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToTargetNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
@@ -131,11 +142,15 @@ class ProxmoxReplicationJobToTargetNodeRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "REPLICATES_TO"
-    properties: ProxmoxReplicationJobToTargetNodeRelProperties = ProxmoxReplicationJobToTargetNodeRelProperties()
+    properties: ProxmoxReplicationJobToTargetNodeRelProperties = (
+        ProxmoxReplicationJobToTargetNodeRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToSourceNodeRelProperties(CartographyRelProperties):
     lastupdated: PropertyRef = PropertyRef("lastupdated", set_in_kwargs=True)
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
@@ -151,7 +166,10 @@ class ProxmoxReplicationJobToSourceNodeRel(CartographyRelSchema):
     )
     direction: LinkDirection = LinkDirection.OUTWARD
     rel_label: str = "REPLICATES_FROM"
-    properties: ProxmoxReplicationJobToSourceNodeRelProperties = ProxmoxReplicationJobToSourceNodeRelProperties()
+    properties: ProxmoxReplicationJobToSourceNodeRelProperties = (
+        ProxmoxReplicationJobToSourceNodeRelProperties()
+    )
+
 
 @dataclass(frozen=True)
 class ProxmoxReplicationJobSchema(CartographyNodeSchema):
@@ -162,8 +180,12 @@ class ProxmoxReplicationJobSchema(CartographyNodeSchema):
     """
 
     label: str = "ProxmoxReplicationJob"
-    properties: ProxmoxReplicationJobNodeProperties = ProxmoxReplicationJobNodeProperties()
-    sub_resource_relationship: ProxmoxReplicationJobToClusterRel = ProxmoxReplicationJobToClusterRel()
+    properties: ProxmoxReplicationJobNodeProperties = (
+        ProxmoxReplicationJobNodeProperties()
+    )
+    sub_resource_relationship: ProxmoxReplicationJobToClusterRel = (
+        ProxmoxReplicationJobToClusterRel()
+    )
     other_relationships: OtherRelationships = OtherRelationships(
         [
             ProxmoxReplicationJobToVMRel(),
