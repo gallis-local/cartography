@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
 from typing import Any
 from typing import Awaitable
 from typing import Callable
+from urllib.parse import urlencode
 
+import okta.dpop
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from okta.models.application import Application
 from okta.models.application_json_converter import ApplicationJsonConverter
 from okta.models.authenticator_key_tac_all_of_provider import (
@@ -42,6 +47,42 @@ from okta.models.user_factor_web_authn import UserFactorWebAuthn
 from okta.pagination import PaginationHelper
 
 OKTA_RESOURCE_NOT_FOUND_ERROR_CODE = "E0000007"
+# Returned when the API token or OAuth client lacks the scope an endpoint needs.
+OKTA_MISSING_SCOPE_ERROR_CODE = "E0000006"
+# Logged with a resource name and the scope it needs when Okta refuses it.
+OKTA_MISSING_SCOPE_WARNING = (
+    "Unable to sync %s - the Okta credential needs an admin role that allows "
+    "it, and an OAuth service app also needs the %s scope"
+)
+
+# Read-only scopes covering every endpoint the Okta sync calls. An OAuth service
+# app must be granted all of them, or Okta refuses to issue an access token.
+OKTA_OAUTH_DEFAULT_SCOPES = (
+    "okta.apiTokens.read",
+    "okta.apps.read",
+    "okta.authenticators.read",
+    "okta.devices.read",
+    "okta.groups.read",
+    "okta.logStreams.read",
+    "okta.networkZones.read",
+    "okta.policies.read",
+    "okta.roles.read",
+    "okta.trustedOrigins.read",
+    "okta.userTypes.read",
+    "okta.users.read",
+)
+
+# Token endpoint errors returned when an OAuth service app cannot get an access
+# token: unknown client ID or key, scopes not granted, or a DPoP mismatch.
+_OKTA_OAUTH_TOKEN_ERROR_CODES = frozenset(
+    {
+        "invalid_client",
+        "invalid_dpop_proof",
+        "invalid_grant",
+        "invalid_scope",
+        "unauthorized_client",
+    }
+)
 
 # UserFactor and every model the factorType discriminator can resolve to. Each
 # subclass owns its own copy of the inherited FieldInfo, so all of them must be
@@ -155,6 +196,32 @@ _patch_okta_sdk_user_factor_models()
 _patch_okta_sdk_authenticator_models()
 
 
+@lru_cache(maxsize=4)
+def _load_dpop_signing_key(pem: bytes) -> Any:
+    return load_pem_private_key(pem, password=None)
+
+
+_sdk_dpop_jwt_encode = okta.dpop.jwt_encode
+
+
+def _jwt_encode_with_loaded_key(
+    payload: Any,
+    key: Any,
+    *args: Any,
+    **kwargs: Any,
+) -> str:
+    # The SDK passes its DPoP key as PEM bytes, so PyJWT parses and validates
+    # the RSA key on every request (~60 ms each). Sign with a loaded key instead.
+    if isinstance(key, bytes):
+        key = _load_dpop_signing_key(key)
+    return _sdk_dpop_jwt_encode(payload, key, *args, **kwargs)
+
+
+# DEPRECATED: Remove this Okta SDK 3.4.4 performance shim in v1.0.0 once the SDK
+# signs DPoP proofs with a loaded key.
+okta.dpop.jwt_encode = _jwt_encode_with_loaded_key
+
+
 class OktaApiError(RuntimeError):
     """Okta API error that preserves the SDK error_code for callers."""
 
@@ -167,6 +234,40 @@ class OktaApiError(RuntimeError):
 
 def is_resource_not_found_error(error: OktaApiError) -> bool:
     return error.error_code == OKTA_RESOURCE_NOT_FOUND_ERROR_CODE
+
+
+def is_missing_scope_error(error: OktaApiError) -> bool:
+    return error.error_code == OKTA_MISSING_SCOPE_ERROR_CODE
+
+
+def is_oauth_token_error(error: OktaApiError) -> bool:
+    """Return True when Okta refused to issue an OAuth access token."""
+    return error.error_code in _OKTA_OAUTH_TOKEN_ERROR_CODES
+
+
+def _has_next_link(headers: Any) -> bool:
+    if headers is None:
+        return False
+    link_header = headers.get("Link") or headers.get("link")
+    if not link_header:
+        return False
+    if isinstance(link_header, (list, tuple)):
+        link_header = ",".join(str(part) for part in link_header)
+    return 'rel="next"' in link_header or "rel='next'" in link_header
+
+
+def _next_page_cursor(response: Any) -> str | None:
+    if response is None:
+        return None
+    cursor = PaginationHelper.extract_next_cursor(response.headers)
+    if cursor:
+        return cursor
+    if _has_next_link(response.headers):
+        raise OktaApiError(
+            "collect_paginated",
+            "advertised next page with unusable cursor",
+        )
+    return None
 
 
 async def collect_paginated(
@@ -189,11 +290,7 @@ async def collect_paginated(
             raise OktaApiError(api_method.__name__, error)
         if data:
             items.extend(data)
-        cursor = (
-            PaginationHelper.extract_next_cursor(response.headers)
-            if response is not None
-            else None
-        )
+        cursor = _next_page_cursor(response)
         if not cursor:
             break
         after = cursor
@@ -204,3 +301,43 @@ def raise_for_okta_error(error: Any, context: str) -> None:
     """Raise an OktaApiError if the Okta SDK returned an error object."""
     if error:
         raise OktaApiError(context, error)
+
+
+async def _get_raw_json(okta_client: Any, url: str) -> tuple[Any, Any]:
+    executor = okta_client.get_request_executor()
+    request, error = await executor.create_request("GET", url, {}, {})
+    raise_for_okta_error(error, url)
+    response, body, error = await executor.execute(request)
+    raise_for_okta_error(error, url)
+    return response, json.loads(body) if body else None
+
+
+async def get_raw_json(okta_client: Any, path: str) -> Any:
+    """Fetch one Okta API resource as plain JSON through the SDK request executor."""
+    _, body = await _get_raw_json(okta_client, path)
+    return body
+
+
+async def collect_raw_paginated(
+    okta_client: Any,
+    path: str,
+    params: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Collect every page of an Okta list endpoint as plain JSON dicts.
+
+    Use this instead of the typed SDK list methods for resources whose SDK models
+    validate nested enums strictly (policies, policy rules, network zones): a
+    single value the SDK does not know yet would otherwise fail the whole sync.
+    Requests still go through the SDK request executor, so authentication,
+    retries, and rate limiting are unchanged.
+    """
+    url: str | None = f"{path}?{urlencode(params)}" if params else path
+    items: list[dict[str, Any]] = []
+    while url:
+        response, page = await _get_raw_json(okta_client, url)
+        if page:
+            items.extend(page)
+        next_link = response.links.get("next") if response is not None else None
+        url = str(next_link["url"]) if next_link else None
+    return items
