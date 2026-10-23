@@ -115,6 +115,7 @@ PANEL_ZENDESK = "Zendesk Options"
 PANEL_UNIFI = "UniFi Options"
 PANEL_STATSD = "StatsD Metrics"
 PANEL_PROXMOX = "Proxmox Options"
+PANEL_HARBOR = "Harbor Options"
 PANEL_ANALYSIS = "Analysis Options"
 
 # Mapping of module names to their help panels
@@ -189,6 +190,7 @@ MODULE_PANELS = {
     "snowflake": PANEL_SNOWFLAKE,
     "zendesk": PANEL_ZENDESK,
     "proxmox": PANEL_PROXMOX,
+    "harbor": PANEL_HARBOR,
     "unifi": PANEL_UNIFI,
     "analysis": PANEL_ANALYSIS,
 }
@@ -3418,6 +3420,57 @@ class CLI:
                 ),
             ] = 1.0,
             # =================================================================
+            # Harbor Options
+            # =================================================================
+            harbor_url: Annotated[
+                str | None,
+                typer.Option(
+                    "--harbor-url",
+                    help=(
+                        "Base https URL of the Harbor instance, e.g. "
+                        "https://harbor.example.com. Enables the Harbor module."
+                    ),
+                    rich_help_panel=PANEL_HARBOR,
+                    hidden=PANEL_HARBOR not in visible_panels,
+                ),
+            ] = None,
+            harbor_username: Annotated[
+                str | None,
+                typer.Option(
+                    "--harbor-username",
+                    help=(
+                        "Harbor user or robot account name, e.g. " "robot$cartography."
+                    ),
+                    rich_help_panel=PANEL_HARBOR,
+                    hidden=PANEL_HARBOR not in visible_panels,
+                ),
+            ] = None,
+            harbor_password_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--harbor-password-env-var",
+                    help=(
+                        "Name of the environment variable holding the Harbor "
+                        "password or robot account secret."
+                    ),
+                    rich_help_panel=PANEL_HARBOR,
+                    hidden=PANEL_HARBOR not in visible_panels,
+                ),
+            ] = None,
+            harbor_verify_ssl: Annotated[
+                bool,
+                typer.Option(
+                    "--harbor-verify-ssl/--no-harbor-verify-ssl",
+                    help=(
+                        "Verify the Harbor TLS certificate (default: True). Use "
+                        "--no-harbor-verify-ssl only for instances with a "
+                        "certificate that is not in the trust store."
+                    ),
+                    rich_help_panel=PANEL_HARBOR,
+                    hidden=PANEL_HARBOR not in visible_panels,
+                ),
+            ] = True,
+            # =================================================================
             # StatsD Metrics Options
             # =================================================================
             statsd_enabled: Annotated[
@@ -4165,6 +4218,9 @@ class CLI:
                 s3_bucket=None,
                 s3_prefix=None,
             )
+            harbor_password = None
+            if harbor_password_env_var:
+                harbor_password = os.environ.get(harbor_password_env_var)
             zendesk_oauth_token = None
             if zendesk_oauth_token_env_var:
                 zendesk_oauth_token = os.environ.get(zendesk_oauth_token_env_var)
@@ -4707,6 +4763,10 @@ class CLI:
                 proxmox_retry_backoff=proxmox_retry_backoff,
                 proxmox_enable_guest_agent=proxmox_enable_guest_agent,
                 proxmox_enable_vm_firewall_rules=proxmox_enable_vm_firewall_rules,
+                harbor_url=harbor_url,
+                harbor_username=harbor_username,
+                harbor_password=harbor_password,
+                harbor_verify_ssl=harbor_verify_ssl,
                 _warn_on_legacy_report_source=False,
             )
 

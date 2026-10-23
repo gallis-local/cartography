@@ -27,6 +27,7 @@ modules/gcp/index
 modules/github/index
 modules/gitlab/index
 modules/googleworkspace/index
+modules/harbor/index
 modules/gsuite/index
 modules/huntress/index
 modules/jamf/index

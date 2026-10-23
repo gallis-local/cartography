@@ -102,7 +102,28 @@ semgrep_mapping = OntologyMapping(
     ],
 )
 
+harbor_mapping = OntologyMapping(
+    module_name="harbor",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="HarborPackage",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="normalized_id",
+                    node_field="normalized_id",
+                    required=True,
+                ),
+                OntologyFieldMapping(ontology_field="name", node_field="name"),
+                OntologyFieldMapping(ontology_field="version", node_field="version"),
+                OntologyFieldMapping(ontology_field="type", node_field="type"),
+                OntologyFieldMapping(ontology_field="purl", node_field="purl"),
+            ],
+        ),
+    ],
+)
+
 PACKAGES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
+    "harbor": harbor_mapping,
     "trivy": trivy_mapping,
     "syft": syft_mapping,
     "gitlab": gitlab_mapping,
