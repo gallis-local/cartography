@@ -99,7 +99,30 @@ scaleway_mapping = OntologyMapping(
     ],
 )
 
+harbor_mapping = OntologyMapping(
+    module_name="harbor",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="HarborRepository",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name",
+                    node_field="name",
+                    required=True,
+                ),
+                OntologyFieldMapping(ontology_field="uri", node_field="uri"),
+                # _ont_location: Not applicable, a Harbor instance is not tied to a region
+                OntologyFieldMapping(
+                    ontology_field="created_at", node_field="creation_time"
+                ),
+                # _ont_size_bytes: Not available on the repository, only per artifact
+            ],
+        ),
+    ],
+)
+
 CONTAINERREGISTRIES_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
+    "harbor": harbor_mapping,
     "aws": aws_mapping,
     "gcp": gcp_mapping,
     "gitlab": gitlab_mapping,
