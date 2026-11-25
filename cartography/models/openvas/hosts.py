@@ -61,14 +61,17 @@ class OpenVASHostNodeProperties(CartographyNodeProperties):
     )
     latest_scan_date: PropertyRef = PropertyRef(
         "latest_scan_date",
+        set_by_analysis=True,
         description="Set by analysis job. Creation time of this host's most recent finding.",
     )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     latest_scan_task_id: PropertyRef = PropertyRef(
         "latest_scan_task_id",
+        set_by_analysis=True,
         description="Set by analysis job. GVM UUID of the task that most recently scanned this host.",
     )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     latest_scan_task_name: PropertyRef = PropertyRef(
         "latest_scan_task_name",
+        set_by_analysis=True,
         description="Set by analysis job. Display name of the task that most recently scanned this host.",
     )  # Populated by OPENVAS_HOST_LATEST_SCAN.
     source_type: PropertyRef = PropertyRef(
