@@ -195,6 +195,12 @@ DEVICE_LINKING_JOBS = (
     DEVICE_AFFECTS_S1_FINDING,
     DEVICE_AFFECTS_HUNTRESS_INCIDENT_REPORT,
 )
+# An ingress host rule names the hostname, but DNS resolves that name to the load
+# balancer the controller provisions, never to the Ingress object. A shared name says
+# nothing about which load balancer serves the traffic: the record can alias a separate
+# load balancer bound through a TargetGroupBinding. Only host records match: an NS
+# record with the same name delegates a zone and says nothing about the host.
+_INGRESS_HOST_RECORD_TYPES = "['A', 'AAAA', 'CNAME', 'ALIAS']"
 DNS_RECORD_TO_KUBERNETES_INGRESS = AnalysisJob(
     name="Ontology - DNSRecord to KubernetesIngress linking",
     short_name="ontology_dnsrecords_kubernetes_ingress",
@@ -204,8 +210,19 @@ DNS_RECORD_TO_KUBERNETES_INGRESS = AnalysisJob(
             # DEPRECATED: the host_names fallback covers ingresses loaded before
             # host_names_normalized existed, until their next Kubernetes sync. Will be
             # removed in v1.0.0.
-            match="MATCH (ing:KubernetesIngress) UNWIND coalesce(ing.host_names_normalized, [host IN ing.host_names | toLower(rtrim(trim(host), '.'))]) AS hostname MATCH (dns:DNSRecord {_ont_name: hostname})",
+            match=f"MATCH (ing:KubernetesIngress) UNWIND coalesce(ing.host_names_normalized, [host IN ing.host_names | toLower(rtrim(trim(host), '.'))]) AS hostname MATCH (dns:DNSRecord {{_ont_name: hostname}}) WHERE dns._ont_type IS NULL OR toUpper(dns._ont_type) IN {_INGRESS_HOST_RECORD_TYPES}",
             effects=(
+                AddRelationship(
+                    "ing",
+                    "MATCHES_HOSTNAME",
+                    "dns",
+                    source_label="KubernetesIngress",
+                    target_label="DNSRecord",
+                    rel_alias="m",
+                ),
+                # DEPRECATED: hostname correlation, not DNS resolution; replaced by
+                # (:KubernetesIngress)-[:MATCHES_HOSTNAME]->(:DNSRecord). Will be
+                # removed in v1.0.0.
                 AddRelationship(
                     "dns",
                     "DNS_POINTS_TO",
@@ -410,6 +427,33 @@ BBOT_IP_MATCHES_PUBLIC_IP = AnalysisJob(
         ),
     ),
 )
+# Address records resolve to IPs rather than hostnames, so DNS_RECORD_TARGETS cannot
+# reach them. Route53 joins a multi-value record into one comma-separated value;
+# GCPRecordSet keeps the list in `data`.
+_ADDRESS_RECORD_TYPES = "['A', 'AAAA']"
+DNS_RECORD_TO_PUBLIC_IP = AnalysisJob(
+    name="Ontology - DNSRecord to PublicIP linking",
+    short_name="ontology_dnsrecords_publicip",
+    cleanup_iterationsize=1000,
+    statements=tuple(
+        AnalysisStatement(
+            match=match,
+            effects=(
+                AddRelationship(
+                    "dns",
+                    "DNS_POINTS_TO",
+                    "public_ip",
+                    source_label="DNSRecord",
+                    target_label="PublicIP",
+                ),
+            ),
+        )
+        for match in (
+            f"MATCH (dns:DNSRecord) WHERE dns._ont_value IS NOT NULL AND toUpper(dns._ont_type) IN {_ADDRESS_RECORD_TYPES} AND NOT dns:GCPRecordSet UNWIND split(toString(dns._ont_value), ',') AS value WITH dns, toLower(trim(value)) AS ip WHERE ip <> '' MATCH (public_ip:PublicIP {{id: ip}})",
+            f"MATCH (dns:GCPRecordSet) WHERE dns.data IS NOT NULL AND toUpper(dns._ont_type) IN {_ADDRESS_RECORD_TYPES} UNWIND dns.data AS value WITH dns, toLower(trim(value)) AS ip MATCH (public_ip:PublicIP {{id: ip}})",
+        )
+    ),
+)
 PACKAGE_DEPLOYED_IMAGE_JOBS = (
     AnalysisJob(
         name="Ontology - Trivy PackageVersion DEPLOYED Image linking",
@@ -502,6 +546,69 @@ PACKAGE_AFFECTS_SEMGREP_SCA_LINKING = AnalysisJob(
         ),
     ),
 )
+PACKAGE_AFFECTS_ORCA_LINKING = AnalysisJob(
+    name="Ontology - OrcaVulnerabilityFinding AFFECTS PackageVersion linking",
+    short_name="ontology_packages_orca_affects",
+    statements=(
+        AnalysisStatement(
+            match="MATCH (f:OrcaVulnerabilityFinding)-[:AFFECTS]->(:OrcaPackage)<-[:DETECTED_AS]-(p:PackageVersion)",
+            effects=(
+                AddRelationship(
+                    "f",
+                    "AFFECTS",
+                    "p",
+                    source_label="OrcaVulnerabilityFinding",
+                    target_label="PackageVersion",
+                ),
+            ),
+            batched_transactions=True,
+            iterationsize=10000,
+        ),
+    ),
+)
+PACKAGE_AFFECTS_CROWDSTRIKE_LINKING = AnalysisJob(
+    name="Ontology - CrowdstrikeFinding AFFECTS PackageVersion linking",
+    short_name="ontology_packages_crowdstrike_affects",
+    statements=(
+        AnalysisStatement(
+            match="MATCH (f:CrowdstrikeFinding)-[:AFFECTS]->(:CrowdstrikeApplication)<-[:DETECTED_AS]-(p:PackageVersion)",
+            effects=(
+                AddRelationship(
+                    "f",
+                    "AFFECTS",
+                    "p",
+                    source_label="CrowdstrikeFinding",
+                    target_label="PackageVersion",
+                ),
+            ),
+            batched_transactions=True,
+            iterationsize=10000,
+        ),
+    ),
+)
+PACKAGE_DEPLOYED_DEVICE_CROWDSTRIKE = AnalysisJob(
+    name="Ontology - PackageVersion DEPLOYED Device linking via CrowdStrike",
+    short_name="ontology_packages_crowdstrike_deployed_device",
+    statements=(
+        AnalysisStatement(
+            match=(
+                "MATCH (p:PackageVersion)-[:DETECTED_AS]->(:CrowdstrikeApplication)"
+                "-[:DEPLOYED]->(:CrowdstrikeHost)<-[:OBSERVED_AS]-(d:Device)"
+            ),
+            effects=(
+                AddRelationship(
+                    "p",
+                    "DEPLOYED",
+                    "d",
+                    source_label="PackageVersion",
+                    target_label="Device",
+                ),
+            ),
+            batched_transactions=True,
+            iterationsize=10000,
+        ),
+    ),
+)
 PACKAGE_SHOULD_UPDATE_TO_LINKING = AnalysisJob(
     name="Ontology - PackageVersion SHOULD_UPDATE_TO TrivyFix linking",
     short_name="ontology_packages_should_update_to",
@@ -543,6 +650,9 @@ PACKAGE_LINKING_JOBS = (
     PACKAGE_DEPLOYED_FILESYSTEM_SNAPSHOT,
     PACKAGE_AFFECTS_LINKING,
     PACKAGE_AFFECTS_SEMGREP_SCA_LINKING,
+    PACKAGE_AFFECTS_ORCA_LINKING,
+    PACKAGE_AFFECTS_CROWDSTRIKE_LINKING,
+    PACKAGE_DEPLOYED_DEVICE_CROWDSTRIKE,
     PACKAGE_SHOULD_UPDATE_TO_LINKING,
     PACKAGE_DEPENDS_ON_LINKING,
 )
@@ -626,6 +736,36 @@ TAILSCALE_DEVICE_INSTANCE_LINKING = AnalysisJob(
                     "instance",
                     source_label="TailscaleDevice",
                     target_label="ComputeInstance",
+                ),
+            ),
+        ),
+    ),
+)
+# Providers disagree on email case for the same person, so the exact-match
+# HAS_ACCOUNT relationship in UserSchema misses those accounts.
+# GitHubUser is excluded: its profile email is self-asserted, and
+# USER_HAS_GITHUB_ACCOUNT weighs it against verified-domain and SAML evidence.
+USER_HAS_ACCOUNT_BY_NORMALIZED_EMAIL = AnalysisJob(
+    name="Ontology - UserAccount HAS_ACCOUNT User linking by normalized email",
+    short_name="ontology_users_normalized_email",
+    statements=(
+        AnalysisStatement(
+            match=(
+                "MATCH (a:UserAccount) "
+                "WHERE a._ont_email IS NOT NULL AND NOT a:GitHubUser "
+                "MATCH (u:User {normalized_email: toLower(trim(a._ont_email))})"
+            ),
+            effects=(
+                AddRelationship(
+                    "u",
+                    "HAS_ACCOUNT",
+                    "a",
+                    source_label="User",
+                    target_label="UserAccount",
+                    # UserSchema cleanup removes stale HAS_ACCOUNT links at the
+                    # end of the sync. Cleaning up here would delete the links
+                    # that the later linking jobs refresh.
+                    cleanup_where="false",
                 ),
             ),
         ),
@@ -738,6 +878,7 @@ USER_AUTHORIZED_THIRD_PARTY_APP = AnalysisJob(
     ),
 )
 USER_LINKING_JOBS = (
+    USER_HAS_ACCOUNT_BY_NORMALIZED_EMAIL,
     USER_HAS_AWS_SSO_ACCOUNT,
     USER_HAS_GITHUB_ACCOUNT,
     USER_OWNS_API_KEY,

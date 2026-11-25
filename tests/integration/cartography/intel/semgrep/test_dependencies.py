@@ -1,6 +1,9 @@
 import copy
+from typing import Any
+from typing import cast
 from unittest.mock import patch
 
+import neo4j
 import pytest
 
 import cartography.intel.ontology.packages
@@ -22,17 +25,25 @@ from tests.integration.util import check_rels
 
 
 def test_parse_and_validate_semgrep_ecosystems():
-    expected_format = "gomod,npm"
-    assert parse_and_validate_semgrep_ecosystems(expected_format) == ["gomod", "npm"]
+    expected_format = "gomod,maven,npm"
+    assert parse_and_validate_semgrep_ecosystems(expected_format) == [
+        "gomod",
+        "maven",
+        "npm",
+    ]
 
-    acceptable_format = "Gomod, NPM"
-    assert parse_and_validate_semgrep_ecosystems(acceptable_format) == ["gomod", "npm"]
+    acceptable_format = "Gomod, Maven, NPM"
+    assert parse_and_validate_semgrep_ecosystems(acceptable_format) == [
+        "gomod",
+        "maven",
+        "npm",
+    ]
 
     bad_delimiter = "gomod;npm"
     with pytest.raises(ValueError):
         parse_and_validate_semgrep_ecosystems(bad_delimiter)
 
-    ecosystem_that_does_not_exist = "gomod,npm,doesnotexist"
+    ecosystem_that_does_not_exist = "gomod,maven,npm,doesnotexist"
     with pytest.raises(ValueError):
         parse_and_validate_semgrep_ecosystems(ecosystem_that_does_not_exist)
 
@@ -44,6 +55,8 @@ def test_parse_and_validate_semgrep_ecosystems():
 def _mock_get_dependencies(semgrep_app_token: str, deployment_id: str, ecosystem: str):
     if ecosystem == "gomod":
         return tests.data.semgrep.dependencies.RAW_DEPS_GOMOD
+    elif ecosystem == "maven":
+        return tests.data.semgrep.dependencies.RAW_DEPS_MAVEN
     elif ecosystem == "npm":
         return tests.data.semgrep.dependencies.RAW_DEPS_NPM
     else:
@@ -64,7 +77,7 @@ def test_sync_dependencies(mock_get_dependencies, mock_get_deployment, neo4j_ses
     # Arrange
     create_github_repos(neo4j_session)
     semgrep_app_token = "your_semgrep_app_token"
-    ecosystems = "gomod,npm"
+    ecosystems = "gomod,maven,npm"
     common_job_parameters = {
         "UPDATE_TAG": TEST_UPDATE_TAG,
     }
@@ -123,6 +136,13 @@ def test_sync_dependencies(mock_get_dependencies, mock_get_deployment, neo4j_ses
             "5.0.0",
             "npm",
         ),
+        (
+            "org.springframework:spring-core|6.1.5",
+            TEST_UPDATE_TAG,
+            "org.springframework:spring-core",
+            "6.1.5",
+            "maven",
+        ),
     }
 
     assert check_nodes(
@@ -151,6 +171,33 @@ def test_sync_dependencies(mock_get_dependencies, mock_get_deployment, neo4j_ses
             "gomod",
         ),
     }
+
+    assert check_nodes(
+        neo4j_session,
+        "SemgrepMavenLibrary",
+        [
+            "id",
+            "lastupdated",
+            "name",
+            "version",
+            "ecosystem",
+        ],
+    ) == {
+        (
+            "org.springframework:spring-core|6.1.5",
+            TEST_UPDATE_TAG,
+            "org.springframework:spring-core",
+            "6.1.5",
+            "maven",
+        ),
+    }
+
+    # Cross-tool contract: must match the purl-derived ID from Trivy/Syft/GitHub.
+    assert check_nodes(
+        neo4j_session,
+        "SemgrepMavenLibrary",
+        ["normalized_id"],
+    ) == {("maven|org.springframework/spring-core|6.1.5",)}
 
     assert check_nodes(
         neo4j_session,
@@ -192,6 +239,10 @@ def test_sync_dependencies(mock_get_dependencies, mock_get_deployment, neo4j_ses
             "123456",
             "github.com/foo/biz|5.0.0",
         ),
+        (
+            "123456",
+            "org.springframework:spring-core|6.1.5",
+        ),
     }
 
     assert check_rels(
@@ -213,6 +264,10 @@ def test_sync_dependencies(mock_get_dependencies, mock_get_deployment, neo4j_ses
         (
             "simpsoncorp/sample_repo",
             "github.com/foo/biz|5.0.0",
+        ),
+        (
+            "simpsoncorp/sample_repo",
+            "org.springframework:spring-core|6.1.5",
         ),
     }
 
@@ -366,4 +421,99 @@ def test_sync_dependencies_links_gitlab_project(
         (TEST_GITLAB_PROJECT_WEB_URL, "github.com/foo/baz|1.2.3"),
         (TEST_GITLAB_PROJECT_WEB_URL, "github.com/foo/buzz|4.5.0"),
         (TEST_GITLAB_PROJECT_WEB_URL, "github.com/foo/biz|5.0.0"),
+    }
+
+
+DEPLOYMENT_A = {"id": "100001", "name": "Org A", "slug": "org-a"}
+DEPLOYMENT_B = {"id": "100002", "name": "Org B", "slug": "org-b"}
+BAZ, BUZZ = cast(list[dict[str, Any]], tests.data.semgrep.dependencies.RAW_DEPS_GOMOD)[
+    :2
+]
+
+
+def _load_deployment_dependencies(
+    neo4j_session: neo4j.Session,
+    deployment: dict[str, str],
+    raw_deps: list[dict[str, Any]],
+    update_tag: int,
+    skip_cleanup: bool = False,
+) -> None:
+    cartography.intel.semgrep.deployment.load_semgrep_deployment(
+        neo4j_session, deployment, update_tag
+    )
+    with patch.object(
+        cartography.intel.semgrep.dependencies,
+        "get_dependencies",
+        return_value=copy.deepcopy(raw_deps),
+    ):
+        sync_dependencies(
+            neo4j_session,
+            "token",
+            "gomod",
+            update_tag,
+            {"UPDATE_TAG": update_tag, "DEPLOYMENT_ID": deployment["id"]},
+            skip_cleanup=skip_cleanup,
+        )
+
+
+def _dependencies_by_deployment(neo4j_session):
+    return check_rels(
+        neo4j_session,
+        "SemgrepDependency",
+        "id",
+        "SemgrepDeployment",
+        "id",
+        "RESOURCE",
+        rel_direction_right=False,
+    )
+
+
+def test_skipped_cleanup_keeps_a_dependency_a_failed_deployment_shares(
+    neo4j_session,
+):
+    # Arrange: last run, both deployments listed baz.
+    neo4j_session.run("MATCH (n) DETACH DELETE n")
+    _load_deployment_dependencies(neo4j_session, DEPLOYMENT_A, [BAZ], TEST_UPDATE_TAG)
+    _load_deployment_dependencies(neo4j_session, DEPLOYMENT_B, [BAZ], TEST_UPDATE_TAG)
+
+    # Act: A dropped baz; B fails before its dependencies sync.
+    _load_deployment_dependencies(
+        neo4j_session, DEPLOYMENT_A, [BUZZ], TEST_UPDATE_TAG + 1, skip_cleanup=True
+    )
+
+    # Assert: nothing was cleaned up, so A's stale link waits for a full run.
+    assert _dependencies_by_deployment(neo4j_session) == {
+        ("github.com/foo/baz|1.2.3", DEPLOYMENT_A["id"]),
+        ("github.com/foo/baz|1.2.3", DEPLOYMENT_B["id"]),
+        ("github.com/foo/buzz|4.5.0", DEPLOYMENT_A["id"]),
+    }
+
+
+def test_cleanup_after_every_deployment_loaded_keeps_dependencies_still_listed(
+    neo4j_session,
+):
+    # Arrange: last run, A listed baz and buzz, B listed baz.
+    neo4j_session.run("MATCH (n) DETACH DELETE n")
+    _load_deployment_dependencies(
+        neo4j_session, DEPLOYMENT_A, [BAZ, BUZZ], TEST_UPDATE_TAG
+    )
+    _load_deployment_dependencies(neo4j_session, DEPLOYMENT_B, [BAZ], TEST_UPDATE_TAG)
+    _load_deployment_dependencies(
+        neo4j_session, DEPLOYMENT_A, [], TEST_UPDATE_TAG + 1, skip_cleanup=True
+    )
+    _load_deployment_dependencies(
+        neo4j_session, DEPLOYMENT_B, [BAZ], TEST_UPDATE_TAG + 1, skip_cleanup=True
+    )
+
+    # Act
+    cartography.intel.semgrep.dependencies.cleanup_dependencies(
+        neo4j_session,
+        "gomod",
+        [DEPLOYMENT_A["id"], DEPLOYMENT_B["id"]],
+        TEST_UPDATE_TAG + 1,
+    )
+
+    # Assert
+    assert _dependencies_by_deployment(neo4j_session) == {
+        ("github.com/foo/baz|1.2.3", DEPLOYMENT_B["id"]),
     }

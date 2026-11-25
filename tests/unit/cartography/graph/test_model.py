@@ -209,6 +209,7 @@ def test_aws_label_migration_registry_matches_model_aliases():
         ("cartography.models.crowdstrike", "Crowdstrike"),
         ("cartography.models.spacelift", "Spacelift"),
         ("cartography.models.supabase", "Supabase"),
+        ("cartography.models.neon", "Neon"),
     ],
 )
 def test_provider_primary_node_labels_use_provider_prefix(module_name, prefix):
@@ -386,6 +387,13 @@ GLOBAL_NODE_LABELS: Set[str] = {
     # global `name|requirements` id and is referenced by repos across orgs, so
     # it uses unscoped cleanup like PythonLibrary.
     "GitHubDependency",
+    # A LangSmith user keeps the same `ls_user_id` across every organization they belong
+    # to, and each organization has its own view of whether that identity is disabled and
+    # what role it holds. Anchoring the identity to one organization would both let that
+    # organization overwrite another's state and let its cleanup DETACH DELETE someone who
+    # merely left it, so the per-organization facts live on LangSmithOrgMembership instead
+    # (same reasoning as GitHubUser, ModalUser and RailwayUser).
+    "LangSmithUser",
     # A Modal user keeps the same `us-...` id in every workspace they belong to. Anchoring the
     # identity to one workspace would let that workspace's cleanup DETACH DELETE someone who
     # merely left it, destroying the other workspaces' memberships, so the workspace link is a
@@ -427,8 +435,10 @@ ADDITIONAL_TOP_LEVEL_TENANT_LABELS: Set[str] = {
     "AWSOrganization",
     # DatabricksWorkspace remains the root tenant for workspace resources, while
     # DatabricksAccount is a separate top-level tenant for the account hierarchy
-    # (and is absent on the workspace-only path).
+    # (and is absent on the workspace-only path). DatabricksMetastore is the root
+    # of the Unity Catalog hierarchy, which several workspaces can share.
     "DatabricksAccount",
+    "DatabricksMetastore",
     # SnowflakeAccount remains the root tenant for every Snowflake resource, while
     # SnowflakeOrganization is a separate top-level tenant for the organization
     # hierarchy (and is absent unless the collector holds ORGADMIN).

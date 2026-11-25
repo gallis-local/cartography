@@ -1,16 +1,23 @@
 import json
 import logging
+from collections.abc import Iterable
+from collections.abc import Iterator
 from typing import Any
 
 import neo4j
+from kubernetes.client.exceptions import ApiException
 from kubernetes.client.models import V1LoadBalancerIngress
 from kubernetes.client.models import V1PortStatus
 from kubernetes.client.models import V1Service
 
 from cartography.client.core.tx import load
 from cartography.graph.job import GraphJob
+from cartography.intel.kubernetes.util import gcp_forwarding_rule_match_keys
 from cartography.intel.kubernetes.util import get_epoch
+from cartography.intel.kubernetes.util import get_gke_network_scope
 from cartography.intel.kubernetes.util import get_qualified_resource_name
+from cartography.intel.kubernetes.util import GKENetworkScope
+from cartography.intel.kubernetes.util import index_pods_by_namespace
 from cartography.intel.kubernetes.util import k8s_paginate
 from cartography.intel.kubernetes.util import K8sClient
 from cartography.models.kubernetes.services import KubernetesServiceSchema
@@ -18,11 +25,11 @@ from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
 
+GKE_NEG_STATUS_ANNOTATION = "cloud.google.com/neg-status"
 
-@timeit
-def get_services(client: K8sClient) -> list[V1Service]:
-    items = k8s_paginate(client.core.list_service_for_all_namespaces)
-    return items
+
+def get_services(client: K8sClient) -> Iterator[V1Service]:
+    return k8s_paginate(client.core.list_service_for_all_namespaces)
 
 
 def _format_service_selector(selector: dict[str, str]) -> str:
@@ -84,9 +91,37 @@ def _format_load_balancer_ingress(ingress: list[V1LoadBalancerIngress] | None) -
     return json.dumps(loadbalancer_ingress)
 
 
+def _gcp_neg_ids(
+    annotations: dict[str, str] | None,
+    gke_scope: GKENetworkScope | None,
+) -> list[str]:
+    """
+    Build the partial URIs of the zonal NEGs GKE lists in `cloud.google.com/neg-status`.
+    The annotation holds NEG names by service port and the zones they span; the
+    project comes from the cluster, since NEGs always live in the cluster's project.
+    """
+    if gke_scope is None or not annotations:
+        return []
+    raw_status = annotations.get(GKE_NEG_STATUS_ANNOTATION)
+    if not raw_status:
+        return []
+    # Fail the sync on a malformed annotation: treating it as "no NEGs" would delete
+    # existing TARGETS edges and hide the exposure path.
+    status = json.loads(raw_status)
+    neg_names = sorted(set((status.get("network_endpoint_groups") or {}).values()))
+    return [
+        f"projects/{gke_scope.project_id}/zones/{zone}/networkEndpointGroups/{name}"
+        for zone in status.get("zones") or []
+        for name in neg_names
+    ]
+
+
 def transform_services(
-    services: list[V1Service], all_pods: list[dict[str, Any]]
+    services: Iterable[V1Service],
+    all_pods: list[dict[str, Any]],
+    gke_scope: GKENetworkScope | None = None,
 ) -> list[dict[str, Any]]:
+    pods_by_namespace = index_pods_by_namespace(all_pods)
     services_list = []
     for service in services:
         item = {
@@ -102,11 +137,15 @@ def transform_services(
             "selector": _format_service_selector(service.spec.selector),
             "cluster_ip": service.spec.cluster_ip,
             "load_balancer_ip": service.spec.load_balancer_ip,
+            "load_balancer_ips": [],
         }
 
         # TODO: instead of storing a json string, we should probably create seperate nodes for each ingress
         if service.spec.type == "LoadBalancer":
-            if service.status.load_balancer:
+            if service.status and service.status.load_balancer:
+                item["load_balancer_ips"] = sorted(
+                    {i.ip for i in service.status.load_balancer.ingress or [] if i.ip}
+                )
                 item["load_balancer_ingress"] = _format_load_balancer_ingress(
                     service.status.load_balancer.ingress
                 )
@@ -114,23 +153,21 @@ def transform_services(
                 item["load_balancer_dns_names"] = _extract_load_balancer_dns_names(
                     service.status.load_balancer.ingress
                 )
+        item.update(
+            gcp_forwarding_rule_match_keys(item["load_balancer_ips"], gke_scope)
+        )
+        item["gcp_neg_ids"] = _gcp_neg_ids(service.metadata.annotations, gke_scope)
 
-        # check if pod labels match service selector and add pod_ids to item
-        pod_ids = []
-        for pod in all_pods:
-            if pod["namespace"] == service.metadata.namespace:
-                service_selector: dict[str, str] | None = service.spec.selector
-                pod_labels: dict[str, str] | None = json.loads(pod["labels"])
-
-                # check if pod labels match service selector
-                if pod_labels and service_selector:
-                    if all(
-                        service_selector[key] == pod_labels.get(key)
-                        for key in service_selector
-                    ):
-                        pod_ids.append(pod["uid"])
-
-        item["pod_ids"] = pod_ids
+        selector: dict[str, str] | None = service.spec.selector
+        item["pod_ids"] = [
+            pod_id
+            for pod_id, pod_labels in pods_by_namespace.get(
+                service.metadata.namespace, []
+            )
+            if selector
+            and pod_labels
+            and all(pod_labels.get(key) == value for key, value in selector.items())
+        ]
 
         services_list.append(item)
     return services_list
@@ -169,8 +206,22 @@ def sync_services(
     update_tag: int,
     common_job_parameters: dict[str, Any],
 ) -> None:
-    services = get_services(client)
-    transformed_services = transform_services(services, all_pods)
+    try:
+        transformed_services = transform_services(
+            get_services(client), all_pods, get_gke_network_scope(client)
+        )
+    except ApiException as err:
+        if err.status in (401, 403):
+            # A partial services snapshot cannot be told apart from an empty one, so skip
+            # load + cleanup and keep the previous data, like `sync_secrets`.
+            logger.warning(
+                "Cartography lacks permission to list services on cluster %s (status %s). "
+                "Skipping services sync and preserving previously synced data.",
+                client.name,
+                err.status,
+            )
+            return
+        raise
     load_services(
         session=session,
         services=transformed_services,

@@ -200,6 +200,45 @@ netlify_mapping = OntologyMapping(
     ],
 )
 
+langsmith_mapping = OntologyMapping(
+    module_name="langsmith",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="LangSmithSecret",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # created_at / updated_at: Not available - the workspace secrets endpoint
+                # returns key names only, with no timestamps.
+            ],
+        ),
+    ],
+)
+
+onepassword_mapping = OntologyMapping(
+    module_name="onepassword",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OnePasswordItem",
+            fields=[
+                # name: absent when the collector runs with --omit-titles.
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="title", required=True
+                ),
+                OntologyFieldMapping(
+                    ontology_field="created_at", node_field="created_at"
+                ),
+                OntologyFieldMapping(
+                    ontology_field="updated_at", node_field="updated_at"
+                ),
+                # rotation_enabled: 1Password items have no rotation setting.
+            ],
+        ),
+    ],
+)
+
+
 SECRETS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "aws": aws_mapping,
     "gcp": gcp_mapping,
@@ -210,6 +249,7 @@ SECRETS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "supabase": supabase_mapping,
     "modal": modal_mapping,
     "netlify": netlify_mapping,
+    "onepassword": onepassword_mapping,
     "snowflake": OntologyMapping(
         module_name="snowflake",
         nodes=[
@@ -228,4 +268,5 @@ SECRETS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
             ),
         ],
     ),
+    "langsmith": langsmith_mapping,
 }

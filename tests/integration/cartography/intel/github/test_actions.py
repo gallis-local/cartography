@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 import cartography.intel.github.actions
 from tests.data.github.actions import GET_ENV_SECRETS_PRODUCTION
 from tests.data.github.actions import GET_ENV_SECRETS_STAGING
@@ -12,6 +14,7 @@ from tests.data.github.actions import GET_REPO_SECRETS
 from tests.data.github.actions import GET_REPO_VARIABLES
 from tests.data.github.actions import GET_REPO_WORKFLOWS
 from tests.data.github.workflow_content import WORKFLOW_CI_CONTENT
+from tests.data.github.workflow_content import WORKFLOW_COMPOUND_SECRETS
 from tests.integration.util import check_nodes
 from tests.integration.util import check_rels
 
@@ -26,10 +29,10 @@ def _ensure_repo_exists(neo4j_session):
     """Ensure the GitHubOrganization and GitHubRepository nodes exist for sync tests."""
     neo4j_session.run(
         """
-        MERGE (org:GitHubOrganization{id: "https://github.com/simpsoncorp"})
+        MERGE (org:GitHubOrganization{id: "https://fake.github.net/simpsoncorp"})
         SET org.username = "simpsoncorp"
 
-        MERGE (repo:GitHubRepository{id: "https://github.com/simpsoncorp/sample_repo"})
+        MERGE (repo:GitHubRepository{id: "https://fake.github.net/simpsoncorp/sample_repo"})
         SET repo.name = "sample_repo"
 
         MERGE (repo)-[:OWNER]->(org)
@@ -120,37 +123,37 @@ def test_sync_github_actions_org_secrets(
         neo4j_session, "GitHubActionsSecret", ["id", "name", "level", "visibility"]
     ) == {
         (
-            "https://github.com/simpsoncorp/actions/secrets/NPM_TOKEN",
+            "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
             "NPM_TOKEN",
             "organization",
             "all",
         ),
         (
-            "https://github.com/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
+            "https://fake.github.net/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
             "AWS_ACCESS_KEY_ID",
             "organization",
             "private",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
             "DEPLOY_KEY",
             "repository",
             None,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
             "DATABASE_URL",
             "repository",
             None,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
             "PROD_API_KEY",
             "environment",
             None,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
             "STAGING_API_KEY",
             "environment",
             None,
@@ -169,12 +172,12 @@ def test_sync_github_actions_org_secrets(
     )
     assert {
         (
-            "https://github.com/simpsoncorp/actions/secrets/NPM_TOKEN",
-            "https://github.com/simpsoncorp",
+            "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+            "https://fake.github.net/simpsoncorp",
         ),
         (
-            "https://github.com/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
-            "https://github.com/simpsoncorp",
+            "https://fake.github.net/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
+            "https://fake.github.net/simpsoncorp",
         ),
     }.issubset(org_secret_rels)
 
@@ -260,13 +263,13 @@ def test_sync_github_actions_org_variables(
     # Assert - Verify org-level variables were created
     expected_org_variables = {
         (
-            "https://github.com/simpsoncorp/actions/variables/NODE_VERSION",
+            "https://fake.github.net/simpsoncorp/actions/variables/NODE_VERSION",
             "NODE_VERSION",
             "18",
             "organization",
         ),
         (
-            "https://github.com/simpsoncorp/actions/variables/DEPLOY_ENV",
+            "https://fake.github.net/simpsoncorp/actions/variables/DEPLOY_ENV",
             "DEPLOY_ENV",
             "production",
             "organization",
@@ -375,9 +378,9 @@ def test_sync_github_actions_workflows(
         "HAS_WORKFLOW",
         rel_direction_right=False,
     ) == {
-        (12345678, "https://github.com/simpsoncorp/sample_repo"),
-        (12345679, "https://github.com/simpsoncorp/sample_repo"),
-        (12345680, "https://github.com/simpsoncorp/sample_repo"),
+        (12345678, "https://fake.github.net/simpsoncorp/sample_repo"),
+        (12345679, "https://fake.github.net/simpsoncorp/sample_repo"),
+        (12345680, "https://fake.github.net/simpsoncorp/sample_repo"),
     }
 
     # Assert - Verify RESOURCE relationships to organization
@@ -390,9 +393,9 @@ def test_sync_github_actions_workflows(
         "RESOURCE",
         rel_direction_right=False,
     ) == {
-        (12345678, "https://github.com/simpsoncorp"),
-        (12345679, "https://github.com/simpsoncorp"),
-        (12345680, "https://github.com/simpsoncorp"),
+        (12345678, "https://fake.github.net/simpsoncorp"),
+        (12345679, "https://fake.github.net/simpsoncorp"),
+        (12345680, "https://fake.github.net/simpsoncorp"),
     }
 
 
@@ -490,8 +493,8 @@ def test_sync_github_actions_environments(
         "HAS_ENVIRONMENT",
         rel_direction_right=False,
     ) == {
-        (987654321, "https://github.com/simpsoncorp/sample_repo"),
-        (987654322, "https://github.com/simpsoncorp/sample_repo"),
+        (987654321, "https://fake.github.net/simpsoncorp/sample_repo"),
+        (987654322, "https://fake.github.net/simpsoncorp/sample_repo"),
     }
 
     # Assert - Verify RESOURCE relationships to organization
@@ -504,8 +507,8 @@ def test_sync_github_actions_environments(
         "RESOURCE",
         rel_direction_right=False,
     ) == {
-        (987654321, "https://github.com/simpsoncorp"),
-        (987654322, "https://github.com/simpsoncorp"),
+        (987654321, "https://fake.github.net/simpsoncorp"),
+        (987654322, "https://fake.github.net/simpsoncorp"),
     }
 
 
@@ -590,12 +593,12 @@ def test_sync_github_actions_repo_secrets(
     # Assert - Verify repo-level secrets were created
     expected_repo_secrets = {
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
             "DEPLOY_KEY",
             "repository",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
             "DATABASE_URL",
             "repository",
         ),
@@ -616,14 +619,28 @@ def test_sync_github_actions_repo_secrets(
         rel_direction_right=False,
     ) == {
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
-            "https://github.com/simpsoncorp/sample_repo",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DEPLOY_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
-            "https://github.com/simpsoncorp/sample_repo",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo",
         ),
     }
+
+    # Act - a later sync where the listing is unavailable keeps the known secrets
+    mock_repo_secrets.return_value = None
+    cartography.intel.github.actions.sync(
+        neo4j_session,
+        {"UPDATE_TAG": TEST_UPDATE_TAG + 1},
+        FAKE_API_KEY,
+        TEST_GITHUB_URL,
+        TEST_ORGANIZATION,
+    )
+
+    assert expected_repo_secrets.issubset(
+        check_nodes(neo4j_session, "GitHubActionsSecret", ["id", "name", "level"])
+    )
 
 
 @patch.object(
@@ -707,13 +724,13 @@ def test_sync_github_actions_repo_variables(
     # Assert - Verify repo-level variables were created
     expected_repo_variables = {
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/variables/LOG_LEVEL",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/variables/LOG_LEVEL",
             "LOG_LEVEL",
             "info",
             "repository",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/actions/variables/MAX_RETRIES",
+            "https://fake.github.net/simpsoncorp/sample_repo/actions/variables/MAX_RETRIES",
             "MAX_RETRIES",
             "3",
             "repository",
@@ -806,12 +823,12 @@ def test_sync_github_actions_env_secrets(
     # Assert - Verify environment-level secrets were created
     expected_env_secrets = {
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
             "PROD_API_KEY",
             "environment",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
             "STAGING_API_KEY",
             "environment",
         ),
@@ -832,11 +849,11 @@ def test_sync_github_actions_env_secrets(
         rel_direction_right=False,
     ) == {
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/production/secrets/PROD_API_KEY",
             987654321,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/secrets/STAGING_API_KEY",
             987654322,
         ),
     }
@@ -923,19 +940,19 @@ def test_sync_github_actions_env_variables(
     # Assert - Verify environment-level variables were created
     expected_env_variables = {
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/production/variables/API_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/production/variables/API_URL",
             "API_URL",
             "https://api.production.example.com",
             "environment",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/variables/API_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/variables/API_URL",
             "API_URL",
             "https://api.staging.example.com",
             "environment",
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/variables/DEBUG_MODE",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/variables/DEBUG_MODE",
             "DEBUG_MODE",
             "true",
             "environment",
@@ -957,20 +974,95 @@ def test_sync_github_actions_env_variables(
         rel_direction_right=False,
     ) == {
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/production/variables/API_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/production/variables/API_URL",
             987654321,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/variables/API_URL",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/variables/API_URL",
             987654322,
         ),
         (
-            "https://github.com/simpsoncorp/sample_repo/environments/staging/variables/DEBUG_MODE",
+            "https://fake.github.net/simpsoncorp/sample_repo/environments/staging/variables/DEBUG_MODE",
             987654322,
         ),
     }
 
 
+@pytest.mark.parametrize(
+    "workflow_content,expected_secret_rels",
+    [
+        (
+            WORKFLOW_CI_CONTENT,
+            {
+                (
+                    12345678,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345678,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+                (
+                    12345679,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345679,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+                (
+                    12345680,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345680,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+            },
+        ),
+        (
+            WORKFLOW_COMPOUND_SECRETS,
+            {
+                (
+                    12345678,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345678,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
+                ),
+                (
+                    12345678,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+                (
+                    12345679,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345679,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
+                ),
+                (
+                    12345679,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+                (
+                    12345680,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/NPM_TOKEN",
+                ),
+                (
+                    12345680,
+                    "https://fake.github.net/simpsoncorp/actions/secrets/AWS_ACCESS_KEY_ID",
+                ),
+                (
+                    12345680,
+                    "https://fake.github.net/simpsoncorp/sample_repo/actions/secrets/DATABASE_URL",
+                ),
+            },
+        ),
+    ],
+)
 @patch.object(
     cartography.intel.github.actions,
     "get_org_secrets",
@@ -1035,10 +1127,13 @@ def test_sync_github_actions_workflow_parsing(
     mock_org_variables,
     mock_org_secrets,
     neo4j_session,
+    workflow_content,
+    expected_secret_rels,
 ):
     """Test that workflow YAML parsing extracts actions, secrets, and permissions."""
     # Arrange
     _ensure_repo_exists(neo4j_session)
+    mock_workflow_content.return_value = workflow_content
 
     # Act
     cartography.intel.github.actions.sync(
@@ -1072,9 +1167,15 @@ def test_sync_github_actions_workflow_parsing(
     ).single()["count"]
     assert uses_action_rels >= 2
 
-    # Assert - Verify REFERENCES_SECRET relationships were created for existing secrets
-    # The workflow references NPM_TOKEN which exists as an org secret
-    refs_secret_rels = neo4j_session.run(
-        "MATCH (:GitHubWorkflow)-[r:REFERENCES_SECRET]->(:GitHubActionsSecret) RETURN count(r) as count",
-    ).single()["count"]
-    assert refs_secret_rels >= 1
+    # Assert: exact targets distinguish detected references from quoted literals.
+    assert (
+        check_rels(
+            neo4j_session,
+            "GitHubWorkflow",
+            "id",
+            "GitHubActionsSecret",
+            "id",
+            "REFERENCES_SECRET",
+        )
+        == expected_secret_rels
+    )

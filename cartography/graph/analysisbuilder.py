@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from functools import singledispatch
 from typing import Any
 from typing import cast
+from typing import Sequence
 
 from cartography.graph.analysis import AddRelationship
 from cartography.graph.analysis import AddToSet
@@ -49,13 +51,72 @@ def compile_query(
         _cleanup_effect(effect)
     prefixes: list[str] = []
     if scope:
-        prefixes.append(_declared_scope_match(scope, scope_index))
+        prefixes.append(_declared_scope_match(scope, scope_index, statement.match))
+    effects = [_compile_effect(e) for e in statement.effects]
+    if statement.batched_transactions:
+        effects = [_commit_in_batches(statement.effects, effects)]
     return "\n".join(
         (
             *prefixes,
             _gate_incremental_targets(statement.match, statement).strip(),
-            *(_compile_effect(e) for e in statement.effects),
+            *effects,
         )
+    )
+
+
+def _commit_in_batches(
+    effects: Sequence[StatementEffect],
+    compiled_effects: Sequence[str],
+) -> str:
+    """
+    Wrap the effects so one scan writes up to $SCAN_LIMIT_SIZE rows and commits every $LIMIT_SIZE.
+
+    A single transaction holds every relationship it creates until it commits, so a match that
+    returns millions of rows exhausts the transaction memory pool. The statement must run in
+    auto-commit transactions; see ``GraphStatement(batched_transactions=True)``.
+    """
+    batch_rows = [_batch_row(effect) for effect in effects]
+    variables = ", ".join(
+        dict.fromkeys(variable for row in batch_rows for variable in row.variables)
+    )
+    # MERGE restamps an edge it already wrote, so without this filter every run reports
+    # updates and the statement never finishes.
+    pending = " OR ".join(row.pending for row in batch_rows)
+    writes = "\n".join(compiled_effects)
+    return (
+        f"WITH {variables}\n"
+        f"WHERE {pending}\n"
+        f"WITH {variables} LIMIT $SCAN_LIMIT_SIZE\n"
+        f"CALL ({variables}) {{\n"
+        f"{writes}\n"
+        "} IN TRANSACTIONS OF $LIMIT_SIZE ROWS"
+    )
+
+
+@dataclass(frozen=True)
+class _BatchRow:
+    variables: tuple[str, ...]
+    pending: str
+
+
+@singledispatch
+def _batch_row(effect: StatementEffect) -> _BatchRow:
+    raise TypeError(f"batched_transactions does not support {effect!r}")
+
+
+@_batch_row.register
+def _(effect: AddRelationship) -> _BatchRow:
+    if effect.properties or effect.firstseen is not None:
+        # Their values can reference match variables that the batch does not carry.
+        raise ValueError(
+            "batched_transactions does not support AddRelationship properties "
+            "or firstseen."
+        )
+    arrow = "-" if effect.undirected else "->"
+    return _BatchRow(
+        (effect.source, effect.target),
+        f"NOT exists(({effect.source})-[:{effect.rel} "
+        f"{{lastupdated: $UPDATE_TAG}}]{arrow}({effect.target}))",
     )
 
 
@@ -73,6 +134,7 @@ def to_graph_statement(
         iterationsize=statement.iterationsize,
         parent_job_name=parent_job_name,
         parent_job_sequence_num=sequence_num,
+        batched_transactions=statement.batched_transactions,
     )
 
 
@@ -172,6 +234,7 @@ def _validate_identifier(value: str, description: str) -> str:
 def _declared_scope_match(
     scope: ScopeById,
     scope_index: int,
+    match: str,
 ) -> str:
     if scope.scope_on is None:
         raise ValueError("ScopeById requires scope_on for analysis queries.")
@@ -185,6 +248,10 @@ def _declared_scope_match(
     id_param = _validate_identifier(scope.id_param, "scope ID parameter")
     rel_label = _validate_identifier(scope.rel_label, "scope relationship label")
     _validate_identifier(alias, "scope variable")
+    if _node_label_for_alias(match, alias) == scope_label:
+        # The scope node is not a RESOURCE of itself, so a statement that writes a
+        # marker on it, such as a per-account check, anchors it by ID.
+        return f"MATCH ({alias}:{scope_label} {{{id_property}: ${id_param}}})"
     return (
         f"MATCH (scope:{scope_label} "
         f"{{{id_property}: ${id_param}}})-[:{rel_label}]->({alias})"
@@ -271,6 +338,12 @@ def _find_in_required_match_patterns(
         if found:
             return found
     return None
+
+
+def _node_label_for_alias(match: str, alias: str) -> str | None:
+    pattern = re.compile(rf"\(\s*{re.escape(alias)}\s*:\s*([A-Za-z_][A-Za-z0-9_]*)")
+    found = pattern.search(match)
+    return found.group(1) if found else None
 
 
 def _require_label(label: str | None) -> str:
@@ -389,7 +462,12 @@ def _(effect: SetProperty) -> PropertyEffect:
 
 @_property_effect.register
 def _(effect: SetProperties) -> PropertyEffect:
-    return PropertyEffect(_require_label(effect.label), tuple(effect.properties))
+    return PropertyEffect(
+        _require_label(effect.label),
+        tuple(effect.properties),
+        cleanup_before_statements=effect.cleanup_stamp is None,
+        cleanup_stamp=effect.cleanup_stamp,
+    )
 
 
 @_property_effect.register
@@ -493,10 +571,16 @@ def _(effect: RelationshipEffect, scope: ScopeById | None) -> str:
 def _(effect: PropertyEffect, scope: ScopeById | None) -> str:
     node = f"(node:{effect.node_label})"
     match = f"MATCH {node}"
-    if scope:
+    if scope and effect.node_label == scope.label:
+        # A property on the scope node itself, such as a per-account marker.
+        match = f"MATCH {_scope_match(scope, 'node')}"
+    elif scope:
         match = f"MATCH {_scope_match(scope, 'scope')}-[:{scope.rel_label}]->{node}"
     props = ", ".join(f"node.{prop}" for prop in effect.properties)
     filters = " OR ".join(f"node.{prop} IS NOT NULL" for prop in effect.properties)
+    if effect.cleanup_stamp:
+        stamp = f"node.{effect.cleanup_stamp}"
+        filters = f"({filters}) AND ({stamp} IS NULL OR {stamp} <> $UPDATE_TAG)"
     return f"{match}\nWHERE {filters}\nWITH node LIMIT $LIMIT_SIZE\nREMOVE {props}"
 
 

@@ -78,6 +78,20 @@ def _extract_error_message(response: requests.Response) -> str:
     return response.text
 
 
+def _graphql_error_messages(errors: list[dict[str, Any]]) -> str:
+    return "; ".join(error.get("message", "") for error in errors)
+
+
+def _is_access_policy_failure(error: dict[str, Any]) -> bool:
+    # The synced organization's own IP allow list or SAML SSO withholds the whole
+    # page, so on a usable page these flags mark a field another organization owns,
+    # such as a fork's upstream `parent`. Nothing on this side can lift them.
+    extensions = error.get("extensions") or {}
+    return bool(
+        extensions.get("ip_allow_list_failure") or extensions.get("saml_failure")
+    )
+
+
 def _get_rate_limit_reset_sleep_seconds(response: requests.Response) -> int | None:
     """Return seconds to sleep until the primary rate limit resets, if available."""
     remaining = response.headers.get("x-ratelimit-remaining")
@@ -138,16 +152,39 @@ def get_retry_sleep_seconds_for_http_error(
     return None
 
 
-def handle_rate_limit_sleep(token: Any, api_url: str) -> None:
-    """Wait for the configured instance's GraphQL budget to reset when low."""
+# Servers seen answering /rate_limit with 404. The check runs before every page,
+# and without this a server with rate limiting off gets one extra request per page.
+_RATE_LIMITING_OFF: set[str] = set()
+
+
+def _get_rate_limit(token: Any, base_url: str, resource: str) -> dict[str, Any] | None:
+    """
+    Return one resource of the instance's rate limit, or None when it has none.
+
+    GitHub Enterprise Server has API rate limiting off by default, and then
+    answers /rate_limit with 404: there is no budget to wait for.
+    """
+    if base_url in _RATE_LIMITING_OFF:
+        return None
     response = requests.get(
-        f"{rest_api_base_url(api_url)}/rate_limit",
+        f"{base_url}/rate_limit",
         headers={"Authorization": f"Bearer {_resolve_token(token)}"},
         timeout=_TIMEOUT,
     )
+    if response.status_code == 404 and urlsplit(base_url).netloc != "api.github.com":
+        logger.info("GitHub at %s has API rate limiting turned off", base_url)
+        _RATE_LIMITING_OFF.add(base_url)
+        return None
     response.raise_for_status()
-    response_json = response.json()
-    rate_limit_obj = response_json["resources"]["graphql"]
+    rate_limit: dict[str, Any] = response.json()["resources"][resource]
+    return rate_limit
+
+
+def handle_rate_limit_sleep(token: Any, api_url: str) -> None:
+    """Wait for the configured instance's GraphQL budget to reset when low."""
+    rate_limit_obj = _get_rate_limit(token, rest_api_base_url(api_url), "graphql")
+    if rate_limit_obj is None:
+        return
     remaining = rate_limit_obj["remaining"]
     threshold = _GRAPHQL_RATE_LIMIT_REMAINING_THRESHOLD
     if remaining > threshold:
@@ -261,7 +298,7 @@ def fetch_all(
     org_data: dict[str, Any] = {}
     data: PaginatedGraphqlData = PaginatedGraphqlData(nodes=[], edges=[])
     retry = 0
-    null_resource_retry = 0
+    unusable_page_retry = 0
 
     while has_next_page:
         exc: Any = None
@@ -332,18 +369,37 @@ def fetch_all(
             sleep_with_jitter(sleep_seconds)
             continue
 
-        if "data" not in resp:
+        # GitHub answers a query it failed to execute, such as one that timed out,
+        # with HTTP 200 and only `errors`. The same query usually succeeds on retry.
+        if resp.get("data") is None:
+            unusable_page_retry += 1
+            errors = resp.get("errors") or []
+            error_messages = _graphql_error_messages(errors)
+            if unusable_page_retry >= retries:
+                raise ValueError(
+                    f"GitHub returned no data for resource `{resource_type}` of org `{organization}` "
+                    f"after {unusable_page_retry} attempts: {error_messages}",
+                )
+            delay = 2**unusable_page_retry
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                # The next attempt checks the primary reset; back off here
+                # for secondary limits, which /rate_limit cannot report.
+                delay = 60 * 2 ** (unusable_page_retry - 1)
             logger.warning(
-                f'Got no "data" attribute in response: {resp}. '
-                f"Stopping requests for organization: {organization} and "
-                f"resource_type: {resource_type}",
+                "GitHub returned no data for resource `%s` of org `%s`. Retrying (%d/%d) in %d seconds. "
+                "Errors: %s",
+                resource_type,
+                organization,
+                unusable_page_retry,
+                retries,
+                delay,
+                error_messages,
             )
-            has_next_page = False
+            sleep_with_jitter(delay)
             continue
 
         if resp["data"].get("organization") is None:
-            errors = resp.get("errors", [])
-            error_messages = "; ".join(e.get("message", "") for e in errors)
+            error_messages = _graphql_error_messages(resp.get("errors") or [])
             raise ValueError(
                 f"Didn't get any organization data for '{organization}': {error_messages}",
             )
@@ -353,11 +409,11 @@ def fetch_all(
             resource = resp["data"]["organization"][resource_type][resource_inner_type]
 
         if resource is None:
-            null_resource_retry += 1
-            if null_resource_retry >= retries:
+            unusable_page_retry += 1
+            if unusable_page_retry >= retries:
                 raise ValueError(
                     f"Got null resource for organization: {organization}, resource_type: {resource_type}, "
-                    f"resource_inner_type: {resource_inner_type} after {null_resource_retry} retries. "
+                    f"resource_inner_type: {resource_inner_type} after {unusable_page_retry} retries. "
                     f"This may indicate a GitHub API timeout on a nested field.",
                 )
             logger.warning(
@@ -366,25 +422,36 @@ def fetch_all(
                 organization,
                 resource_type,
                 resource_inner_type,
-                null_resource_retry,
+                unusable_page_retry,
                 retries,
             )
-            sleep_with_jitter(2**null_resource_retry)
+            sleep_with_jitter(2**unusable_page_retry)
             continue
 
-        # Successful non-null resource; reset null-resource retry counter.
-        null_resource_retry = 0
+        unusable_page_retry = 0
 
         # The page is usable, so nothing above retries it. Any errors GitHub still
-        # reported are therefore terminal for this page and may mean it is
-        # incomplete, so surface them here rather than in call_github_api().
-        if resp.get("errors"):
+        # reported are therefore terminal for this page, so surface them here
+        # rather than in call_github_api().
+        page_errors = resp.get("errors") or []
+        access_policy_errors = [e for e in page_errors if _is_access_policy_failure(e)]
+        other_errors = [e for e in page_errors if not _is_access_policy_failure(e)]
+        if access_policy_errors:
+            logger.info(
+                "GitHub withheld %d field(s) on a page of resource `%s` for org `%s` that other "
+                "organizations restrict with an IP allow list or SAML SSO; those fields are null. %s",
+                len(access_policy_errors),
+                resource_type,
+                organization,
+                _graphql_error_messages(access_policy_errors),
+            )
+        if other_errors:
             logger.warning(
                 "GitHub returned errors alongside a usable page of resource `%s` for org `%s`; "
                 "the page may be incomplete. Errors: %s",
                 resource_type,
                 organization,
-                resp["errors"],
+                other_errors,
             )
 
         # Allow for paginating both nodes and edges fields of the GitHub GQL structure.
@@ -399,10 +466,6 @@ def fetch_all(
                 "login": resp["data"]["organization"]["login"],
             }
 
-    if not org_data:
-        raise ValueError(
-            f"Didn't get any organization data for organization: {organization} and resource_type: {resource_type}",
-        )
     return data, org_data
 
 
@@ -467,15 +530,9 @@ def handle_rest_rate_limit_sleep(token: str, base_url: str) -> None:
     :param token: The GitHub API token as string.
     :param base_url: The REST API base URL.
     """
-    rate_limit_url = f"{base_url}/rate_limit"
-    response = requests.get(
-        rate_limit_url,
-        headers={"Authorization": f"Bearer {_resolve_token(token)}"},
-        timeout=_TIMEOUT,
-    )
-    response.raise_for_status()
-    response_json = response.json()
-    rate_limit_obj = response_json["resources"]["core"]
+    rate_limit_obj = _get_rate_limit(token, base_url, "core")
+    if rate_limit_obj is None:
+        return
     remaining = rate_limit_obj["remaining"]
     threshold = _REST_RATE_LIMIT_REMAINING_THRESHOLD
     if remaining > threshold:
