@@ -2,6 +2,7 @@ import json
 import pkgutil
 import re
 from collections import defaultdict
+from dataclasses import asdict
 from pathlib import Path
 from types import ModuleType
 from typing import Iterator
@@ -16,11 +17,13 @@ from cartography.graph.analysis import AnalysisJob
 from cartography.graph.analysis import AnalysisStatement
 from cartography.graph.analysis import Case
 from cartography.graph.analysis import IncrementalMatch
+from cartography.graph.analysis import Param
 from cartography.graph.analysis import PropertyEffect
 from cartography.graph.analysis import RawCypher
 from cartography.graph.analysis import RelationshipEffect
 from cartography.graph.analysis import RelationshipPropertyEffect
 from cartography.graph.analysis import ScopeById
+from cartography.graph.analysis import SetProperties
 from cartography.graph.analysis import SetProperty
 from cartography.graph.analysis import SetRelationshipProperty
 from cartography.graph.analysis import SetRelationshipPropertyIfMissing
@@ -29,6 +32,8 @@ from cartography.graph.analysisbuilder import properties_set
 from cartography.graph.analysisbuilder import relationships_added
 from cartography.graph.analysisbuilder import to_graph_job
 from cartography.graph.job import GraphJob
+from cartography.models.core.nodes import CartographyNodeSchema
+from cartography.models.introspection import iter_model_classes
 from tests.unit.cartography.graph.helpers import clean_query_list
 
 MUTATING_CYPHER_RE = re.compile(
@@ -116,6 +121,46 @@ def test_typed_analysis_jobs_do_not_declare_conflicting_cleanup_guards():
                 "per distinct value and the least restrictive one deletes the edges "
                 "the others were written to keep."
             )
+
+
+# Properties that both ingestion and an analysis job write on purpose.
+INGESTED_AND_ANALYZED_PROPERTIES = {
+    ("AWSAccount", "foreign"),
+    ("AWSS3Bucket", "anonymous_access"),
+    ("AWSS3Bucket", "anonymous_actions"),
+}
+
+
+def test_node_schemas_mark_analysis_owned_properties():
+    """
+    A data-fed PropertyRef makes every load() write the property back to null when the
+    transform does not supply it, so an analysis-owned value disappears until the job
+    runs again. Analysis-owned properties must be declared with set_by_analysis=True.
+    """
+    analysis_owned: set[tuple[str, str]] = set()
+    for job in _analysis_jobs():
+        for effect in properties_set(job):
+            if isinstance(effect, PropertyEffect):
+                analysis_owned.update(
+                    (effect.node_label, prop) for prop in effect.properties
+                )
+
+    for model_class in iter_model_classes():
+        if not issubclass(model_class, CartographyNodeSchema):
+            continue
+        schema = model_class()
+        for name, prop_ref in asdict(schema.properties).items():
+            key = (schema.label, name)
+            if prop_ref.set_by_analysis:
+                assert key in analysis_owned, (
+                    f"{model_class.__name__}.{name} is set_by_analysis but no "
+                    "typed analysis job sets it."
+                )
+            elif key in analysis_owned and key not in INGESTED_AND_ANALYZED_PROPERTIES:
+                raise AssertionError(
+                    f"{model_class.__name__}.{name} is set by an analysis job; declare it "
+                    "with set_by_analysis=True so load() does not reset it.",
+                )
 
 
 def test_relationship_job_appends_cleanup_statement():
@@ -223,6 +268,92 @@ def test_statement_compiles_add_relationship_effect():
             """
         ]
     )
+
+
+def test_batched_statement_commits_pending_relationships_in_batches():
+    # Arrange
+    job = AnalysisJob(
+        name="Findings to packages",
+        statements=(
+            AnalysisStatement(
+                match="MATCH (f:Finding)-[:AFFECTS]->(:ScannerPackage)<-[:DETECTED_AS]-(p:Package)",
+                effects=(
+                    AddRelationship(
+                        "f",
+                        "AFFECTS",
+                        "p",
+                        source_label="Finding",
+                        target_label="Package",
+                    ),
+                ),
+                batched_transactions=True,
+                iterationsize=500,
+            ),
+        ),
+    )
+
+    # Act
+    statement = to_graph_job(job).statements[0]
+
+    # Assert
+    assert statement.batched_transactions is True
+    assert statement.parameters["LIMIT_SIZE"] == 500
+    assert clean_query_list([statement.query]) == clean_query_list(
+        [
+            """
+            MATCH (f:Finding)-[:AFFECTS]->(:ScannerPackage)<-[:DETECTED_AS]-(p:Package)
+            WITH f, p
+            WHERE NOT exists((f)-[:AFFECTS {lastupdated: $UPDATE_TAG}]->(p))
+            WITH f, p LIMIT $SCAN_LIMIT_SIZE
+            CALL (f, p) {
+            MERGE (f)-[r:AFFECTS]->(p)
+            ON CREATE SET r.firstseen = timestamp()
+            SET r.lastupdated = $UPDATE_TAG
+            } IN TRANSACTIONS OF $LIMIT_SIZE ROWS
+            """
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    ("effect", "error"),
+    [
+        (SetProperty("f", "linked", True, label="Finding"), TypeError),
+        (
+            AddRelationship(
+                "f",
+                "AFFECTS",
+                "p",
+                source_label="Finding",
+                target_label="Package",
+                properties={"severity": RawCypher("s.level")},
+            ),
+            ValueError,
+        ),
+        (
+            AddRelationship(
+                "f",
+                "AFFECTS",
+                "p",
+                source_label="Finding",
+                target_label="Package",
+                firstseen=0,
+            ),
+            ValueError,
+        ),
+    ],
+    ids=["property_effect", "relationship_properties", "relationship_firstseen"],
+)
+def test_batched_statement_rejects_effects_it_cannot_carry_into_a_batch(effect, error):
+    statement = AnalysisStatement(
+        match="MATCH (f:Finding)-[:AFFECTS]->(s:ScannerPackage)<-[:DETECTED_AS]-(p:Package)",
+        effects=(effect,),
+        batched_transactions=True,
+        iterationsize=500,
+    )
+
+    with pytest.raises(error, match="batched_transactions"):
+        compile_query(statement)
 
 
 @pytest.mark.parametrize(
@@ -396,6 +527,15 @@ def test_statement_rejects_property_effect_without_label():
         compile_query(statement)
 
 
+def test_statement_rejects_batching_a_raw_query():
+    with pytest.raises(ValueError, match="batched_transactions"):
+        AnalysisStatement(
+            query="MATCH (n:AWSEC2Instance) SET n.exposed = true",
+            batched_transactions=True,
+            iterationsize=500,
+        )
+
+
 def test_statement_rejects_mixed_raw_and_compiled_query():
     # Act and assert
     with pytest.raises(ValueError, match="query or match/effects"):
@@ -532,6 +672,41 @@ def test_property_job_prepends_cleanup_statement():
         "-[:RESOURCE]->(s)\n"
         "MATCH (g:GitHubRepository"
     )
+
+
+@pytest.mark.parametrize(
+    "properties",
+    [
+        {"private": True},
+        {"private": True, "checked_at": 123},
+        {"private": True, "checked_at": Param("OTHER_TAG")},
+    ],
+    ids=["missing", "literal", "other_parameter"],
+)
+def test_set_properties_cleanup_stamp_must_hold_the_update_tag(properties):
+    # Act and assert
+    with pytest.raises(ValueError, match="cleanup_stamp"):
+        SetProperties("n", properties, label="Node", cleanup_stamp="checked_at")
+
+
+@pytest.mark.parametrize(
+    "cleanup,error",
+    [
+        # Cleanup after the statements would clear what they just wrote.
+        ({"cleanup_before_statements": False}, "requires a cleanup_stamp"),
+        (
+            {"cleanup_before_statements": False, "cleanup_stamp": "checked_at"},
+            "one of its properties",
+        ),
+        # A stamp only tells a trailing cleanup which values are current.
+        ({"cleanup_stamp": "flag"}, "after the statements"),
+    ],
+    ids=["after_without_stamp", "stamp_not_a_property", "stamp_before"],
+)
+def test_property_effect_rejects_inconsistent_cleanup_stamp(cleanup, error):
+    # Act and assert
+    with pytest.raises(ValueError, match=error):
+        PropertyEffect("Node", ("flag",), **cleanup)
 
 
 def test_property_effect_requires_properties():

@@ -5,6 +5,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from okta.errors.http_error import HTTPError
+from okta.errors.okta_api_error import OktaAPIError
 from okta.models.application_json_converter import ApplicationJsonConverter
 from okta.models.authenticator_base import AuthenticatorBase
 from okta.models.user_factor import UserFactor
@@ -12,6 +14,7 @@ from okta.models.user_factor import UserFactor
 import cartography.intel.okta.common  # noqa: F401
 from cartography.intel.okta.common import collect_paginated
 from cartography.intel.okta.common import collect_raw_paginated
+from cartography.intel.okta.common import is_missing_scope_error
 from cartography.intel.okta.common import OktaApiError
 from tests.data.okta.application import APPLICATION_WITH_REDITECT_URIS
 from tests.data.okta.application import BOOKMARK_APPLICATION_WITHOUT_URL
@@ -179,8 +182,13 @@ def test_collect_paginated_raises_on_unusable_next_cursor() -> None:
 
 
 class _FakeRequestExecutor:
-    def __init__(self, pages: dict[str, tuple[Any, str | None]]) -> None:
+    def __init__(
+        self,
+        pages: dict[str, tuple[Any, str | None]],
+        transient_errors: list[Exception] | None = None,
+    ) -> None:
         self.pages = pages
+        self.transient_errors = list(transient_errors or [])
         self.urls: list[str] = []
 
     async def create_request(self, method, url, body, headers):
@@ -188,6 +196,8 @@ class _FakeRequestExecutor:
 
     async def execute(self, request):
         self.urls.append(request["url"])
+        if self.transient_errors:
+            return None, None, self.transient_errors.pop(0)
         body, error = self.pages[request["url"]]
         next_url = {
             "/api/v1/policies?type=PASSWORD": "https://example.okta.com/api/v1/policies?type=PASSWORD&after=p2",
@@ -221,6 +231,29 @@ def test_collect_raw_paginated_follows_next_links() -> None:
     assert len(executor.urls) == 2
 
 
+def test_collect_raw_paginated_retries_a_timed_out_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Arrange
+    async def no_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr("cartography.intel.okta.common.asyncio.sleep", no_sleep)
+    executor = _FakeRequestExecutor(
+        {"/api/v1/zones": ([{"id": "z1"}], None)},
+        transient_errors=[TimeoutError()],
+    )
+    okta_client = MagicMock()
+    okta_client.get_request_executor.return_value = executor
+
+    # Act
+    items = asyncio.run(collect_raw_paginated(okta_client, "/api/v1/zones"))
+
+    # Assert
+    assert items == [{"id": "z1"}]
+    assert executor.urls == ["/api/v1/zones", "/api/v1/zones"]
+
+
 def test_collect_raw_paginated_raises_okta_api_error() -> None:
     # Arrange
     error = MagicMock(error_code="E0000006")
@@ -232,3 +265,99 @@ def test_collect_raw_paginated_raises_okta_api_error() -> None:
     with pytest.raises(OktaApiError) as exc_info:
         asyncio.run(collect_raw_paginated(okta_client, "/api/v1/zones"))
     assert exc_info.value.error_code == "E0000006"
+
+
+def _http_error(status: int, headers: dict[str, str] | None = None) -> HTTPError:
+    return HTTPError(
+        "https://example.okta.com/api/v1/devices",
+        MagicMock(status=status, headers=headers or {}),
+        "<html>bad gateway</html>",
+    )
+
+
+@pytest.mark.parametrize(  # type: ignore[misc]
+    "error, expected",
+    [
+        (MagicMock(error_code="E0000006"), True),
+        (
+            _http_error(
+                403,
+                {
+                    "WWW-Authenticate": (
+                        'DPoP scope="okta.agentPools.read", '
+                        'error="insufficient_scope"'
+                    ),
+                },
+            ),
+            True,
+        ),
+        (_http_error(403), False),
+        (MagicMock(error_code="E0000011"), False),
+    ],
+    ids=[
+        "permission-denied-error-code",
+        "oauth-token-lacks-scope",
+        "forbidden-for-another-reason",
+        "invalid-token",
+    ],
+)
+def test_is_missing_scope_error(error: Any, expected: bool) -> None:
+    assert is_missing_scope_error(OktaApiError("/api/v1/devices", error)) is expected
+
+
+def _okta_api_error(status: int) -> OktaAPIError:
+    return OktaAPIError(
+        "https://example.okta.com/api/v1/devices",
+        MagicMock(status=status, headers={}),
+        {"errorCode": "E0000007", "errorSummary": "Not found"},
+    )
+
+
+@pytest.mark.parametrize(  # type: ignore[misc]
+    ("errors", "expected_calls", "raises"),
+    [
+        ([_http_error(502), _okta_api_error(500)], 3, False),
+        ([TimeoutError()], 2, False),
+        ([_http_error(502)] * 4, 4, True),
+        ([_okta_api_error(404)], 1, True),
+    ],
+    ids=[
+        "recovers-after-5xx",
+        "recovers-after-timeout",
+        "gives-up-after-retries",
+        "no-retry-on-4xx",
+    ],
+)
+def test_collect_paginated_retries_transient_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    errors: list[Any],
+    expected_calls: int,
+    raises: bool,
+) -> None:
+    # Arrange
+    async def no_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr("cartography.intel.okta.common.asyncio.sleep", no_sleep)
+    pending_errors = list(errors)
+    calls = 0
+
+    async def list_devices(limit: int = 200, after: str | None = None, **kwargs: Any):
+        nonlocal calls
+        calls += 1
+        response = MagicMock()
+        response.headers = {}
+        if pending_errors:
+            return (None, response, pending_errors.pop(0))
+        return ([{"id": "device-1"}], response, None)
+
+    # Act
+    if raises:
+        with pytest.raises(OktaApiError):
+            asyncio.run(collect_paginated(list_devices))
+    else:
+        items = asyncio.run(collect_paginated(list_devices))
+        assert items == [{"id": "device-1"}]
+
+    # Assert
+    assert calls == expected_calls

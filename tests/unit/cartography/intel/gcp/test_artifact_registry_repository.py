@@ -6,6 +6,7 @@ from google.api_core.exceptions import PermissionDenied
 from cartography.intel.gcp.artifact_registry.repository import (
     get_artifact_registry_repositories,
 )
+from cartography.intel.gcp.artifact_registry.util import ARTIFACT_REGISTRY_LIST_TIMEOUT
 
 
 def test_get_artifact_registry_repositories_uses_gapic_client(monkeypatch):
@@ -32,10 +33,18 @@ def test_get_artifact_registry_repositories_uses_gapic_client(monkeypatch):
     assert result.repositories == [{"name": "repo-1"}, {"name": "repo-2"}]
     assert result.cleanup_safe is True
     client.list_repositories.assert_any_call(
-        parent="projects/test-project/locations/us-central1"
+        request={
+            "parent": "projects/test-project/locations/us-central1",
+            "page_size": 1000,
+        },
+        timeout=ARTIFACT_REGISTRY_LIST_TIMEOUT,
     )
     client.list_repositories.assert_any_call(
-        parent="projects/test-project/locations/us-east1"
+        request={
+            "parent": "projects/test-project/locations/us-east1",
+            "page_size": 1000,
+        },
+        timeout=ARTIFACT_REGISTRY_LIST_TIMEOUT,
     )
 
 

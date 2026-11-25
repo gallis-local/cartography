@@ -52,6 +52,7 @@ PANEL_OCI = "OCI Options"
 PANEL_OKTA = "Okta Options"
 PANEL_GITHUB = "GitHub Options"
 PANEL_GITLAB = "GitLab Options"
+PANEL_BITBUCKET = "Bitbucket Cloud Options"
 PANEL_GSUITE = "GSuite Options"
 PANEL_GOOGLE_WORKSPACE = "Google Workspace Options"
 PANEL_DIGITALOCEAN = "DigitalOcean Options"
@@ -78,6 +79,7 @@ PANEL_TAILSCALE = "Tailscale Options"
 PANEL_OPENAI = "OpenAI Options"
 PANEL_ANTHROPIC = "Anthropic Options"
 PANEL_AIRBYTE = "Airbyte Options"
+PANEL_LANGSMITH = "LangSmith Options"
 PANEL_DATABRICKS = "Databricks Options"
 PANEL_BBOT = "BBOT Options"
 PANEL_DOCKER_SCOUT = "Docker Scout Options"
@@ -85,14 +87,17 @@ PANEL_TRIVY = "Trivy Options"
 PANEL_SYFT = "Syft Options"
 PANEL_AIBOM = "AIBOM Options"
 PANEL_ZIZMOR = "Zizmor Options"
+PANEL_ONEPASSWORD = "1Password Options"
 PANEL_UBUNTU = "Ubuntu Security Options"
 PANEL_ONTOLOGY = "Ontology Options"
 PANEL_SCALEWAY = "Scaleway Options"
 PANEL_SENTINELONE = "SentinelOne Options"
+PANEL_SENTRA = "Sentra Options"
 PANEL_TENABLE = "Tenable Options"
 PANEL_WIZ = "Wiz Options"
 PANEL_ORCA = "Orca Security Options"
 PANEL_OPENVAS = "OpenVAS Options"
+PANEL_SWEET = "Sweet Security Options"
 PANEL_KEYCLOAK = "Keycloak Options"
 PANEL_SALESFORCE = "Salesforce Options"
 PANEL_SLACK = "Slack Options"
@@ -106,6 +111,7 @@ PANEL_JUMPCLOUD = "JumpCloud Options"
 PANEL_SOCKETDEV = "Socket.dev Options"
 PANEL_VERCEL = "Vercel Options"
 PANEL_SUPABASE = "Supabase Options"
+PANEL_NEON = "Neon Options"
 PANEL_RAILWAY = "Railway Options"
 PANEL_NETLIFY = "Netlify Options"
 PANEL_CIRCLECI = "CircleCI Options"
@@ -128,6 +134,7 @@ MODULE_PANELS = {
     "okta": PANEL_OKTA,
     "github": PANEL_GITHUB,
     "gitlab": PANEL_GITLAB,
+    "bitbucket": PANEL_BITBUCKET,
     "gsuite": PANEL_GSUITE,
     "googleworkspace": PANEL_GOOGLE_WORKSPACE,
     "digitalocean": PANEL_DIGITALOCEAN,
@@ -157,6 +164,7 @@ MODULE_PANELS = {
     "openai": PANEL_OPENAI,
     "anthropic": PANEL_ANTHROPIC,
     "airbyte": PANEL_AIRBYTE,
+    "langsmith": PANEL_LANGSMITH,
     "databricks": PANEL_DATABRICKS,
     "bbot": PANEL_BBOT,
     "docker_scout": PANEL_DOCKER_SCOUT,
@@ -164,15 +172,18 @@ MODULE_PANELS = {
     "syft": PANEL_SYFT,
     "aibom": PANEL_AIBOM,
     "zizmor": PANEL_ZIZMOR,
+    "onepassword": PANEL_ONEPASSWORD,
     "ubuntu": PANEL_UBUNTU,
     "ontology": PANEL_ONTOLOGY,
     "scaleway": PANEL_SCALEWAY,
     "sentry": PANEL_SENTRY,
     "sentinelone": PANEL_SENTINELONE,
+    "sentra": PANEL_SENTRA,
     "tenable": PANEL_TENABLE,
     "wiz": PANEL_WIZ,
     "orca": PANEL_ORCA,
     "openvas": PANEL_OPENVAS,
+    "sweet": PANEL_SWEET,
     "keycloak": PANEL_KEYCLOAK,
     "salesforce": PANEL_SALESFORCE,
     "slack": PANEL_SLACK,
@@ -182,6 +193,7 @@ MODULE_PANELS = {
     "workos": PANEL_WORKOS,
     "vercel": PANEL_VERCEL,
     "supabase": PANEL_SUPABASE,
+    "neon": PANEL_NEON,
     "railway": PANEL_RAILWAY,
     "netlify": PANEL_NETLIFY,
     "circleci": PANEL_CIRCLECI,
@@ -1173,6 +1185,66 @@ class CLI:
                 ),
             ] = 90,
             # =================================================================
+            # Bitbucket Cloud Options
+            # =================================================================
+            bitbucket_workspaces: Annotated[
+                str | None,
+                typer.Option(
+                    "--bitbucket-workspaces",
+                    help="Comma-separated Bitbucket workspace slugs to sync. Required.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = None,
+            bitbucket_auth_method: Annotated[
+                str,
+                typer.Option(
+                    "--bitbucket-auth-method",
+                    help="Either 'token' or 'oauth'. Defaults to 'token'.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = "token",
+            bitbucket_token_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--bitbucket-token-env-var",
+                    help="Environment variable name containing a Bitbucket API "
+                    "token or Access token.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = None,
+            bitbucket_oauth_client_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--bitbucket-oauth-client-id",
+                    help="Bitbucket OAuth consumer key.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = None,
+            bitbucket_oauth_client_secret_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--bitbucket-oauth-client-secret-env-var",
+                    help="Environment variable name containing the Bitbucket "
+                    "OAuth consumer secret.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = None,
+            bitbucket_oauth_refresh_token_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--bitbucket-oauth-refresh-token-env-var",
+                    help="Environment variable name containing a Bitbucket "
+                    "OAuth refresh token obtained out-of-band.",
+                    rich_help_panel=PANEL_BITBUCKET,
+                    hidden=PANEL_BITBUCKET not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # DigitalOcean Options
             # =================================================================
             digitalocean_token_env_var: Annotated[
@@ -1346,11 +1418,38 @@ class CLI:
                     hidden=PANEL_KUBERNETES not in visible_panels,
                 ),
             ] = None,
+            gke_clusters: Annotated[
+                list[str] | None,
+                typer.Option(
+                    "--gke-cluster",
+                    help="GKE resource name (projects/PROJECT/locations/LOCATION/clusters/NAME). Repeat for multiple clusters. Uses Google ADC without kubeconfig.",
+                    rich_help_panel=PANEL_KUBERNETES,
+                    hidden=PANEL_KUBERNETES not in visible_panels,
+                ),
+            ] = None,
+            gke_endpoint: Annotated[
+                str,
+                typer.Option(
+                    "--gke-endpoint",
+                    help="GKE API endpoint: dns, private, or public. No automatic fallback.",
+                    rich_help_panel=PANEL_KUBERNETES,
+                    hidden=PANEL_KUBERNETES not in visible_panels,
+                ),
+            ] = "dns",
+            gke_impersonate_service_account: Annotated[
+                str | None,
+                typer.Option(
+                    "--gke-impersonate-service-account",
+                    help="Service account email to impersonate for GKE discovery and Kubernetes reads.",
+                    rich_help_panel=PANEL_KUBERNETES,
+                    hidden=PANEL_KUBERNETES not in visible_panels,
+                ),
+            ] = None,
             managed_kubernetes: Annotated[
                 str | None,
                 typer.Option(
                     "--managed-kubernetes",
-                    help="Type of managed Kubernetes service (e.g., 'eks').",
+                    help="Type of managed Kubernetes service ('eks' or 'gke').",
                     rich_help_panel=PANEL_KUBERNETES,
                     hidden=PANEL_KUBERNETES not in visible_panels,
                 ),
@@ -1392,7 +1491,10 @@ class CLI:
                 list[str] | None,
                 typer.Option(
                     "--cve-metadata-src",
-                    help="CVE metadata sources to enable. Valid values: nvd, epss. All enabled by default.",
+                    help=(
+                        "CVE metadata sources to enable. Valid values: nvd, epss, kev, "
+                        "vulnrichment. All enabled by default."
+                    ),
                     rich_help_panel=PANEL_CVE_METADATA,
                     hidden=PANEL_CVE_METADATA not in visible_panels,
                 ),
@@ -1932,7 +2034,10 @@ class CLI:
                 str | None,
                 typer.Option(
                     "--tailscale-org",
-                    help="Tailscale organization name to sync.",
+                    help=(
+                        "Tailnet ID to sync, such as T1234CNTRL. Tailnets created "
+                        "before Oct 2025 also accept their legacy ID, such as example.com."
+                    ),
                     rich_help_panel=PANEL_TAILSCALE,
                     hidden=PANEL_TAILSCALE not in visible_panels,
                 ),
@@ -2001,6 +2106,51 @@ class CLI:
                 typer.Option(
                     "--anthropic-apikey-env-var",
                     help="Environment variable name containing Anthropic API key.",
+                    rich_help_panel=PANEL_ANTHROPIC,
+                    hidden=PANEL_ANTHROPIC not in visible_panels,
+                ),
+            ] = None,
+            anthropic_identity_token_file: Annotated[
+                str | None,
+                typer.Option(
+                    "--anthropic-identity-token-file",
+                    help="Path to an OIDC token file to exchange for an Anthropic access token through workload identity federation. Use instead of an Admin API key.",
+                    rich_help_panel=PANEL_ANTHROPIC,
+                    hidden=PANEL_ANTHROPIC not in visible_panels,
+                ),
+            ] = None,
+            anthropic_federation_rule_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--anthropic-federation-rule-id",
+                    help="Anthropic federation rule ID (fdrl_...) for workload identity federation.",
+                    rich_help_panel=PANEL_ANTHROPIC,
+                    hidden=PANEL_ANTHROPIC not in visible_panels,
+                ),
+            ] = None,
+            anthropic_organization_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--anthropic-organization-id",
+                    help="Anthropic organization UUID for workload identity federation.",
+                    rich_help_panel=PANEL_ANTHROPIC,
+                    hidden=PANEL_ANTHROPIC not in visible_panels,
+                ),
+            ] = None,
+            anthropic_service_account_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--anthropic-service-account-id",
+                    help="Anthropic service account ID (svac_...) for workload identity federation.",
+                    rich_help_panel=PANEL_ANTHROPIC,
+                    hidden=PANEL_ANTHROPIC not in visible_panels,
+                ),
+            ] = None,
+            anthropic_workspace_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--anthropic-workspace-id",
+                    help="Anthropic workspace ID, required when the federation rule covers several workspaces.",
                     rich_help_panel=PANEL_ANTHROPIC,
                     hidden=PANEL_ANTHROPIC not in visible_panels,
                 ),
@@ -2105,6 +2255,48 @@ class CLI:
                 ),
             ] = "https://api.airbyte.com/v1",
             # =================================================================
+            # LangSmith Options
+            # =================================================================
+            langsmith_pat_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--langsmith-pat-env-var",
+                    help="Environment variable name containing a LangSmith personal access token.",
+                    rich_help_panel=PANEL_LANGSMITH,
+                    hidden=PANEL_LANGSMITH not in visible_panels,
+                ),
+            ] = None,
+            langsmith_api_url: Annotated[
+                str,
+                typer.Option(
+                    "--langsmith-api-url",
+                    help="LangSmith control plane base URL.",
+                    rich_help_panel=PANEL_LANGSMITH,
+                    hidden=PANEL_LANGSMITH not in visible_panels,
+                ),
+            ] = "https://api.smith.langchain.com",
+            langsmith_host_api_url: Annotated[
+                str,
+                typer.Option(
+                    "--langsmith-host-api-url",
+                    help="LangGraph Platform (api-host) base URL.",
+                    rich_help_panel=PANEL_LANGSMITH,
+                    hidden=PANEL_LANGSMITH not in visible_panels,
+                ),
+            ] = "https://api.host.langchain.com",
+            langsmith_org_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--langsmith-org-id",
+                    help=(
+                        "Restrict the LangSmith sync to a single organization UUID. "
+                        "Omit to sync every organization the token can see."
+                    ),
+                    rich_help_panel=PANEL_LANGSMITH,
+                    hidden=PANEL_LANGSMITH not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # Databricks Options
             # =================================================================
             databricks_workspace_url: Annotated[
@@ -2139,6 +2331,33 @@ class CLI:
                 typer.Option(
                     "--databricks-client-secret-env-var",
                     help="Environment variable name containing the Databricks OAuth M2M client secret.",
+                    rich_help_panel=PANEL_DATABRICKS,
+                    hidden=PANEL_DATABRICKS not in visible_panels,
+                ),
+            ] = None,
+            databricks_azure_tenant_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--databricks-azure-tenant-id",
+                    help="Microsoft Entra ID tenant ID of the service principal for an Azure Databricks workspace.",
+                    rich_help_panel=PANEL_DATABRICKS,
+                    hidden=PANEL_DATABRICKS not in visible_panels,
+                ),
+            ] = None,
+            databricks_azure_client_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--databricks-azure-client-id",
+                    help="Microsoft Entra ID service principal client ID for an Azure Databricks workspace.",
+                    rich_help_panel=PANEL_DATABRICKS,
+                    hidden=PANEL_DATABRICKS not in visible_panels,
+                ),
+            ] = None,
+            databricks_azure_client_secret_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--databricks-azure-client-secret-env-var",
+                    help="Environment variable name containing the Microsoft Entra ID service principal client secret.",
                     rich_help_panel=PANEL_DATABRICKS,
                     hidden=PANEL_DATABRICKS not in visible_panels,
                 ),
@@ -2468,6 +2687,18 @@ class CLI:
                 ),
             ] = None,
             # =================================================================
+            # 1Password Options
+            # =================================================================
+            onepassword_source: Annotated[
+                str | None,
+                typer.Option(
+                    "--onepassword-source",
+                    help="1Password collector snapshot source. Accepts a local file or directory, s3://bucket/prefix, gs://bucket/prefix, or azblob://account/container/prefix.",
+                    rich_help_panel=PANEL_ONEPASSWORD,
+                    hidden=PANEL_ONEPASSWORD not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # Ubuntu Security Options
             # =================================================================
             ubuntu_security_enabled: Annotated[
@@ -2578,6 +2809,27 @@ class CLI:
                     hidden=PANEL_SENTINELONE not in visible_panels,
                 ),
             ] = "SENTINELONE_API_TOKEN",
+            # =================================================================
+            # Sentra Options
+            # =================================================================
+            sentra_api_url: Annotated[
+                str | None,
+                typer.Option(
+                    "--sentra-api-url",
+                    help="Sentra API base URL. Defaults to https://app.sentra.io.",
+                    rich_help_panel=PANEL_SENTRA,
+                    hidden=PANEL_SENTRA not in visible_panels,
+                ),
+            ] = None,
+            sentra_api_key_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--sentra-api-key-env-var",
+                    help="Environment variable name containing the Sentra API key.",
+                    rich_help_panel=PANEL_SENTRA,
+                    hidden=PANEL_SENTRA not in visible_panels,
+                ),
+            ] = "SENTRA_API_KEY",
             # =================================================================
             # Tenable Options
             # =================================================================
@@ -2864,6 +3116,51 @@ class CLI:
                 ),
             ] = 180,
             # =================================================================
+            # Sweet Security Options
+            # =================================================================
+            sweet_tenant_id: Annotated[
+                str | None,
+                typer.Option(
+                    "--sweet-tenant-id",
+                    help=(
+                        "Stable identifier for the Sweet Security tenant, such as "
+                        "its name. Required to enable the Sweet module."
+                    ),
+                    rich_help_panel=PANEL_SWEET,
+                    hidden=PANEL_SWEET not in visible_panels,
+                ),
+            ] = None,
+            sweet_api_key_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--sweet-api-key-env-var",
+                    help="Environment variable name containing the Sweet Security API key.",
+                    rich_help_panel=PANEL_SWEET,
+                    hidden=PANEL_SWEET not in visible_panels,
+                ),
+            ] = "SWEET_API_KEY",
+            sweet_api_secret_env_var: Annotated[
+                str,
+                typer.Option(
+                    "--sweet-api-secret-env-var",
+                    help="Environment variable name containing the Sweet Security API secret.",
+                    rich_help_panel=PANEL_SWEET,
+                    hidden=PANEL_SWEET not in visible_panels,
+                ),
+            ] = "SWEET_API_SECRET",
+            sweet_api_url: Annotated[
+                str | None,
+                typer.Option(
+                    "--sweet-api-url",
+                    help=(
+                        "Sweet Security API origin. Defaults to "
+                        "https://eapi.sweet.security."
+                    ),
+                    rich_help_panel=PANEL_SWEET,
+                    hidden=PANEL_SWEET not in visible_panels,
+                ),
+            ] = None,
+            # =================================================================
             # Keycloak Options
             # =================================================================
             keycloak_client_id: Annotated[
@@ -3130,6 +3427,40 @@ class CLI:
                     hidden=PANEL_SUPABASE not in visible_panels,
                 ),
             ] = "https://api.supabase.com",
+            # =================================================================
+            # Neon Options
+            # =================================================================
+            neon_api_key_env_var: Annotated[
+                str | None,
+                typer.Option(
+                    "--neon-api-key-env-var",
+                    help="Environment variable name containing a Neon API key (personal or organization).",
+                    rich_help_panel=PANEL_NEON,
+                    hidden=PANEL_NEON not in visible_panels,
+                ),
+            ] = None,
+            neon_org_ids: Annotated[
+                str | None,
+                typer.Option(
+                    "--neon-org-ids",
+                    help=(
+                        "Comma-separated list of Neon organization IDs to sync. "
+                        "Required with an organization API key. Defaults to every "
+                        "organization a personal API key's user belongs to."
+                    ),
+                    rich_help_panel=PANEL_NEON,
+                    hidden=PANEL_NEON not in visible_panels,
+                ),
+            ] = None,
+            neon_base_url: Annotated[
+                str,
+                typer.Option(
+                    "--neon-base-url",
+                    help="Neon API base URL.",
+                    rich_help_panel=PANEL_NEON,
+                    hidden=PANEL_NEON not in visible_panels,
+                ),
+            ] = "https://console.neon.tech/api/v2",
             # =================================================================
             # Railway Options
             # =================================================================
@@ -3910,6 +4241,25 @@ class CLI:
                 )
                 gitlab_token = os.environ.get(gitlab_token_env_var)
 
+            # Read Bitbucket credentials
+            bitbucket_token = None
+            if bitbucket_token_env_var:
+                logger.debug(
+                    "Reading Bitbucket token from environment variable %s",
+                    bitbucket_token_env_var,
+                )
+                bitbucket_token = os.environ.get(bitbucket_token_env_var)
+            bitbucket_oauth_client_secret = None
+            if bitbucket_oauth_client_secret_env_var:
+                bitbucket_oauth_client_secret = os.environ.get(
+                    bitbucket_oauth_client_secret_env_var
+                )
+            bitbucket_oauth_refresh_token = None
+            if bitbucket_oauth_refresh_token_env_var:
+                bitbucket_oauth_refresh_token = os.environ.get(
+                    bitbucket_oauth_refresh_token_env_var
+                )
+
             # Read Workday password
             workday_api_password = None
             if workday_api_url and workday_api_login and workday_api_password_env_var:
@@ -4012,6 +4362,15 @@ class CLI:
                     supabase_access_token_env_var,
                 )
                 supabase_access_token = os.environ.get(supabase_access_token_env_var)
+
+            # Read Neon API key
+            neon_api_key = None
+            if neon_api_key_env_var:
+                logger.debug(
+                    "Reading Neon API key from environment variable %s",
+                    neon_api_key_env_var,
+                )
+                neon_api_key = os.environ.get(neon_api_key_env_var)
             # Read Railway token
             railway_token = None
             if railway_token_env_var:
@@ -4123,6 +4482,15 @@ class CLI:
                 )
                 airbyte_client_secret = os.environ.get(airbyte_client_secret_env_var)
 
+            # Read LangSmith personal access token
+            langsmith_pat = None
+            if langsmith_pat_env_var:
+                logger.debug(
+                    "Reading LangSmith personal access token from environment variable %s",
+                    langsmith_pat_env_var,
+                )
+                langsmith_pat = os.environ.get(langsmith_pat_env_var)
+
             # Read Databricks credentials
             databricks_token = None
             if databricks_token_env_var:
@@ -4143,6 +4511,15 @@ class CLI:
                 )
                 databricks_client_secret = os.environ.get(
                     databricks_client_secret_env_var,
+                )
+            databricks_azure_client_secret = None
+            if databricks_azure_client_secret_env_var:
+                logger.debug(
+                    "Reading Databricks Entra ID client secret from environment variable %s",
+                    databricks_azure_client_secret_env_var,
+                )
+                databricks_azure_client_secret = os.environ.get(
+                    databricks_azure_client_secret_env_var,
                 )
             databricks_account_client_secret = None
             if databricks_account_client_secret_env_var:
@@ -4274,6 +4651,15 @@ class CLI:
                 )
                 sentinelone_api_token = os.environ.get(sentinelone_api_token_env_var)
 
+            # Read Sentra API key
+            sentra_api_key = None
+            if sentra_api_key_env_var:
+                logger.debug(
+                    "Reading Sentra API key from environment variable %s",
+                    sentra_api_key_env_var,
+                )
+                sentra_api_key = os.environ.get(sentra_api_key_env_var)
+
             # Read Tenable API keys
             tenable_access_key = None
             if tenable_access_key_env_var:
@@ -4334,6 +4720,21 @@ class CLI:
                     openvas_password_env_var,
                 )
                 openvas_password = os.environ.get(openvas_password_env_var)
+
+            # Read Sweet Security API key and secret
+            sweet_api_key = None
+            sweet_api_secret = None
+            if sweet_tenant_id:
+                logger.debug(
+                    "Reading Sweet Security API key from environment variable %s",
+                    sweet_api_key_env_var,
+                )
+                sweet_api_key = os.environ.get(sweet_api_key_env_var)
+                logger.debug(
+                    "Reading Sweet Security API secret from environment variable %s",
+                    sweet_api_secret_env_var,
+                )
+                sweet_api_secret = os.environ.get(sweet_api_secret_env_var)
 
             # Read Keycloak client secret
             keycloak_client_secret = None
@@ -4415,6 +4816,11 @@ class CLI:
                 )
                 workos_api_key = os.environ.get(workos_apikey_env_var)
 
+            if gke_endpoint not in ("dns", "private", "public"):
+                raise typer.BadParameter(
+                    "--gke-endpoint must be one of: dns, private, public."
+                )
+
             # Build the Config object
             config = Config(
                 neo4j_uri=neo4j_uri,
@@ -4493,6 +4899,9 @@ class CLI:
                 huntress_api_secret=huntress_api_secret,
                 k8s_kubeconfig=k8s_kubeconfig,
                 managed_kubernetes=managed_kubernetes,
+                gke_clusters=gke_clusters,
+                gke_endpoint=gke_endpoint,
+                gke_impersonate_service_account=gke_impersonate_service_account,
                 statsd_enabled=statsd_enabled,
                 statsd_prefix=statsd_prefix,
                 statsd_host=statsd_host,
@@ -4554,6 +4963,12 @@ class CLI:
                 gitlab_token=gitlab_token,
                 gitlab_organization_id=gitlab_organization_id,
                 gitlab_commits_since_days=gitlab_commits_since_days,
+                bitbucket_workspaces=bitbucket_workspaces,
+                bitbucket_auth_method=bitbucket_auth_method,
+                bitbucket_token=bitbucket_token,
+                bitbucket_oauth_client_id=bitbucket_oauth_client_id,
+                bitbucket_oauth_client_secret=bitbucket_oauth_client_secret,
+                bitbucket_oauth_refresh_token=bitbucket_oauth_refresh_token,
                 semgrep_app_token=semgrep_app_token,
                 semgrep_dependency_ecosystems=semgrep_dependency_ecosystems,
                 semgrep_oss_source=semgrep_oss_source,
@@ -4571,6 +4986,9 @@ class CLI:
                 supabase_access_token=supabase_access_token,
                 supabase_organizations=supabase_organizations,
                 supabase_base_url=supabase_base_url,
+                neon_api_key=neon_api_key,
+                neon_org_ids=neon_org_ids,
+                neon_base_url=neon_base_url,
                 railway_token=railway_token,
                 railway_workspace_id=railway_workspace_id,
                 railway_base_url=railway_base_url,
@@ -4587,6 +5005,11 @@ class CLI:
                 openai_apikey=openai_apikey,
                 openai_org_id=openai_org_id,
                 anthropic_apikey=anthropic_apikey,
+                anthropic_identity_token_file=anthropic_identity_token_file,
+                anthropic_federation_rule_id=anthropic_federation_rule_id,
+                anthropic_organization_id=anthropic_organization_id,
+                anthropic_service_account_id=anthropic_service_account_id,
+                anthropic_workspace_id=anthropic_workspace_id,
                 sentry_token=sentry_token,
                 sentry_org=sentry_org,
                 sentry_host=sentry_host,
@@ -4597,6 +5020,10 @@ class CLI:
                 airbyte_client_id=airbyte_client_id,
                 airbyte_client_secret=airbyte_client_secret,
                 airbyte_api_url=airbyte_api_url,
+                langsmith_pat=langsmith_pat,
+                langsmith_api_url=langsmith_api_url,
+                langsmith_host_api_url=langsmith_host_api_url,
+                langsmith_org_id=langsmith_org_id,
                 databricks_workspace_url=databricks_workspace_url,
                 databricks_token=databricks_token,
                 databricks_client_id=databricks_client_id,
@@ -4605,6 +5032,9 @@ class CLI:
                 databricks_account_host=databricks_account_host,
                 databricks_account_client_id=databricks_account_client_id,
                 databricks_account_client_secret=databricks_account_client_secret,
+                databricks_azure_tenant_id=databricks_azure_tenant_id,
+                databricks_azure_client_id=databricks_azure_client_id,
+                databricks_azure_client_secret=databricks_azure_client_secret,
                 bbot_source=bbot_source,
                 zendesk_subdomain=zendesk_subdomain,
                 zendesk_oauth_token=zendesk_oauth_token,
@@ -4638,6 +5068,11 @@ class CLI:
                 aibom_s3_bucket=aibom_s3_bucket,
                 aibom_s3_prefix=aibom_s3_prefix,
                 zizmor_source=zizmor_source,
+                onepassword_source=onepassword_source,
+                sweet_api_key=sweet_api_key,
+                sweet_api_secret=sweet_api_secret,
+                sweet_tenant_id=sweet_tenant_id,
+                sweet_api_url=sweet_api_url,
                 ontology_users_source=ontology_users_source,
                 ontology_devices_source=ontology_devices_source,
                 scaleway_access_key=scaleway_access_key,
@@ -4647,6 +5082,8 @@ class CLI:
                 sentinelone_api_token=sentinelone_api_token,
                 sentinelone_account_ids=sentinelone_account_ids_list,
                 sentinelone_site_ids=sentinelone_site_ids_list,
+                sentra_api_key=sentra_api_key,
+                sentra_api_url=sentra_api_url,
                 tenable_url=tenable_url,
                 tenable_tenant_id=tenable_tenant_id,
                 tenable_access_key=tenable_access_key,

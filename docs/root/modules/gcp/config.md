@@ -39,7 +39,7 @@ Grant these roles to the Cartography identity at the organization level:
 | Role | Purpose |
 |------|---------|
 | `roles/iam.securityReviewer` | List and get IAM roles, service accounts, and Workload Identity Federation pools and providers |
-| `roles/compute.viewer` | List and get Compute Engine inventory, including instances, networking, SSL policies, and target proxies |
+| `roles/compute.viewer` | List and get Compute Engine inventory, including instances, networking, network endpoint groups (`compute.networkEndpointGroups.list`), SSL policies, and target proxies |
 | `roles/resourcemanager.organizationViewer` | List and get Google Cloud organizations |
 | `roles/resourcemanager.folderViewer` | List and get Google Cloud folders |
 
@@ -128,6 +128,15 @@ cartography --selected-modules gcp
 | `--gcp-excluded-org-ids` | Comma-separated GCP organization IDs to exclude from ingestion, e.g. `"123456789012,987654321098"` |
 | `--gcp-excluded-folder-ids` | Comma-separated GCP folder IDs to exclude from ingestion. The entire subtree under each excluded folder is skipped |
 | `--gcp-exclude-org-root-projects` | Exclude projects attached directly to the organization root, i.e. not inside any folder (default: included) |
+
+`artifact_registry_image_layers` loads the Artifact Registry image layer graph:
+`GCPArtifactRegistryImageLayer` nodes with their build history, their project
+links, and `HAS_LAYER`, `HEAD`, `TAIL` and `NEXT`. It requires
+`artifact_registry`. Without it, `artifact_registry` still gives images their
+build provenance, parent images and `layer_diff_ids`, but Dockerfile matching,
+which reads each layer's history, finds no layers. The first sync without it
+removes the project's layer links, and the orphan cleanup then deletes the layers
+no other project links to. On a large registry, that first sync takes longer.
 
 ````{note}
 Exclusions are non-destructive. Cartography only runs cleanup after it has a

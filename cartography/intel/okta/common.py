@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from functools import lru_cache
 from typing import Any
 from typing import Awaitable
@@ -9,6 +11,8 @@ from urllib.parse import urlencode
 
 import okta.dpop
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from okta.errors.http_error import HTTPError
+from okta.errors.okta_api_error import OktaAPIError
 from okta.models.application import Application
 from okta.models.application_json_converter import ApplicationJsonConverter
 from okta.models.authenticator_key_tac_all_of_provider import (
@@ -18,6 +22,9 @@ from okta.models.bookmark_application_settings import BookmarkApplicationSetting
 from okta.models.bookmark_application_settings_application import (
     BookmarkApplicationSettingsApplication,
 )
+from okta.models.device import Device
+from okta.models.device_list import DeviceList
+from okta.models.device_profile import DeviceProfile
 from okta.models.open_id_connect_application_settings import (
     OpenIdConnectApplicationSettings,
 )
@@ -46,17 +53,21 @@ from okta.models.user_factor_web import UserFactorWeb
 from okta.models.user_factor_web_authn import UserFactorWebAuthn
 from okta.pagination import PaginationHelper
 
+logger = logging.getLogger(__name__)
+
 OKTA_RESOURCE_NOT_FOUND_ERROR_CODE = "E0000007"
 # Returned when the API token or OAuth client lacks the scope an endpoint needs.
 OKTA_MISSING_SCOPE_ERROR_CODE = "E0000006"
 # Logged with a resource name and the scope it needs when Okta refuses it.
 OKTA_MISSING_SCOPE_WARNING = (
-    "Unable to sync %s - the Okta credential needs an admin role that allows "
-    "it, and an OAuth service app also needs the %s scope"
+    "Skipping %s because Okta denied the request. OAuth service app: grant the "
+    "app the %s scope, add that scope to --okta-scopes if you set that option, "
+    "and give the app an admin role that can read this resource. API token: "
+    "create the token as an admin whose role can read this resource."
 )
 
-# Read-only scopes covering every endpoint the Okta sync calls. An OAuth service
-# app must be granted all of them, or Okta refuses to issue an access token.
+# Read-only scopes that the Okta sync needs. An OAuth service app must be
+# granted all of them.
 OKTA_OAUTH_DEFAULT_SCOPES = (
     "okta.apiTokens.read",
     "okta.apps.read",
@@ -71,6 +82,13 @@ OKTA_OAUTH_DEFAULT_SCOPES = (
     "okta.userTypes.read",
     "okta.users.read",
 )
+
+# Read-only scopes requested with the defaults unless --okta-scopes is set. A
+# service app without one still syncs: only the resource that needs it is skipped.
+OKTA_OAUTH_OPTIONAL_SCOPES = ("okta.agentPools.read",)
+
+# Token endpoint error returned when the app was not granted a requested scope.
+OKTA_OAUTH_INVALID_SCOPE_ERROR_CODE = "invalid_scope"
 
 # Token endpoint errors returned when an OAuth service app cannot get an access
 # token: unknown client ID or key, scopes not granted, or a DPoP mismatch.
@@ -177,6 +195,16 @@ def _patch_okta_sdk_user_factor_models() -> None:
         _relax_enum_fields(model_cls, "status")
 
 
+def _patch_okta_sdk_device_models() -> None:
+    """Accept device platforms returned by Okta but rejected by SDK 3.4.x."""
+    # Okta reports LINUX for Linux devices, but DevicePlatform only declares
+    # ANDROID, IOS, MACOS and WINDOWS, so one Linux device aborts the whole
+    # okta sync.
+    _relax_enum_fields(DeviceProfile, "platform")
+    Device.model_rebuild(force=True)
+    DeviceList.model_rebuild(force=True)
+
+
 def _patch_okta_sdk_authenticator_models() -> None:
     """Accept the uppercase TAC provider type returned by Okta."""
     _remove_field_validator(
@@ -194,6 +222,10 @@ _patch_okta_sdk_user_factor_models()
 # DEPRECATED: Remove this Okta SDK 3.x compatibility shim in v1.0.0 after
 # okta/okta-sdk-python#579 is released upstream.
 _patch_okta_sdk_authenticator_models()
+
+# DEPRECATED: Remove this Okta SDK 3.x compatibility shim in v1.0.0 once
+# DevicePlatform declares LINUX upstream.
+_patch_okta_sdk_device_models()
 
 
 @lru_cache(maxsize=4)
@@ -237,7 +269,14 @@ def is_resource_not_found_error(error: OktaApiError) -> bool:
 
 
 def is_missing_scope_error(error: OktaApiError) -> bool:
-    return error.error_code == OKTA_MISSING_SCOPE_ERROR_CODE
+    if error.error_code == OKTA_MISSING_SCOPE_ERROR_CODE:
+        return True
+    # Okta answers an OAuth token that lacks an endpoint's scope with a 403 that
+    # has no JSON body, so there is no error code: the reason is in the header.
+    if not isinstance(error.error, HTTPError) or error.error.status != 403:
+        return False
+    challenge = (error.error.response_headers or {}).get("WWW-Authenticate", "")
+    return "insufficient_scope" in challenge
 
 
 def is_oauth_token_error(error: OktaApiError) -> bool:
@@ -270,6 +309,40 @@ def _next_page_cursor(response: Any) -> str | None:
     return None
 
 
+# The SDK request executor only retries 429s, so a single 5xx from Okta's edge,
+# or one stalled connection cut off by the request timeout, would otherwise abort
+# a sync that may be hundreds of pages in.
+_TRANSIENT_ERROR_RETRIES = 3
+_TRANSIENT_ERROR_BACKOFF_SECONDS = 1.0
+
+
+def _is_transient_error(error: Any) -> bool:
+    if isinstance(error, TimeoutError):
+        return True
+    return isinstance(error, (HTTPError, OktaAPIError)) and (error.status or 0) >= 500
+
+
+async def _call_retrying_transient_errors(
+    api_method: Callable[..., Awaitable[tuple[Any, Any, Any]]],
+    context: str,
+    **kwargs: Any,
+) -> tuple[Any, Any, Any]:
+    for attempt in range(_TRANSIENT_ERROR_RETRIES):
+        result = await api_method(**kwargs)
+        error = result[2]
+        if not _is_transient_error(error):
+            return result
+        delay = _TRANSIENT_ERROR_BACKOFF_SECONDS * 2**attempt
+        logger.warning(
+            "Okta %s failed with %r, retrying in %.0fs",
+            context,
+            error,
+            delay,
+        )
+        await asyncio.sleep(delay)
+    return await api_method(**kwargs)
+
+
 async def collect_paginated(
     api_method: Callable[..., Awaitable[tuple[Any, Any, Any]]],
     limit: int = 200,
@@ -285,7 +358,9 @@ async def collect_paginated(
     after = kwargs.pop("after", None)
     items: list[Any] = []
     while True:
-        data, response, error = await api_method(limit=limit, after=after, **kwargs)
+        data, response, error = await _call_retrying_transient_errors(
+            api_method, api_method.__name__, limit=limit, after=after, **kwargs
+        )
         if error:
             raise OktaApiError(api_method.__name__, error)
         if data:
@@ -305,9 +380,15 @@ def raise_for_okta_error(error: Any, context: str) -> None:
 
 async def _get_raw_json(okta_client: Any, url: str) -> tuple[Any, Any]:
     executor = okta_client.get_request_executor()
-    request, error = await executor.create_request("GET", url, {}, {})
-    raise_for_okta_error(error, url)
-    response, body, error = await executor.execute(request)
+
+    # Each attempt builds a fresh request: under OAuth the request carries a
+    # DPoP proof, which Okta refuses to accept twice.
+    async def get_raw_page() -> tuple[Any, Any, Any]:
+        request, error = await executor.create_request("GET", url, {}, {})
+        raise_for_okta_error(error, url)
+        return await executor.execute(request)
+
+    response, body, error = await _call_retrying_transient_errors(get_raw_page, url)
     raise_for_okta_error(error, url)
     return response, json.loads(body) if body else None
 

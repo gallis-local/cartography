@@ -1,7 +1,12 @@
+import ipaddress
 import json
 import logging
+import re
+from collections import defaultdict
 from collections.abc import Callable
+from collections.abc import Iterable
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from decimal import InvalidOperation
@@ -20,6 +25,9 @@ from kubernetes.client import StorageV1Api
 from kubernetes.client import VersionApi
 from kubernetes.client.exceptions import ApiException
 from kubernetes.config.kube_config import KubeConfigMerger
+
+from cartography.intel.gcp.gke_utils import GKEClusterRef
+from cartography.intel.gcp.gke_utils import parse_cluster_ref
 
 logger = logging.getLogger(__name__)
 
@@ -185,18 +193,85 @@ class K8sClient:
         name: str,
         config_file: str,
         external_id: str | None = None,
+        api_client: ApiClient | None = None,
+        gke_cluster: dict[str, Any] | None = None,
+        tls_diagnostics: dict[str, Any] | None = None,
     ) -> None:
         self.name = name
         self.config_file = config_file
         self.external_id = external_id
-        self.core = K8CoreApiClient(self.name, self.config_file)
-        self.networking = K8NetworkingApiClient(self.name, self.config_file)
-        self.version = K8VersionApiClient(self.name, self.config_file)
-        self.rbac = K8RbacApiClient(self.name, self.config_file)
-        self.custom = K8CustomObjectsApiClient(self.name, self.config_file)
-        self.apps = K8AppsApiClient(self.name, self.config_file)
-        self.batch = K8BatchApiClient(self.name, self.config_file)
-        self.storage = K8StorageApiClient(self.name, self.config_file)
+        # GKE API `Cluster` resource, set only when GKE metadata was fetched for this cluster.
+        self.gke_cluster = gke_cluster
+        # Pre-computed TLS posture for clients built without a kubeconfig.
+        self.tls_diagnostics = tls_diagnostics
+        self.core = K8CoreApiClient(self.name, self.config_file, api_client)
+        self.networking = K8NetworkingApiClient(self.name, self.config_file, api_client)
+        self.version = K8VersionApiClient(self.name, self.config_file, api_client)
+        self.rbac = K8RbacApiClient(self.name, self.config_file, api_client)
+        self.custom = K8CustomObjectsApiClient(self.name, self.config_file, api_client)
+        self.apps = K8AppsApiClient(self.name, self.config_file, api_client)
+        self.batch = K8BatchApiClient(self.name, self.config_file, api_client)
+        self.storage = K8StorageApiClient(self.name, self.config_file, api_client)
+
+
+def get_gke_cluster_ref(client: K8sClient) -> GKEClusterRef | None:
+    """Return the GKE cluster reference for a client with GKE metadata, otherwise None."""
+    if not client.gke_cluster:
+        return None
+    return parse_cluster_ref(client.gke_cluster["resource_name"])
+
+
+@dataclass(frozen=True)
+class GKENetworkScope:
+    """Where a GKE cluster's load balancers live: its project and VPC network path."""
+
+    project_id: str
+    network: str | None
+
+
+def get_gke_network_scope(client: K8sClient) -> GKENetworkScope | None:
+    """Return the project and `projects/.../global/networks/...` path of a GKE cluster."""
+    ref = get_gke_cluster_ref(client)
+    if ref is None or not client.gke_cluster:
+        return None
+    network = (client.gke_cluster.get("networkConfig") or {}).get("network")
+    if not network and client.gke_cluster.get("network"):
+        network = (
+            f"projects/{ref.project}/global/networks/{client.gke_cluster['network']}"
+        )
+    if network:
+        network = re.sub(r"^https://[a-z.]+googleapis\.com/compute/v1/", "", network)
+    return GKENetworkScope(ref.project, network)
+
+
+def gcp_forwarding_rule_match_keys(
+    ips: list[str], scope: GKENetworkScope | None
+) -> dict[str, Any]:
+    """
+    Split load balancer addresses for matching GCP forwarding rules. Non-global
+    addresses can repeat across VPCs, so they also match on network; global ones are
+    unique and match on project alone.
+    """
+    public: list[str] = []
+    private: list[str] = []
+    if scope is not None:
+        for ip in ips:
+            try:
+                is_global = ipaddress.ip_address(ip).is_global
+            except ValueError:
+                logger.warning(
+                    "Ignoring invalid load balancer address %r when matching GCP "
+                    "forwarding rules.",
+                    ip,
+                )
+                continue
+            (public if is_global else private).append(ip)
+    return {
+        "gcp_project_id": scope.project_id if scope else None,
+        "gcp_network": scope.network if scope else None,
+        "gcp_public_lb_ips": public,
+        "gcp_private_lb_ips": private,
+    }
 
 
 def get_k8s_clients(kubeconfig: str) -> list[K8sClient]:
@@ -219,6 +294,19 @@ def get_k8s_clients(kubeconfig: str) -> list[K8sClient]:
 
 def get_qualified_resource_name(namespace: str, name: str) -> str:
     return f"{namespace}/{name}"
+
+
+def index_pods_by_namespace(
+    pods: Iterable[dict[str, Any]],
+) -> dict[str, list[tuple[str, dict[str, str]]]]:
+    """
+    Group transformed pods by namespace as ``(uid, labels)`` pairs, parsing each pod's
+    labels once, so matching a selector scans only its own namespace.
+    """
+    index: dict[str, list[tuple[str, dict[str, str]]]] = defaultdict(list)
+    for pod in pods:
+        index[pod["namespace"]].append((pod["uid"], json.loads(pod["labels"]) or {}))
+    return index
 
 
 def get_controller_owner_reference(metadata: Any) -> tuple[str, str] | None:
@@ -333,59 +421,60 @@ def parse_rfc3339(value: str | None) -> datetime | None:
     return isoparse(value)
 
 
-def k8s_paginate(
-    list_func: Callable,
-    raise_on_forbidden: bool = False,
-    raise_on_error: bool = False,
-    **kwargs: Any,
-) -> list[dict[str, Any]]:
+DEFAULT_PAGE_SIZE = 500
+MAX_EXPIRED_CONTINUES = 10
+
+
+def k8s_paginate(list_func: Callable, **kwargs: Any) -> Iterator[Any]:
     """
-    Handles pagination for a Kubernetes API call.
+    Lazily yield every resource of a paginated Kubernetes list call.
+
+    Only the page being consumed is held in memory: a deserialized client model is an
+    order of magnitude larger than its transformed dict, so a caller should transform
+    resources as they are yielded rather than collecting them first. Nothing is
+    fetched until the iterator is consumed, so an ``ApiException`` surfaces there.
 
     :param list_func: The list function to call (e.g. client.core.list_pod_for_all_namespaces)
-    :param raise_on_forbidden: When True, re-raise ApiException with status 401/403 so the caller
-        can handle missing permissions (used for optional RBAC verbs). Other ApiExceptions are still
-        logged and swallowed.
-    :param raise_on_error: When True, re-raise *any* ApiException (after logging) instead of
-        swallowing it and returning a partial result. Use when a partial result must not be
-        mistaken for a complete one (e.g. the workload sync, where missing controller nodes would
-        leave pods with unmatched WORKLOAD_PARENT edges and trigger a destructive cleanup).
     :param kwargs: Keyword arguments to pass to the list function (e.g. limit=100)
-    :return: A list of all resources returned by the list function
+    :raises ApiException: When any page fails, so a partial list is never mistaken for a
+        complete one and cleanup never prunes the resources it did not reach.
     """
-    all_resources = []
-    for page in k8s_paginate_pages(
-        list_func,
-        raise_on_forbidden=raise_on_forbidden,
-        raise_on_error=raise_on_error,
-        **kwargs,
-    ):
-        all_resources.extend(page)
+    count = 0
+    for page in k8s_paginate_pages(list_func, **kwargs):
+        count += len(page)
+        yield from page
 
     logger.debug(
         "Completed pagination for %s: retrieved %s resources",
         list_func.__name__,
-        len(all_resources),
+        count,
     )
-    return all_resources
 
 
-def k8s_paginate_pages(
-    list_func: Callable,
-    raise_on_forbidden: bool = False,
-    raise_on_error: bool = False,
-    **kwargs: Any,
-) -> Iterator[list[Any]]:
+def _resume_token(error: ApiException) -> str | None:
+    """Return the continue token the API server sends with a 410 for an expired one."""
+    try:
+        return json.loads(error.body)["metadata"]["continue"] or None
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def k8s_paginate_pages(list_func: Callable, **kwargs: Any) -> Iterator[list[Any]]:
     """
     Lazily yield each page of a paginated Kubernetes list call.
 
-    Same semantics as ``k8s_paginate``, but lets the caller transform and drop each page
-    before the next one is fetched. Use this for high-cardinality resources (e.g. pods):
-    the deserialized client models are an order of magnitude larger than the transformed
-    dicts, so holding every page at once can exhaust memory on large clusters.
+    A continue token lives only until etcd compacts its revision (five minutes by
+    default), so a slow list of a large cluster can get 410 Gone partway through. The
+    API server then returns a token that resumes from the next key at the latest
+    revision, and this function continues with it, up to ``MAX_EXPIRED_CONTINUES``
+    times. That remainder is read from a newer snapshot than the pages before it, which
+    is fine for an inventory sync: an object deleted in between is absent from the
+    remainder and cleaned up, and one created before the next key waits for the next
+    sync. A 410 without such a token raises like any other error.
     """
     continue_token = None
-    limit = kwargs.pop("limit", 100)
+    resumes = 0
+    limit = kwargs.pop("limit", DEFAULT_PAGE_SIZE)
     function_name = list_func.__name__
 
     logger.debug("Starting pagination for %s with limit %s.", function_name, limit)
@@ -397,22 +486,29 @@ def k8s_paginate_pages(
             else:
                 response = list_func(limit=limit, **kwargs)
         except ApiException as e:
-            is_forbidden = e.status in (401, 403)
-            # 401/403 re-raise quietly so the caller can log a permission-specific
-            # message; other errors are logged here before propagating (or being
-            # swallowed when neither raise flag is set).
-            if is_forbidden and (raise_on_forbidden or raise_on_error):
-                raise
-            logger.error(
-                "Kubernetes API error retrieving %s resources. %s: %s - %s",
-                function_name,
-                e,
-                e.status,
-                e.reason,
-            )
-            if raise_on_error:
-                raise
-            return
+            resume_token = _resume_token(e) if e.status == 410 else None
+            if continue_token and resume_token and resumes < MAX_EXPIRED_CONTINUES:
+                resumes += 1
+                logger.warning(
+                    "Continue token for %s expired; resuming the list from the latest "
+                    "snapshot (resume %d of at most %d).",
+                    function_name,
+                    resumes,
+                    MAX_EXPIRED_CONTINUES,
+                )
+                continue_token = resume_token
+                continue
+            # 401/403 propagate quietly so the caller can log a permission-specific
+            # message.
+            if e.status not in (401, 403):
+                logger.error(
+                    "Kubernetes API error retrieving %s resources. %s: %s - %s",
+                    function_name,
+                    e,
+                    e.status,
+                    e.reason,
+                )
+            raise
 
         # Check if items exists on the response
         if not hasattr(response, "items"):
@@ -435,3 +531,54 @@ def k8s_paginate_pages(
         if not continue_token:
             logger.debug("No more %s resources to retrieve.", function_name)
             return
+
+
+def list_cluster_custom_objects(
+    client: K8sClient,
+    group: str,
+    version: str,
+    plural: str,
+) -> list[dict[str, Any]]:
+    resource_name = f"{group}/{version}/{plural}"
+    all_resources: list[dict[str, Any]] = []
+    continue_token: str | None = None
+
+    while True:
+        kwargs: dict[str, Any] = {}
+        if continue_token:
+            kwargs["_continue"] = continue_token
+
+        try:
+            response = client.custom.list_cluster_custom_object(
+                group=group,
+                version=version,
+                plural=plural,
+                limit=100,
+                **kwargs,
+            )
+        except ApiException as err:
+            if err.status == 404:
+                logger.info(
+                    "Skipping %s for cluster %s because the CRD is not installed.",
+                    resource_name,
+                    client.name,
+                )
+                return []
+
+            logger.warning(
+                "Failed to fetch %s resources for cluster %s: %s",
+                resource_name,
+                client.name,
+                err,
+            )
+            raise
+
+        items = response["items"]
+        all_resources.extend(items)
+
+        continue_token = response.get("metadata", {}).get("continue")
+        if not continue_token:
+            break
+
+    logger.debug("Fetched %d %s resources", len(all_resources), resource_name)
+    return all_resources

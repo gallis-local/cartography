@@ -132,6 +132,46 @@ modal_mapping = OntologyMapping(
     ],
 )
 
+langsmith_mapping = OntologyMapping(
+    module_name="langsmith",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="LangSmithServiceAccount",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # email: Not available - LangSmith service accounts are not mailboxes and
+                # carry no email address.
+                # active: Not available - the service account endpoint reports no
+                # enabled/disabled state.
+            ],
+        ),
+    ],
+)
+
+onepassword_mapping = OntologyMapping(
+    module_name="onepassword",
+    nodes=[
+        OntologyNodeMapping(
+            node_label="OnePasswordServiceAccount",
+            fields=[
+                OntologyFieldMapping(
+                    ontology_field="name", node_field="name", required=True
+                ),
+                # email: Not available - 1Password service accounts have no mailbox.
+                OntologyFieldMapping(
+                    ontology_field="active",
+                    node_field="state",
+                    extra={"values": ["ACTIVE"]},
+                    special_handling="equal_boolean",
+                ),
+            ],
+        ),
+    ],
+)
+
+
 SERVICEACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "gcp": gcp_mapping,
     "kubernetes": kubernetes_mapping,
@@ -139,6 +179,7 @@ SERVICEACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
     "scaleway": scaleway_mapping,
     "aws": aws_mapping,
     "microsoft": microsoft_mapping,
+    "onepassword": onepassword_mapping,
     "databricks": OntologyMapping(
         module_name="databricks",
         nodes=[
@@ -188,4 +229,5 @@ SERVICEACCOUNTS_ONTOLOGY_MAPPING: dict[str, OntologyMapping] = {
             ),
         ],
     ),
+    "langsmith": langsmith_mapping,
 }
